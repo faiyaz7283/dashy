@@ -54,6 +54,12 @@ jobs:
       - name: Install uv
         run: pip install uv
 
+      - name: Prepare test environment configuration
+        run: |
+          cp env/.env.test.example env/.env.test
+          cp env/.env.test backend/.env
+          echo "✅ Test environment configuration prepared"
+
       - name: Install dependencies
         working-directory: ./backend
         run: uv sync --frozen

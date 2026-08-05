@@ -24,7 +24,7 @@ class Settings(BaseSettings):
     OPENWEATHERMAP_LAT: float = 40.7259
     OPENWEATHERMAP_LON: float = -73.5143
 
-    # Family (must be set in .env file)
+    # Family
     FAMILY_MEMBERS: str
 
     class Config:
