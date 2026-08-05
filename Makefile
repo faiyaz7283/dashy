@@ -310,20 +310,11 @@ deploy-status:
 
 deploy-pi:
 	@echo "🚀 Deploying to Raspberry Pi (production)..."
-	@echo "📥 Pulling latest main branch locally..."
-	@git checkout main
-	@git pull origin main
-	@echo "🔄 Pushing to Pi..."
 	@ssh $(PI_HOST) "cd $(PI_DIR) && git pull origin main"
 	@ssh $(PI_HOST) "cd $(PI_DIR) && docker compose -f compose/docker-compose.prod.yml down"
 	@ssh $(PI_HOST) "cd $(PI_DIR) && docker compose -f compose/docker-compose.prod.yml up -d --build"
 	@echo "🔄 Restarting Chromium kiosk..."
 	@ssh $(PI_HOST) "sudo systemctl restart lightdm"
-	@echo "🔍 Verifying deployment..."
-	@ssh $(PI_HOST) "curl -sk https://dashy.local > /dev/null && echo '✅ Frontend accessible' || echo '❌ Frontend failed'"
-	@ssh $(PI_HOST) "curl -sk https://api.dashy.local/health > /dev/null && echo '✅ Backend accessible' || echo '❌ Backend failed'"
-	@echo "🔀 Switching back to development branch..."
-	@git checkout development
 	@echo "✅ Deployment complete!"
 	@echo "   Frontend: https://dashy.local"
 	@echo "   Backend:  https://api.dashy.local"
