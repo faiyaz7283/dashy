@@ -311,7 +311,6 @@ deploy-status:
 deploy-pi:
 	@echo "🚀 Deploying to Raspberry Pi (production)..."
 	@ssh $(PI_HOST) "cd $(PI_DIR) && git pull origin main"
-	@ssh $(PI_HOST) "cd $(PI_DIR) && cp -r pi-setup/traefik compose/"
 	@ssh $(PI_HOST) "cd $(PI_DIR) && docker compose -f compose/docker-compose.prod.yml down"
 	@ssh $(PI_HOST) "cd $(PI_DIR) && docker compose -f compose/docker-compose.prod.yml up -d --build"
 	@echo "🔄 Restarting Chromium kiosk..."
