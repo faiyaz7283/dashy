@@ -1,10 +1,10 @@
 import type { FamilyMember, CalendarEvent } from '../types'
 
 export const familyMembers: FamilyMember[] = [
-  { name: 'Faiyaz', key: 'faiyaz', calendarId: 'faiyaz@gmail.com', color: '#4A90E2', initial: 'F' },
-  { name: 'Trisha', key: 'trisha', calendarId: 'trisha@gmail.com', color: '#E24A8D', initial: 'T' },
-  { name: 'Arya', key: 'arya', calendarId: 'arya@gmail.com', color: '#4ADE80', initial: 'A' },
-  { name: 'Raya', key: 'raya', calendarId: 'raya@gmail.com', color: '#FBBF24', initial: 'R' },
+  { name: 'Faiyaz', key: 'faiyaz', calendar_id: 'faiyaz@gmail.com', color: '#4A90E2', initial: 'F' },
+  { name: 'Trisha', key: 'trisha', calendar_id: 'trisha@gmail.com', color: '#E24A8D', initial: 'T' },
+  { name: 'Arya', key: 'arya', calendar_id: 'arya@gmail.com', color: '#4ADE80', initial: 'A' },
+  { name: 'Raya', key: 'raya', calendar_id: 'raya@gmail.com', color: '#FBBF24', initial: 'R' },
 ]
 
 export const mockEvents: CalendarEvent[] = [
@@ -102,7 +102,7 @@ export const mockEvents: CalendarEvent[] = [
     title: 'Science Fair Project',
     start: '2026-08-08T00:00',
     end: '2026-08-08T23:59',
-    allDay: true,
+    all_day: true,
     members: ['arya', 'faiyaz'],
   },
   {
