@@ -1,15 +1,47 @@
+name: dashy-prod
+
 services:
+  # Traefik Reverse Proxy
+  traefik:
+    image: traefik:v3.7
+    container_name: dashy-traefik
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+      - "8080:8080"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./traefik/traefik.yml:/etc/traefik/traefik.yml:ro
+      - ./traefik/certs:/certs:ro
+    networks:
+      - dashy-network
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.dashboard.rule=Host(`traefik.local`)"
+      - "traefik.http.routers.dashboard.service=api@internal"
+      - "traefik.http.routers.dashboard.entrypoints=websecure"
+      - "traefik.http.routers.dashboard.tls=true"
+
+  # Frontend (React + Vite built with Nginx)
   frontend:
     build:
       context: ../frontend
       dockerfile: Dockerfile
     container_name: dashy-frontend
-    ports:
-      - "80:80"
-    restart: unless-stopped
+    expose:
+      - "80"
     networks:
       - dashy-network
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.dashy-frontend.rule=Host(`dashy.local`)"
+      - "traefik.http.routers.dashy-frontend.entrypoints=websecure"
+      - "traefik.http.routers.dashy-frontend.tls=true"
+      - "traefik.http.services.dashy-frontend.loadbalancer.server.port=80"
+    restart: unless-stopped
 
+  # Backend (FastAPI + UV)
   backend:
     build:
       context: ../backend
@@ -19,9 +51,15 @@ services:
       - ../env/.env.prod
     expose:
       - "8000"
-    restart: unless-stopped
     networks:
       - dashy-network
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.dashy-backend.rule=Host(`api.dashy.local`)"
+      - "traefik.http.routers.dashy-backend.entrypoints=websecure"
+      - "traefik.http.routers.dashy-backend.tls=true"
+      - "traefik.http.services.dashy-backend.loadbalancer.server.port=8000"
+    restart: unless-stopped
 
 networks:
   dashy-network:
