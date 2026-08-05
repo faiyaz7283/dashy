@@ -308,6 +308,17 @@ deploy:
 deploy-status:
 	@ssh $(PI_HOST) "cd $(PI_DIR) && docker compose -f compose/docker-compose.prod.yml ps"
 
+deploy-pi:
+	@echo "🚀 Deploying to Raspberry Pi (production)..."
+	@ssh $(PI_HOST) "cd $(PI_DIR) && git pull origin main"
+	@ssh $(PI_HOST) "cd $(PI_DIR) && cp -r pi-setup/traefik compose/"
+	@ssh $(PI_HOST) "cd $(PI_DIR) && docker compose -f compose/docker-compose.prod.yml down"
+	@ssh $(PI_HOST) "cd $(PI_DIR) && docker compose -f compose/docker-compose.prod.yml up -d --build"
+	@echo "✅ Deployment complete!"
+	@echo "   Frontend: https://dashy.local"
+	@echo "   Backend:  https://api.dashy.local"
+	@echo "   Traefik:  https://traefik.local:8080"
+
 deploy-logs:
 	@ssh $(PI_HOST) "cd $(PI_DIR) && docker compose -f compose/docker-compose.prod.yml logs -f"
 
