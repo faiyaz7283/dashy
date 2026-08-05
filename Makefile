@@ -245,6 +245,11 @@ install-backend:
 	@docker compose -f compose/docker-compose.dev.yml exec -T backend uv sync
 	@echo "✅ Backend dependencies installed"
 
+lock-backend:
+	@echo "🔒 Generating backend lockfile..."
+	@docker compose -f compose/docker-compose.dev.yml exec -T backend uv lock
+	@echo "✅ Backend lockfile generated"
+
 add-frontend:
 ifndef PACKAGE
 	$(error PACKAGE is required. Usage: make add-frontend PACKAGE=<package-name>)

@@ -13,7 +13,7 @@ interface UseApiOptions {
 
 export function useApi<T>(
   fetchFn: () => Promise<T>,
-  deps: unknown[] = [],
+  _deps: unknown[] = [],
   options: UseApiOptions = {},
 ): UseApiResult<T> {
   const [data, setData] = useState<T | null>(null)
@@ -39,9 +39,10 @@ export function useApi<T>(
     }
   }, [])
 
+  // Initial fetch
   useEffect(() => {
     fetchData()
-  }, [fetchData, ...deps])
+  }, [fetchData])
 
   // Auto-refresh interval
   useEffect(() => {
