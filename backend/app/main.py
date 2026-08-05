@@ -1,7 +1,8 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+
 from app.config import settings
-from app.routes import calendar, weather, family
+from app.routes import calendar, family, weather
 
 app = FastAPI(
     title="Dashy API",

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 
 interface UseApiResult<T> {
   data: T | null
@@ -13,29 +13,36 @@ interface UseApiOptions {
 
 export function useApi<T>(
   fetchFn: () => Promise<T>,
-  deps: unknown[] = [],
-  options: UseApiOptions = {}
+  _deps: unknown[] = [],
+  options: UseApiOptions = {},
 ): UseApiResult<T> {
   const [data, setData] = useState<T | null>(null)
-  const [loading, setLoading] = useState(true)
+  const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const fetchFnRef = useRef(fetchFn)
 
-  const fetchData = async () => {
+  // Keep ref in sync with latest fetchFn
+  useEffect(() => {
+    fetchFnRef.current = fetchFn
+  }, [fetchFn])
+
+  const fetchData = useCallback(async () => {
     setLoading(true)
     setError(null)
     try {
-      const result = await fetchFn()
+      const result = await fetchFnRef.current()
       setData(result)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Unknown error')
     } finally {
       setLoading(false)
     }
-  }
+  }, [])
 
+  // Initial fetch
   useEffect(() => {
     fetchData()
-  }, deps)
+  }, [fetchData])
 
   // Auto-refresh interval
   useEffect(() => {
@@ -48,7 +55,7 @@ export function useApi<T>(
     }, options.refetchInterval)
 
     return () => clearInterval(interval)
-  }, [options.refetchInterval])
+  }, [fetchData, options.refetchInterval])
 
   return { data, loading, error, refetch: fetchData }
 }

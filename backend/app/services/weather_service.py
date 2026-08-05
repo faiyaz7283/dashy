@@ -4,6 +4,7 @@ OpenWeatherMap service.
 Fetches current weather and forecast from OpenWeatherMap API.
 Falls back to mock data when API key is not available.
 """
+
 import httpx
 
 from app.config import settings
@@ -103,9 +104,7 @@ async def get_weather() -> WeatherResponse:
                     daily_data[date]["high"] = max(
                         daily_data[date]["high"], item["main"]["temp_max"]
                     )
-                    daily_data[date]["low"] = min(
-                        daily_data[date]["low"], item["main"]["temp_min"]
-                    )
+                    daily_data[date]["low"] = min(daily_data[date]["low"], item["main"]["temp_min"])
 
             forecast = [
                 WeatherForecast(

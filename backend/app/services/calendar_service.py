@@ -5,6 +5,7 @@ Fetches events from each family member's personal Google Calendar.
 Color-codes events by which member's calendar they came from.
 Falls back to mock data when credentials are not available.
 """
+
 import os
 from datetime import datetime, timedelta
 
@@ -26,9 +27,7 @@ def _get_credentials() -> service_account.Credentials | None:
     if not json_path or not os.path.exists(json_path):
         return None
     try:
-        return service_account.Credentials.from_service_account_file(
-            json_path, scopes=SCOPES
-        )
+        return service_account.Credentials.from_service_account_file(json_path, scopes=SCOPES)
     except Exception:
         return None
 

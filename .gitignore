@@ -1,4 +1,7 @@
 # Environment files
+# Ignore ALL actual env files in env/ directory (they contain secrets)
+# Only commit .example files
+env/.env
 env/.env.*
 !env/.env.*.example
 
@@ -28,10 +31,8 @@ MANIFEST
 # Virtual environments
 .venv/
 venv/
-ENV/
-
-# UV
-uv.lock
+# Virtual env directory (uppercase only, in subdirectories)
+[E][N][V]/
 
 # IDE
 .vscode/
@@ -62,3 +63,4 @@ htmlcov/
 
 # Logs
 *.log
+backend/credentials/

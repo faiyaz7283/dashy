@@ -1,5 +1,6 @@
-from pydantic import BaseModel
 from typing import Literal
+
+from pydantic import BaseModel
 
 
 class FamilyMember(BaseModel):
@@ -14,14 +15,14 @@ class CalendarEvent(BaseModel):
     id: str
     title: str
     start: str  # ISO format
-    end: str    # ISO format
+    end: str  # ISO format
     all_day: bool = False
     members: list[str]  # list of member keys
 
 
 class WeekCalendar(BaseModel):
     week_start: str  # ISO date (Monday)
-    week_end: str    # ISO date (Sunday)
+    week_end: str  # ISO date (Sunday)
     events: list[CalendarEvent]
 
 

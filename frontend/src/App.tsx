@@ -13,7 +13,11 @@ export function App() {
 
   const { data: calendar, loading: calendarLoading, error: calendarError } = useApi(getCalendar, [])
   const { data: weather, loading: weatherLoading, error: weatherError } = useApi(getWeather, [])
-  const { data: familyMembers, loading: familyLoading, error: familyError } = useApi(getFamilyMembers, [])
+  const {
+    data: familyMembers,
+    loading: familyLoading,
+    error: familyError,
+  } = useApi(getFamilyMembers, [])
 
   if (calendarLoading || weatherLoading || familyLoading) {
     return (

@@ -1,4 +1,5 @@
 from fastapi import APIRouter
+
 from app.models import WeatherResponse
 from app.services.weather_service import get_weather
 

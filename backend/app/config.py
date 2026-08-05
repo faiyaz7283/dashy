@@ -1,6 +1,6 @@
 import json
+
 from pydantic_settings import BaseSettings
-from typing import Optional
 
 
 class FamilyMemberConfig:
@@ -16,16 +16,16 @@ class Settings(BaseSettings):
     ENVIRONMENT: str = "development"
 
     # Google Calendar
-    GOOGLE_CALENDAR_ID: str = "test-calendar@group.calendar.google.com"
-    GOOGLE_SERVICE_ACCOUNT_JSON: str = "/app/credentials/test.json"
+    GOOGLE_CALENDAR_ID: str
+    GOOGLE_SERVICE_ACCOUNT_JSON: str
 
     # OpenWeatherMap
-    OPENWEATHERMAP_API_KEY: str = "test-api-key"
+    OPENWEATHERMAP_API_KEY: str
     OPENWEATHERMAP_LAT: float = 40.7259
     OPENWEATHERMAP_LON: float = -73.5143
 
     # Family
-    FAMILY_MEMBERS: str = '[{"name":"Faiyaz","key":"faiyaz","calendar_id":"faiyaz@gmail.com","color":"#4A90E2"},{"name":"Trisha","key":"trisha","calendar_id":"trisha@gmail.com","color":"#E24A8D"}]'
+    FAMILY_MEMBERS: str
 
     class Config:
         env_file = ".env"
