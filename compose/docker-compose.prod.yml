@@ -28,6 +28,8 @@ services:
     build:
       context: ../frontend
       dockerfile: Dockerfile
+      args:
+        VITE_API_URL: https://api.dashy.local
     container_name: dashy-frontend
     expose:
       - "80"
