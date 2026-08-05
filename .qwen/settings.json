@@ -3,7 +3,8 @@
     "allow": [
       "Bash(git checkout *)",
       "Bash(gh *)",
-      "Bash(ssh *)"
+      "Bash(ssh *)",
+      "Bash(git branch *)"
     ]
   },
   "$version": 4
