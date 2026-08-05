@@ -6,12 +6,14 @@
 
 ### Current Status
 
-- **Phase:** Real API services built with graceful mock fallback. Frontend fully integrated with backend API.
+- **Phase:** Production deployed and working on Raspberry Pi with kiosk mode
 - **Pi:** Raspberry Pi 4 (4GB), Raspberry Pi OS 64-bit (Bookworm/Debian 13), SSH accessible at `rpi4_main@dashy.local` (192.168.1.194)
 - **Repo:** `git@github.com:faiyaz7283/dashy.git`
 - **Directory:** `/Users/admin/dashy/` (flattened — no nested `dashy/dashy/`)
 - **Local Dev URLs:** https://dashy.local (frontend), https://api.dashy.local (backend)
+- **Pi URLs:** https://dashy.local (frontend), https://api.dashy.local (backend)
 - **API Services:** Google Calendar + OpenWeatherMap (fall back to mock when credentials missing)
+- **Kiosk:** Chromium auto-starts on boot, displays dashboard with real calendar data
 
 ---
 
@@ -37,7 +39,14 @@
 dashy/
 ├── compose/               # Docker Compose files
 │   ├── docker-compose.dev.yml      # Development environment
-│   ── docker-compose.prod.yml.example  # Production template
+│   ├── docker-compose.prod.yml     # Production environment
+│   ├── docker-compose.prod.yml.example  # Production template
+│   └── traefik/           # Traefik config files (copied to Pi)
+│       ├── traefik.yml
+│       └── certs/
+│           ├── _wildcard.local-key.pem
+│           ├── _wildcard.local.pem
+│           └── tls.yml
 ├── env/                   # Environment variables
 │   ├── .env.dev.example   # Template (committed)
 │   └── .env.dev           # Actual values (gitignored)
@@ -50,32 +59,35 @@ dashy/
 │   │   │   ├── WeekGrid/
 │   │   │   ├── DayCard/
 │   │   │   ├── EventCard/
-│   │   │   ── WeatherWidget/
+│   │   │   ├── WeatherWidget/
+│   │   │   └── Clock/
 │   │   ├── data/          # Mock data (replaced by API calls later)
-│   │   ├── hooks/         # Custom hooks (useOrientation, useSidebar)
+│   │   ├── hooks/         # Custom hooks (useOrientation, useSidebar, useApi)
+│   │   ├── services/      # API service layer (api.ts with retry logic)
 │   │   ├── types/         # TypeScript type definitions
 │   │   ├── test/          # Test setup
 │   │   ├── App.tsx
-│   │   ── main.tsx
+│   │   └── main.tsx
 │   ├── .husky/            # Git pre-commit hooks
 │   ├── eslint.config.js
 │   ├── vitest.config.ts
 │   ├── vite.config.ts
 │   ├── package.json
-│   ├── Dockerfile         # Production build
+│   ├── Dockerfile         # Production build (with VITE_API_URL build arg)
 │   ├── Dockerfile.dev     # Development with HMR
-│   └── nginx.conf         # Production nginx config
+│   └── nginx.conf         # Production nginx config (with cache-busting headers)
 ├── backend/               # Python FastAPI + UV
 │   ├── app/
-│   │   ├── main.py        # FastAPI app
+│   │   ├── main.py        # FastAPI app (with CORS middleware)
 │   │   └── config.py      # Pydantic settings (loads from .env)
+│   ├── routes/            # API route handlers
 │   ├── tests/
 │   ├── pyproject.toml     # UV dependencies
 │   ├── uv.lock            # Locked dependencies (committed)
 │   ├── Dockerfile         # Production build
 │   └── Dockerfile.dev     # Development with reload
 ├── mockups/               # Approved HTML mockups (design reference)
-├── Makefile               # All commands (Docker-first)
+├── Makefile               # All commands (Docker-first, includes deploy-pi)
 ├── .gitignore
 ├── QWEN.md
 └── README.md
@@ -136,6 +148,29 @@ make clean      # Stop and clean all environments
 - **Branch:** `development` for all work, `main` for stable releases
 - **Commits:** Atomic, clear messages describing "why" not just "what"
 - **Co-author:** Always include `Co-Authored-By: Qwen Code <qwen@alibabacloud.com>`
+- **PR Flow:** Work on `development` → Create PR → Merge to `main` → Deploy to Pi
+
+### Deployment Workflow (Automated)
+
+```bash
+make deploy-pi
+```
+
+This command:
+1. Pulls latest `main` branch locally
+2. Pushes to Pi (pulls `main` on Pi)
+3. Stops containers on Pi
+4. Builds frontend with `--no-cache` (ensures build args are applied)
+5. Starts containers on Pi
+6. Restarts Chromium kiosk
+7. Verifies frontend and backend are accessible
+8. Switches back to `development` branch locally
+
+**Key points:**
+- Always use `make deploy-pi` for Pi deployments (never manual steps)
+- Frontend always builds fresh with `--no-cache` (Docker cache issue with build args)
+- Kiosk auto-restarts after deployment
+- Local machine stays on `development` branch after deployment
 
 ### Frontend-First Approach
 
@@ -190,6 +225,78 @@ Children (Arya, 8 and Raya, 4) are not in v1 calendar scope but the system suppo
 - **Boot medium:** microSD card (64GB)
 - **Display:** 1080p HDMI (Hisense), NOT touchscreen
 - **Kiosk mode:** Chromium auto-start on boot, full-screen
+
+---
+
+## Known Issues & Resolutions
+
+### "Error: Failed to fetch" on Pi Kiosk
+
+**Problem:** Pi kiosk showed "Error: Failed to fetch" after deployment.
+
+**Root causes:**
+1. Browser cached old JS bundles from previous builds
+2. Backend wasn't ready when kiosk started (race condition)
+3. Network issues caused transient fetch failures
+
+**Solutions implemented:**
+1. **Cache-busting headers** (nginx.conf) — Prevents browser caching of JS bundles
+   ```
+   Cache-Control: no-cache, no-store, must-revalidate
+   Pragma: no-cache
+   Expires: 0
+   ```
+2. **Retry logic with exponential backoff** (api.ts) — 3 retries with 1s, 2s, 4s delays
+3. **Health check before fetching** (App.tsx) — Waits up to 30s for backend, shows "Connecting to backend..." message
+4. **Deploy with --no-cache** (Makefile) — Ensures build args are always applied
+
+### Docker Build Cache Issue with VITE_API_URL
+
+**Problem:** Docker's build cache doesn't track `ARG` instructions in the cache key. When `VITE_API_URL` changed, Docker used cached layers with the old value baked into the JS bundle.
+
+**Solution:** `make deploy-pi` uses `--no-cache` for frontend builds to ensure build args are always applied.
+
+### mkcert Certificate Trust on Pi
+
+**Problem:** Chromium on Pi didn't trust mkcert certificates, showing certificate warnings.
+
+**Solution:** Imported mkcert root CA into Chromium's NSS database on Pi:
+```bash
+certutil -d sql:/home/rpi4_main/.pki/nssdb -A -t 'C,,' -n 'mkcert' -i /tmp/rootCA.pem
+```
+
+---
+
+## Raspberry Pi Deployment Details
+
+### Kiosk Mode Setup
+
+- **Browser:** Chromium with kiosk flags
+- **URL:** `https://dashy.local` (HTTPS via Traefik)
+- **Auto-start:** systemd service (`lightdm`) restarts on boot
+- **Certificate:** mkcert root CA imported into Chromium's NSS database
+
+### Deployment Command
+
+```bash
+make deploy-pi
+```
+
+This fully automated command:
+1. Syncs local `main` branch
+2. Deploys to Pi (git pull, docker compose up --build)
+3. Restarts Chromium kiosk
+4. Verifies deployment
+5. Switches back to `development` branch
+
+### Pi Environment
+
+- **Hostname:** `dashy`
+- **Username:** `rpi4_main`
+- **IP:** 192.168.1.194 (DHCP, may change)
+- **SSH:** Key-based auth (ed25519)
+- **Boot medium:** microSD card (64GB)
+- **Display:** 1080p HDMI (Hisense), NOT touchscreen
 
 ---
 
