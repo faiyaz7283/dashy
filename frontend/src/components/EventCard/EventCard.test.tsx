@@ -4,8 +4,20 @@ import { EventCard } from './EventCard'
 import type { CalendarEvent, FamilyMember } from '../../types'
 
 const mockMembers: FamilyMember[] = [
-  { name: 'Faiyaz', key: 'faiyaz', calendar_id: 'faiyaz@gmail.com', color: '#4A90E2', initial: 'F' },
-  { name: 'Trisha', key: 'trisha', calendar_id: 'trisha@gmail.com', color: '#E24A8D', initial: 'T' },
+  {
+    name: 'Faiyaz',
+    key: 'faiyaz',
+    calendar_id: 'faiyaz@gmail.com',
+    color: '#4A90E2',
+    initial: 'F',
+  },
+  {
+    name: 'Trisha',
+    key: 'trisha',
+    calendar_id: 'trisha@gmail.com',
+    color: '#E24A8D',
+    initial: 'T',
+  },
 ]
 
 const mockEvent: CalendarEvent = {
