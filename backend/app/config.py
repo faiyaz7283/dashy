@@ -1,6 +1,6 @@
 import json
+
 from pydantic_settings import BaseSettings
-from typing import Optional
 
 
 class FamilyMemberConfig:
@@ -25,7 +25,11 @@ class Settings(BaseSettings):
     OPENWEATHERMAP_LON: float = -73.5143
 
     # Family
-    FAMILY_MEMBERS: str = '[{"name":"Faiyaz","key":"faiyaz","calendar_id":"faiyaz@gmail.com","color":"#4A90E2"},{"name":"Trisha","key":"trisha","calendar_id":"trisha@gmail.com","color":"#E24A8D"}]'
+    FAMILY_MEMBERS: str = (
+        '[{"name":"Faiyaz","key":"faiyaz","calendar_id":"faiyaz@gmail.com",'
+        '"color":"#4A90E2"},{"name":"Trisha","key":"trisha",'
+        '"calendar_id":"trisha@gmail.com","color":"#E24A8D"}]'
+    )
 
     class Config:
         env_file = ".env"

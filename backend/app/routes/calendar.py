@@ -1,4 +1,5 @@
 from fastapi import APIRouter
+
 from app.models import WeekCalendar
 from app.services.calendar_service import get_calendar_events
 
