@@ -1,0 +1,28 @@
+services:
+  frontend:
+    build:
+      context: ../frontend
+      dockerfile: Dockerfile
+    container_name: dashy-frontend
+    ports:
+      - "80:80"
+    restart: unless-stopped
+    networks:
+      - dashy-network
+
+  backend:
+    build:
+      context: ../backend
+      dockerfile: Dockerfile
+    container_name: dashy-backend
+    env_file:
+      - ../env/.env.prod
+    expose:
+      - "8000"
+    restart: unless-stopped
+    networks:
+      - dashy-network
+
+networks:
+  dashy-network:
+    driver: bridge

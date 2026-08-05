@@ -1,0 +1,13 @@
+FROM node:24-alpine
+
+WORKDIR /app
+
+# Copy only package files for dependency installation
+COPY package.json package-lock.json* ./
+RUN npm ci
+
+# Don't COPY source - it's mounted via volume
+
+EXPOSE 3000
+
+CMD ["npm", "run", "dev", "--", "--host", "0.0.0.0"]

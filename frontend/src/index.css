@@ -1,0 +1,9 @@
+@import "tailwindcss";
+
+@theme {
+  --color-faiyaz: #4A90E2;
+  --color-trisha: #E24A8D;
+  --color-arya: #4ADE80;
+  --color-raya: #FBBF24;
+  --font-sans: 'Inter', system-ui, sans-serif;
+}

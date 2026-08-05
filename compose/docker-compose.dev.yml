@@ -1,0 +1,59 @@
+name: dashy-dev
+
+services:
+  # Frontend (React + Vite)
+  frontend:
+    build:
+      context: ../frontend
+      dockerfile: Dockerfile.dev
+    container_name: dashy-dev-frontend
+    expose:
+      - "3000"
+    volumes:
+      - ../frontend:/app
+      - /app/node_modules
+    environment:
+      - VITE_API_URL=https://api.dashy.local
+    networks:
+      - dashy-dev-network
+      - traefik-public
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.dashy-dev-frontend.rule=Host(`dashy.local`)"
+      - "traefik.http.routers.dashy-dev-frontend.entrypoints=websecure"
+      - "traefik.http.routers.dashy-dev-frontend.tls=true"
+      - "traefik.http.routers.dashy-dev-frontend.service=dashy-dev-frontend"
+      - "traefik.http.services.dashy-dev-frontend.loadbalancer.server.port=3000"
+    restart: unless-stopped
+
+  # Backend (FastAPI + UV)
+  backend:
+    build:
+      context: ../backend
+      dockerfile: Dockerfile.dev
+    container_name: dashy-dev-backend
+    env_file:
+      - ../env/.env.dev
+    expose:
+      - "8000"
+    volumes:
+      - ../backend:/app
+    environment:
+      - PYTHONUNBUFFERED=1
+    networks:
+      - dashy-dev-network
+      - traefik-public
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.dashy-dev-backend.rule=Host(`api.dashy.local`)"
+      - "traefik.http.routers.dashy-dev-backend.entrypoints=websecure"
+      - "traefik.http.routers.dashy-dev-backend.tls=true"
+      - "traefik.http.routers.dashy-dev-backend.service=dashy-dev-backend"
+      - "traefik.http.services.dashy-dev-backend.loadbalancer.server.port=8000"
+    restart: unless-stopped
+
+networks:
+  dashy-dev-network:
+    driver: bridge
+  traefik-public:
+    external: true
