@@ -1,6 +1,10 @@
 import type { FamilyMember, WeekCalendar, WeatherResponse } from '../types'
 
-const API_BASE = import.meta.env.VITE_API_URL || 'https://api.dashy.local'
+const API_BASE = import.meta.env.VITE_API_URL
+
+if (!API_BASE) {
+  throw new Error('VITE_API_URL environment variable is required')
+}
 
 async function fetchJson<T>(url: string): Promise<T> {
   const response = await fetch(url)
