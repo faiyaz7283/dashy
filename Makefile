@@ -314,6 +314,8 @@ deploy-pi:
 	@ssh $(PI_HOST) "cd $(PI_DIR) && cp -r pi-setup/traefik compose/"
 	@ssh $(PI_HOST) "cd $(PI_DIR) && docker compose -f compose/docker-compose.prod.yml down"
 	@ssh $(PI_HOST) "cd $(PI_DIR) && docker compose -f compose/docker-compose.prod.yml up -d --build"
+	@echo "🔄 Restarting Chromium kiosk..."
+	@ssh $(PI_HOST) "sudo systemctl restart lightdm"
 	@echo "✅ Deployment complete!"
 	@echo "   Frontend: https://dashy.local"
 	@echo "   Backend:  https://api.dashy.local"
