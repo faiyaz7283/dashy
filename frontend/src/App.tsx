@@ -10,16 +10,14 @@ import { getCalendar, getWeather, getFamilyMembers, waitForBackend } from './ser
 
 export function App() {
   const [backendReady, setBackendReady] = useState(false)
-  const [backendError, setBackendError] = useState<string | null>(null)
+  const [elapsed, setElapsed] = useState(0)
 
   const orientation = useOrientation()
   const { state: sidebarState, cycle: cycleSidebar, open: openSidebar } = useSidebar(orientation)
 
-  // Wait for backend to be ready before fetching data
+  // Wait for backend to be ready before fetching data (retries indefinitely)
   useEffect(() => {
-    waitForBackend(30000)
-      .then(() => setBackendReady(true))
-      .catch((error) => setBackendError(error.message))
+    waitForBackend((ms) => setElapsed(ms)).then(() => setBackendReady(true))
   }, [])
 
   const {
@@ -38,18 +36,13 @@ export function App() {
     error: familyError,
   } = useApi(getFamilyMembers, [backendReady])
 
-  if (backendError) {
-    return (
-      <div className="flex items-center justify-center h-screen bg-gray-50">
-        <div className="text-lg text-red-600">Backend Error: {backendError}</div>
-      </div>
-    )
-  }
-
   if (!backendReady) {
+    const seconds = Math.floor(elapsed / 1000)
     return (
       <div className="flex items-center justify-center h-screen bg-gray-50">
-        <div className="text-lg text-gray-600">Connecting to backend...</div>
+        <div className="text-lg text-gray-600">
+          {seconds < 10 ? 'Connecting to backend...' : `Still connecting... (${seconds}s)`}
+        </div>
       </div>
     )
   }
