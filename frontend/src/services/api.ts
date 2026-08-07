@@ -37,17 +37,16 @@ export async function checkHealth(): Promise<boolean> {
   }
 }
 
-export async function waitForBackend(timeoutMs = 30000): Promise<void> {
+export async function waitForBackend(onProgress?: (elapsedMs: number) => void): Promise<void> {
   const startTime = Date.now()
 
-  while (Date.now() - startTime < timeoutMs) {
+  while (true) {
     if (await checkHealth()) {
       return
     }
+    onProgress?.(Date.now() - startTime)
     await new Promise((resolve) => setTimeout(resolve, 1000))
   }
-
-  throw new Error('Backend not available after timeout')
 }
 
 export async function getCalendar(): Promise<WeekCalendar> {
