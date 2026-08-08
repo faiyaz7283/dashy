@@ -11,15 +11,7 @@ const DEFAULT_STATE: Record<Orientation, SidebarState> = {
 export function useSidebar(orientation: Orientation) {
   const [state, setState] = useState<SidebarState>(DEFAULT_STATE[orientation])
 
-  const cycle = useCallback(() => {
-    setState((prev) => {
-      if (prev === 'full') return 'collapsed'
-      if (prev === 'collapsed') return 'hidden'
-      return 'full'
-    })
-  }, [])
-
   const open = useCallback(() => setState('full'), [])
 
-  return { state, cycle, open }
+  return { state, setState, open }
 }
