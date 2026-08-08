@@ -324,8 +324,11 @@ deploy-pi:
 	@echo "🔍 Verifying deployment..."
 	@ssh $(PI_HOST) "curl -sk https://dashy.local > /dev/null && echo '✅ Frontend accessible' || echo '❌ Frontend failed'"
 	@ssh $(PI_HOST) "curl -sk https://api.dashy.local/health > /dev/null && echo '✅ Backend accessible' || echo '❌ Backend failed'"
-	@echo "🔀 Switching back to development branch..."
+	@echo "🔀 Syncing development branch with main..."
 	@git checkout development
+	@git pull origin development
+	@git merge origin/main --no-edit
+	@git push origin development
 	@echo "✅ Deployment complete!"
 	@echo "   Frontend: https://dashy.local"
 	@echo "   Backend:  https://api.dashy.local"
