@@ -325,7 +325,7 @@ deploy-pi:
 			echo "✅ No changes detected - skipping deployment"; \
 			exit 0; \
 		fi; \
-		INFRA_CHANGED=$$(echo "$$CHANGED" | grep -E "^(compose/|Makefile|\.env)" || true); \
+		INFRA_CHANGED=$$(echo "$$CHANGED" | grep -E "^(compose/|\.env)" || true); \
 		FRONTEND_CHANGED=$$(echo "$$CHANGED" | grep -E "^frontend/" || true); \
 		BACKEND_CHANGED=$$(echo "$$CHANGED" | grep -E "^backend/" || true); \
 		if [ -n "$$INFRA_CHANGED" ]; then \
