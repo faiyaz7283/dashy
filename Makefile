@@ -337,9 +337,12 @@ deploy-pi:
 			[ -n "$$FRONTEND_CHANGED" ] && echo "   → Frontend will be rebuilt"; \
 			[ -n "$$BACKEND_CHANGED" ] && echo "   → Backend will be rebuilt"; \
 		fi; \
-	fi; \
+fi; \
 	echo "🔄 Pushing to Pi..."; \
 	ssh $(PI_HOST) "cd $(PI_DIR) && git pull origin main"; \
+	echo "⚙️  Configuring Chromium kiosk..."; \
+	ssh $(PI_HOST) "cp $(PI_DIR)/scripts/start-chromium-kiosk.sh ~/start-chromium-kiosk.sh && chmod +x ~/start-chromium-kiosk.sh"; \
+	ssh $(PI_HOST) "mkdir -p ~/.config/autostart && cp $(PI_DIR)/scripts/chromium-kiosk.desktop ~/.config/autostart/"; \
 	if [ "$$CHANGED" = "all" ]; then \
 		echo "🔄 Stopping all containers..."; \
 		ssh $(PI_HOST) "cd $(PI_DIR) && docker compose -f compose/docker-compose.prod.yml down"; \
