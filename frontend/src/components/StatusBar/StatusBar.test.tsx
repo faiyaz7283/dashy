@@ -27,7 +27,7 @@ describe('StatusBar', () => {
         onRefreshCalendar={mockOnRefreshCalendar}
         onRefreshWeather={mockOnRefreshWeather}
         onRefreshAll={mockOnRefreshAll}
-      />
+      />,
     )
 
     // Should show calendar icon (SVG path)
@@ -48,7 +48,7 @@ describe('StatusBar', () => {
         onRefreshCalendar={mockOnRefreshCalendar}
         onRefreshWeather={mockOnRefreshWeather}
         onRefreshAll={mockOnRefreshAll}
-      />
+      />,
     )
 
     // Calendar: 2 min interval, just refreshed = "in 2m 00s"
@@ -69,7 +69,7 @@ describe('StatusBar', () => {
         onRefreshCalendar={mockOnRefreshCalendar}
         onRefreshWeather={mockOnRefreshWeather}
         onRefreshAll={mockOnRefreshAll}
-      />
+      />,
     )
 
     // Initial state
@@ -103,7 +103,7 @@ describe('StatusBar', () => {
         onRefreshCalendar={mockOnRefreshCalendar}
         onRefreshWeather={mockOnRefreshWeather}
         onRefreshAll={mockOnRefreshAll}
-      />
+      />,
     )
 
     // Advance past the 2-minute calendar interval
@@ -124,7 +124,7 @@ describe('StatusBar', () => {
         onRefreshCalendar={mockOnRefreshCalendar}
         onRefreshWeather={mockOnRefreshWeather}
         onRefreshAll={mockOnRefreshAll}
-      />
+      />,
     )
 
     const toggleButton = screen.getByTitle('Toggle status bar')
@@ -150,7 +150,7 @@ describe('StatusBar', () => {
         onRefreshCalendar={mockOnRefreshCalendar}
         onRefreshWeather={mockOnRefreshWeather}
         onRefreshAll={mockOnRefreshAll}
-      />
+      />,
     )
 
     // Should show full interval countdown when no refresh yet
@@ -168,7 +168,7 @@ describe('StatusBar', () => {
         onRefreshCalendar={mockOnRefreshCalendar}
         onRefreshWeather={mockOnRefreshWeather}
         onRefreshAll={mockOnRefreshAll}
-      />
+      />,
     )
 
     // Calendar: 120s interval - 90s elapsed = 30s remaining
@@ -186,7 +186,7 @@ describe('StatusBar', () => {
         onRefreshCalendar={mockOnRefreshCalendar}
         onRefreshWeather={mockOnRefreshWeather}
         onRefreshAll={mockOnRefreshAll}
-      />
+      />,
     )
 
     const toggleButton = screen.getByTitle('Toggle status bar')
@@ -202,7 +202,7 @@ describe('StatusBar', () => {
         onRefreshCalendar={mockOnRefreshCalendar}
         onRefreshWeather={mockOnRefreshWeather}
         onRefreshAll={mockOnRefreshAll}
-      />
+      />,
     )
 
     const calendarRefreshButton = screen.getByTitle('Refresh calendar')
@@ -222,7 +222,7 @@ describe('StatusBar', () => {
         onRefreshCalendar={mockOnRefreshCalendar}
         onRefreshWeather={mockOnRefreshWeather}
         onRefreshAll={mockOnRefreshAll}
-      />
+      />,
     )
 
     const weatherRefreshButton = screen.getByTitle('Refresh weather')
@@ -242,7 +242,7 @@ describe('StatusBar', () => {
         onRefreshCalendar={mockOnRefreshCalendar}
         onRefreshWeather={mockOnRefreshWeather}
         onRefreshAll={mockOnRefreshAll}
-      />
+      />,
     )
 
     const refreshAllButton = screen.getByTitle('Refresh all data')
