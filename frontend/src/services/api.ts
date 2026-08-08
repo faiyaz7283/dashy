@@ -6,7 +6,7 @@ if (!API_BASE) {
   throw new Error('VITE_API_URL environment variable is required')
 }
 
-async function fetchWithRetry<T>(url: string, maxRetries = 3, delayMs = 1000): Promise<T> {
+async function fetchWithRetry<T>(url: string, maxRetries = 5, delayMs = 2000): Promise<T> {
   let lastError: Error | null = null
 
   for (let attempt = 0; attempt < maxRetries; attempt++) {
@@ -19,7 +19,7 @@ async function fetchWithRetry<T>(url: string, maxRetries = 3, delayMs = 1000): P
     } catch (error) {
       lastError = error as Error
       if (attempt < maxRetries - 1) {
-        // Exponential backoff: 1s, 2s, 4s
+        // Exponential backoff: 2s, 4s, 8s, 16s
         await new Promise((resolve) => setTimeout(resolve, delayMs * Math.pow(2, attempt)))
       }
     }

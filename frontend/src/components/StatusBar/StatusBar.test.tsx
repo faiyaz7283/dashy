@@ -3,8 +3,15 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { StatusBar } from './StatusBar'
 
 describe('StatusBar', () => {
+  const mockOnRefreshCalendar = vi.fn()
+  const mockOnRefreshWeather = vi.fn()
+  const mockOnRefreshAll = vi.fn()
+
   beforeEach(() => {
     vi.useFakeTimers()
+    mockOnRefreshCalendar.mockClear()
+    mockOnRefreshWeather.mockClear()
+    mockOnRefreshAll.mockClear()
   })
 
   afterEach(() => {
@@ -13,7 +20,15 @@ describe('StatusBar', () => {
 
   it('renders calendar and weather indicators', () => {
     const now = Date.now()
-    render(<StatusBar calendarLastRefresh={now} weatherLastRefresh={now} />)
+    render(
+      <StatusBar
+        calendarLastRefresh={now}
+        weatherLastRefresh={now}
+        onRefreshCalendar={mockOnRefreshCalendar}
+        onRefreshWeather={mockOnRefreshWeather}
+        onRefreshAll={mockOnRefreshAll}
+      />
+    )
 
     // Should show calendar icon (SVG path)
     const calendarIcon = document.querySelector('svg path[d*="M8 7V3"]')
@@ -26,7 +41,15 @@ describe('StatusBar', () => {
 
   it('shows countdown text in correct format', () => {
     const now = Date.now()
-    render(<StatusBar calendarLastRefresh={now} weatherLastRefresh={now} />)
+    render(
+      <StatusBar
+        calendarLastRefresh={now}
+        weatherLastRefresh={now}
+        onRefreshCalendar={mockOnRefreshCalendar}
+        onRefreshWeather={mockOnRefreshWeather}
+        onRefreshAll={mockOnRefreshAll}
+      />
+    )
 
     // Calendar: 2 min interval, just refreshed = "in 2m 00s"
     const calendarText = screen.getByText('in 2m 00s')
@@ -39,7 +62,15 @@ describe('StatusBar', () => {
 
   it('counts down correctly over time', () => {
     const now = Date.now()
-    render(<StatusBar calendarLastRefresh={now} weatherLastRefresh={now} />)
+    render(
+      <StatusBar
+        calendarLastRefresh={now}
+        weatherLastRefresh={now}
+        onRefreshCalendar={mockOnRefreshCalendar}
+        onRefreshWeather={mockOnRefreshWeather}
+        onRefreshAll={mockOnRefreshAll}
+      />
+    )
 
     // Initial state
     expect(screen.getByText('in 2m 00s')).toBeTruthy()
@@ -65,7 +96,15 @@ describe('StatusBar', () => {
 
   it('shows refreshing state when countdown reaches 0', () => {
     const now = Date.now()
-    render(<StatusBar calendarLastRefresh={now} weatherLastRefresh={now} />)
+    render(
+      <StatusBar
+        calendarLastRefresh={now}
+        weatherLastRefresh={now}
+        onRefreshCalendar={mockOnRefreshCalendar}
+        onRefreshWeather={mockOnRefreshWeather}
+        onRefreshAll={mockOnRefreshAll}
+      />
+    )
 
     // Advance past the 2-minute calendar interval
     act(() => {
@@ -78,7 +117,15 @@ describe('StatusBar', () => {
 
   it('toggles visibility when button is clicked', () => {
     const now = Date.now()
-    render(<StatusBar calendarLastRefresh={now} weatherLastRefresh={now} />)
+    render(
+      <StatusBar
+        calendarLastRefresh={now}
+        weatherLastRefresh={now}
+        onRefreshCalendar={mockOnRefreshCalendar}
+        onRefreshWeather={mockOnRefreshWeather}
+        onRefreshAll={mockOnRefreshAll}
+      />
+    )
 
     const toggleButton = screen.getByTitle('Toggle status bar')
 
@@ -96,7 +143,15 @@ describe('StatusBar', () => {
   })
 
   it('handles null lastRefresh values', () => {
-    render(<StatusBar calendarLastRefresh={null} weatherLastRefresh={null} />)
+    render(
+      <StatusBar
+        calendarLastRefresh={null}
+        weatherLastRefresh={null}
+        onRefreshCalendar={mockOnRefreshCalendar}
+        onRefreshWeather={mockOnRefreshWeather}
+        onRefreshAll={mockOnRefreshAll}
+      />
+    )
 
     // Should show full interval countdown when no refresh yet
     expect(screen.getByText('in 2m 00s')).toBeTruthy()
@@ -106,7 +161,15 @@ describe('StatusBar', () => {
   it('calculates countdown based on elapsed time', () => {
     const now = Date.now()
     // Simulate calendar was refreshed 90 seconds ago
-    render(<StatusBar calendarLastRefresh={now - 90000} weatherLastRefresh={now} />)
+    render(
+      <StatusBar
+        calendarLastRefresh={now - 90000}
+        weatherLastRefresh={now}
+        onRefreshCalendar={mockOnRefreshCalendar}
+        onRefreshWeather={mockOnRefreshWeather}
+        onRefreshAll={mockOnRefreshAll}
+      />
+    )
 
     // Calendar: 120s interval - 90s elapsed = 30s remaining
     expect(screen.getByText('in 30s')).toBeTruthy()
@@ -116,9 +179,77 @@ describe('StatusBar', () => {
   })
 
   it('renders toggle button', () => {
-    render(<StatusBar calendarLastRefresh={Date.now()} weatherLastRefresh={Date.now()} />)
+    render(
+      <StatusBar
+        calendarLastRefresh={Date.now()}
+        weatherLastRefresh={Date.now()}
+        onRefreshCalendar={mockOnRefreshCalendar}
+        onRefreshWeather={mockOnRefreshWeather}
+        onRefreshAll={mockOnRefreshAll}
+      />
+    )
 
     const toggleButton = screen.getByTitle('Toggle status bar')
     expect(toggleButton).toBeTruthy()
+  })
+
+  it('calls onRefreshCalendar when calendar refresh button is clicked', () => {
+    const now = Date.now()
+    render(
+      <StatusBar
+        calendarLastRefresh={now}
+        weatherLastRefresh={now}
+        onRefreshCalendar={mockOnRefreshCalendar}
+        onRefreshWeather={mockOnRefreshWeather}
+        onRefreshAll={mockOnRefreshAll}
+      />
+    )
+
+    const calendarRefreshButton = screen.getByTitle('Refresh calendar')
+    fireEvent.click(calendarRefreshButton)
+
+    expect(mockOnRefreshCalendar).toHaveBeenCalledTimes(1)
+    expect(mockOnRefreshWeather).not.toHaveBeenCalled()
+    expect(mockOnRefreshAll).not.toHaveBeenCalled()
+  })
+
+  it('calls onRefreshWeather when weather refresh button is clicked', () => {
+    const now = Date.now()
+    render(
+      <StatusBar
+        calendarLastRefresh={now}
+        weatherLastRefresh={now}
+        onRefreshCalendar={mockOnRefreshCalendar}
+        onRefreshWeather={mockOnRefreshWeather}
+        onRefreshAll={mockOnRefreshAll}
+      />
+    )
+
+    const weatherRefreshButton = screen.getByTitle('Refresh weather')
+    fireEvent.click(weatherRefreshButton)
+
+    expect(mockOnRefreshWeather).toHaveBeenCalledTimes(1)
+    expect(mockOnRefreshCalendar).not.toHaveBeenCalled()
+    expect(mockOnRefreshAll).not.toHaveBeenCalled()
+  })
+
+  it('calls onRefreshAll when refresh all button is clicked', () => {
+    const now = Date.now()
+    render(
+      <StatusBar
+        calendarLastRefresh={now}
+        weatherLastRefresh={now}
+        onRefreshCalendar={mockOnRefreshCalendar}
+        onRefreshWeather={mockOnRefreshWeather}
+        onRefreshAll={mockOnRefreshAll}
+      />
+    )
+
+    const refreshAllButton = screen.getByTitle('Refresh all data')
+    fireEvent.click(refreshAllButton)
+
+    expect(mockOnRefreshAll).toHaveBeenCalledTimes(1)
+    expect(mockOnRefreshCalendar).not.toHaveBeenCalled()
+    expect(mockOnRefreshWeather).not.toHaveBeenCalled()
   })
 })

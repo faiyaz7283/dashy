@@ -10,6 +10,7 @@ interface UseApiResult<T> {
 
 interface UseApiOptions {
   refetchInterval?: number // milliseconds, 0 = no auto-refresh
+  errorRetryInterval?: number // milliseconds, retry faster on error (default: 10s)
 }
 
 export function useApi<T>(
@@ -47,18 +48,23 @@ export function useApi<T>(
     fetchData()
   }, [fetchData])
 
-  // Auto-refresh interval
+  // Auto-refresh interval (faster retry when in error state)
   useEffect(() => {
-    if (!options.refetchInterval || options.refetchInterval <= 0) {
+    const errorRetry = options.errorRetryInterval ?? 10_000
+    const normalInterval = options.refetchInterval ?? 0
+
+    // When in error state, retry more aggressively
+    const intervalMs = error ? errorRetry : normalInterval
+    if (!intervalMs || intervalMs <= 0) {
       return
     }
 
     const interval = setInterval(() => {
       fetchData()
-    }, options.refetchInterval)
+    }, intervalMs)
 
     return () => clearInterval(interval)
-  }, [fetchData, options.refetchInterval])
+  }, [fetchData, options.refetchInterval, options.errorRetryInterval, error])
 
   return { data, loading, error, refetch: fetchData, lastRefresh }
 }
