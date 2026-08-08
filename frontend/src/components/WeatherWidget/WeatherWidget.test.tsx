@@ -20,24 +20,24 @@ describe('WeatherWidget', () => {
 
   it('renders sunny icon', () => {
     render(<WeatherWidget weather={mockWeather} />)
-    expect(screen.getByText('☀️')).toBeInTheDocument()
+    expect(screen.getByLabelText('Sunny')).toBeInTheDocument()
   })
 
   it('renders cloudy icon', () => {
     const cloudyWeather = { ...mockWeather, icon: 'cloudy' }
     render(<WeatherWidget weather={cloudyWeather} />)
-    expect(screen.getByText('☁️')).toBeInTheDocument()
+    expect(screen.getByLabelText('Cloudy')).toBeInTheDocument()
   })
 
   it('renders rainy icon', () => {
     const rainyWeather = { ...mockWeather, icon: 'rainy' }
     render(<WeatherWidget weather={rainyWeather} />)
-    expect(screen.getByText('🌧️')).toBeInTheDocument()
+    expect(screen.getByLabelText('Rainy')).toBeInTheDocument()
   })
 
   it('renders partly cloudy icon', () => {
     const partlyCloudyWeather = { ...mockWeather, icon: 'partly-cloudy' }
     render(<WeatherWidget weather={partlyCloudyWeather} />)
-    expect(screen.getByText('⛅')).toBeInTheDocument()
+    expect(screen.getByLabelText('Partly cloudy')).toBeInTheDocument()
   })
 })
