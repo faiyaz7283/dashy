@@ -313,19 +313,71 @@ deploy-pi:
 	@echo "📥 Pulling latest main branch locally..."
 	@git checkout main
 	@git pull origin main
-	@echo "🔄 Pushing to Pi..."
-	@ssh $(PI_HOST) "cd $(PI_DIR) && git pull origin main"
-	@ssh $(PI_HOST) "cd $(PI_DIR) && docker compose -f compose/docker-compose.prod.yml down"
-	@echo "🔨 Building frontend with --no-cache to ensure build args are applied..."
-	@ssh $(PI_HOST) "cd $(PI_DIR) && docker compose -f compose/docker-compose.prod.yml build --no-cache frontend"
-	@ssh $(PI_HOST) "cd $(PI_DIR) && docker compose -f compose/docker-compose.prod.yml up -d"
-	@echo "🔄 Restarting Chromium kiosk..."
-	@ssh $(PI_HOST) "sudo systemctl restart lightdm"
-	@echo "🔍 Verifying deployment..."
-	@ssh $(PI_HOST) "curl -sk https://dashy.local > /dev/null && echo '✅ Frontend accessible' || echo '❌ Frontend failed'"
-	@ssh $(PI_HOST) "curl -sk https://api.dashy.local/health > /dev/null && echo '✅ Backend accessible' || echo '❌ Backend failed'"
-	@echo "🔀 Switching back to development branch..."
+	@echo "🔍 Detecting changes..."
+	@LAST_COMMIT=$$(ssh $(PI_HOST) "cat $(PI_DIR)/.last-deployed-commit 2>/dev/null || echo ''"); \
+	if [ -z "$$LAST_COMMIT" ]; then \
+		echo "📦 First deployment detected - building all services..."; \
+		CHANGED="all"; \
+	else \
+		echo "   Comparing $$LAST_COMMIT..HEAD"; \
+		CHANGED=$$(git diff --name-only $$LAST_COMMIT..HEAD 2>/dev/null || echo "all"); \
+		if [ -z "$$CHANGED" ]; then \
+			echo "✅ No changes detected - skipping deployment"; \
+			exit 0; \
+		fi; \
+		INFRA_CHANGED=$$(echo "$$CHANGED" | grep -E "^(compose/|Makefile|\.env)" || true); \
+		FRONTEND_CHANGED=$$(echo "$$CHANGED" | grep -E "^frontend/" || true); \
+		BACKEND_CHANGED=$$(echo "$$CHANGED" | grep -E "^backend/" || true); \
+		if [ -n "$$INFRA_CHANGED" ]; then \
+			echo "🏗️  Infrastructure changes detected - full rebuild required"; \
+			CHANGED="all"; \
+		else \
+			echo "📝 Changed files:"; \
+			echo "$$CHANGED" | sed 's/^/   /'; \
+			[ -n "$$FRONTEND_CHANGED" ] && echo "   → Frontend will be rebuilt"; \
+			[ -n "$$BACKEND_CHANGED" ] && echo "   → Backend will be rebuilt"; \
+		fi; \
+	fi; \
+	echo "🔄 Pushing to Pi..."; \
+	ssh $(PI_HOST) "cd $(PI_DIR) && git pull origin main"; \
+	if [ "$$CHANGED" = "all" ]; then \
+		echo "🔄 Stopping all containers..."; \
+		ssh $(PI_HOST) "cd $(PI_DIR) && docker compose -f compose/docker-compose.prod.yml down"; \
+		echo "🔨 Building frontend..."; \
+		ssh $(PI_HOST) "cd $(PI_DIR) && docker compose -f compose/docker-compose.prod.yml build --no-cache frontend"; \
+		echo "🔨 Building backend..."; \
+		ssh $(PI_HOST) "cd $(PI_DIR) && docker compose -f compose/docker-compose.prod.yml build backend"; \
+		echo "🚀 Starting all containers..."; \
+		ssh $(PI_HOST) "cd $(PI_DIR) && docker compose -f compose/docker-compose.prod.yml up -d"; \
+		echo "🔄 Restarting Chromium kiosk..."; \
+		ssh $(PI_HOST) "sudo systemctl restart lightdm"; \
+	else \
+		if [ -n "$$FRONTEND_CHANGED" ]; then \
+			echo "🔨 Rebuilding frontend..."; \
+			ssh $(PI_HOST) "cd $(PI_DIR) && docker compose -f compose/docker-compose.prod.yml build --no-cache frontend"; \
+			echo "🚀 Restarting frontend..."; \
+			ssh $(PI_HOST) "cd $(PI_DIR) && docker compose -f compose/docker-compose.prod.yml up -d frontend"; \
+			echo "🔄 Restarting Chromium kiosk..."; \
+			ssh $(PI_HOST) "sudo systemctl restart lightdm"; \
+		fi; \
+		if [ -n "$$BACKEND_CHANGED" ]; then \
+			echo "🔨 Rebuilding backend..."; \
+			ssh $(PI_HOST) "cd $(PI_DIR) && docker compose -f compose/docker-compose.prod.yml build backend"; \
+			echo "🚀 Restarting backend..."; \
+			ssh $(PI_HOST) "cd $(PI_DIR) && docker compose -f compose/docker-compose.prod.yml up -d backend"; \
+		fi; \
+	fi; \
+	echo "🔍 Verifying deployment..."; \
+	ssh $(PI_HOST) "curl -sk https://dashy.local > /dev/null && echo '✅ Frontend accessible' || echo '❌ Frontend failed'"; \
+	ssh $(PI_HOST) "curl -sk https://api.dashy.local/health > /dev/null && echo '✅ Backend accessible' || echo '❌ Backend failed'"; \
+	CURRENT_COMMIT=$$(git rev-parse HEAD); \
+	ssh $(PI_HOST) "echo $$CURRENT_COMMIT > $(PI_DIR)/.last-deployed-commit"; \
+	echo "💾 Recorded deployment commit: $$CURRENT_COMMIT"
+	@echo "🔀 Syncing development branch with main..."
 	@git checkout development
+	@git pull origin development
+	@git merge origin/main --no-edit
+	@git push origin development
 	@echo "✅ Deployment complete!"
 	@echo "   Frontend: https://dashy.local"
 	@echo "   Backend:  https://api.dashy.local"
