@@ -1,9 +1,15 @@
+import { useCallback, useEffect, useRef } from 'react'
 import type { SidebarState } from '../../hooks/useSidebar'
 
 interface SidebarProps {
   state: SidebarState
-  onCycle: () => void
+  onChange: (state: SidebarState) => void
 }
+
+const SIDEBAR_FULL = 224 // w-56 = 14rem = 224px
+const SIDEBAR_COLLAPSED = 64 // w-16 = 4rem = 64px
+const SIDEBAR_HIDDEN = 0
+const DRAG_THRESHOLD = 5 // pixels to distinguish click from drag
 
 const navItems = [
   {
@@ -32,28 +38,153 @@ const navItems = [
   },
 ]
 
-export function Sidebar({ state, onCycle }: SidebarProps) {
+export function Sidebar({ state, onChange }: SidebarProps) {
+  const navRef = useRef<HTMLElement>(null)
+  const isDragging = useRef(false)
+  const dragStartX = useRef(0)
+  const sidebarStartWidth = useRef(0)
+  const dragDistance = useRef(0)
+
   const isHidden = state === 'hidden'
   const isCollapsed = state === 'collapsed'
 
-  if (isHidden) return null
+  // Get width for current state
+  const getStateWidth = (s: SidebarState) => {
+    if (s === 'full') return SIDEBAR_FULL
+    if (s === 'collapsed') return SIDEBAR_COLLAPSED
+    return SIDEBAR_HIDDEN
+  }
+
+  // Drag handlers
+  const startDrag = (clientX: number) => {
+    isDragging.current = true
+    dragDistance.current = 0
+
+    const nav = navRef.current
+    if (!nav) return
+
+    // Remove transition during drag
+    nav.style.transition = 'none'
+
+    // Set explicit width based on current state
+    const startWidth = getStateWidth(state)
+    nav.style.width = `${startWidth}px`
+
+    dragStartX.current = clientX
+    sidebarStartWidth.current = startWidth
+  }
+
+  const onDrag = (clientX: number) => {
+    if (!isDragging.current) return
+
+    const nav = navRef.current
+    if (!nav) return
+
+    const delta = clientX - dragStartX.current
+    dragDistance.current = Math.abs(delta)
+    const newWidth = Math.max(
+      SIDEBAR_HIDDEN,
+      Math.min(SIDEBAR_FULL, sidebarStartWidth.current + delta),
+    )
+
+    nav.style.width = `${newWidth}px`
+
+    // Show/hide labels based on width
+    const labels = nav.querySelectorAll('[data-sidebar-label]')
+    labels.forEach((label) => {
+      const el = label as HTMLElement
+      el.style.opacity = newWidth > 100 ? '1' : '0'
+      el.style.pointerEvents = newWidth > 100 ? 'auto' : 'none'
+    })
+  }
+
+  const endDrag = useCallback(() => {
+    if (!isDragging.current) return
+    isDragging.current = false
+
+    const nav = navRef.current
+    if (!nav) return
+
+    // Read current width BEFORE resetting styles
+    const currentWidth = nav.offsetWidth
+
+    // Reset inline styles
+    nav.style.transition = ''
+    nav.style.width = ''
+
+    // Reset label styles
+    const labels = nav.querySelectorAll('[data-sidebar-label]')
+    labels.forEach((label) => {
+      const el = label as HTMLElement
+      el.style.opacity = ''
+      el.style.pointerEvents = ''
+    })
+
+    // If drag distance is below threshold, treat as click (no state change)
+    if (dragDistance.current < DRAG_THRESHOLD) return
+
+    // Determine snap state based on width at drag end
+    let newState: SidebarState
+    if (currentWidth > 150) {
+      newState = 'full'
+    } else if (currentWidth > 30) {
+      newState = 'collapsed'
+    } else {
+      newState = 'hidden'
+    }
+
+    onChange(newState)
+  }, [onChange])
+
+  // Mouse events
+  const handleMouseDown = (e: React.MouseEvent) => {
+    e.preventDefault()
+    startDrag(e.clientX)
+  }
+
+  // Touch events
+  const handleTouchStart = (e: React.TouchEvent) => {
+    startDrag(e.touches[0].clientX)
+  }
+
+  // Global mouse/touch move and end events
+  useEffect(() => {
+    const handleMouseMove = (e: MouseEvent) => onDrag(e.clientX)
+    const handleTouchMove = (e: TouchEvent) => onDrag(e.touches[0].clientX)
+    const handleMouseUp = () => endDrag()
+    const handleTouchEnd = () => endDrag()
+
+    document.addEventListener('mousemove', handleMouseMove)
+    document.addEventListener('touchmove', handleTouchMove)
+    document.addEventListener('mouseup', handleMouseUp)
+    document.addEventListener('touchend', handleTouchEnd)
+
+    return () => {
+      document.removeEventListener('mousemove', handleMouseMove)
+      document.removeEventListener('touchmove', handleTouchMove)
+      document.removeEventListener('mouseup', handleMouseUp)
+      document.removeEventListener('touchend', handleTouchEnd)
+    }
+  }, [endDrag])
 
   return (
     <nav
+      ref={navRef}
       className={`bg-white border-r border-gray-200 flex flex-col relative transition-all duration-250 ${
-        isCollapsed ? 'w-16' : 'w-56'
+        isHidden ? 'w-0 overflow-hidden' : isCollapsed ? 'w-16' : 'w-56'
       }`}
     >
-      {/* Sliding Handle */}
-      <button
-        onClick={onCycle}
-        className="absolute right-0 top-[40%] -translate-y-1/2 translate-x-full w-4 h-14 bg-white border border-gray-300 border-l-0 rounded-r-lg cursor-pointer flex flex-col items-center justify-center gap-[3px] z-20 hover:bg-gray-50 transition-colors shadow-[2px_0_4px_rgba(0,0,0,0.06)]"
-        title="Click to toggle sidebar"
+      {/* Drag Handle */}
+      <div
+        onMouseDown={handleMouseDown}
+        onTouchStart={handleTouchStart}
+        className="absolute right-0 top-[40%] -translate-y-1/2 translate-x-full w-4 h-14 bg-white border border-gray-300 border-l-0 rounded-r-lg cursor-grab active:cursor-grabbing flex flex-col items-center justify-center gap-[3px] z-20 hover:bg-gray-50 transition-colors shadow-[2px_0_4px_rgba(0,0,0,0.06)] select-none"
+        title="Drag to resize"
       >
         <span className="w-2 h-0.5 bg-gray-400 rounded-full" />
         <span className="w-2 h-0.5 bg-gray-400 rounded-full" />
         <span className="w-2 h-0.5 bg-gray-400 rounded-full" />
-      </button>
+      </div>
 
       {/* Nav Items */}
       <div className="flex-1 flex flex-col gap-1 pt-4">
@@ -75,7 +206,8 @@ export function Sidebar({ state, onCycle }: SidebarProps) {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={item.icon} />
             </svg>
             <span
-              className={`transition-opacity duration-150 ${isCollapsed ? 'opacity-0 pointer-events-none' : ''}`}
+              data-sidebar-label
+              className={`transition-opacity duration-150 ${isCollapsed || isHidden ? 'opacity-0 pointer-events-none' : ''}`}
             >
               {item.label}
             </span>
@@ -106,7 +238,8 @@ export function Sidebar({ state, onCycle }: SidebarProps) {
             />
           </svg>
           <span
-            className={`transition-opacity duration-150 ${isCollapsed ? 'opacity-0 pointer-events-none' : ''}`}
+            data-sidebar-label
+            className={`transition-opacity duration-150 ${isCollapsed || isHidden ? 'opacity-0 pointer-events-none' : ''}`}
           >
             Settings
           </span>

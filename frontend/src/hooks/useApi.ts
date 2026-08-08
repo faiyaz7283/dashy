@@ -5,6 +5,7 @@ interface UseApiResult<T> {
   loading: boolean
   error: string | null
   refetch: () => void
+  lastRefresh: number | null
 }
 
 interface UseApiOptions {
@@ -19,6 +20,7 @@ export function useApi<T>(
   const [data, setData] = useState<T | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [lastRefresh, setLastRefresh] = useState<number | null>(null)
   const fetchFnRef = useRef(fetchFn)
 
   // Keep ref in sync with latest fetchFn
@@ -32,6 +34,7 @@ export function useApi<T>(
     try {
       const result = await fetchFnRef.current()
       setData(result)
+      setLastRefresh(Date.now())
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Unknown error')
     } finally {
@@ -57,5 +60,5 @@ export function useApi<T>(
     return () => clearInterval(interval)
   }, [fetchData, options.refetchInterval])
 
-  return { data, loading, error, refetch: fetchData }
+  return { data, loading, error, refetch: fetchData, lastRefresh }
 }

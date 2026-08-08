@@ -3,6 +3,7 @@ import { Header } from './components/Header'
 import { Sidebar } from './components/Sidebar'
 import { FamilyPills } from './components/FamilyPills'
 import { WeekGrid } from './components/WeekGrid'
+import { StatusBar } from './components/StatusBar'
 import { useOrientation } from './hooks/useOrientation'
 import { useSidebar } from './hooks/useSidebar'
 import { useApi } from './hooks/useApi'
@@ -13,7 +14,11 @@ export function App() {
   const [elapsed, setElapsed] = useState(0)
 
   const orientation = useOrientation()
-  const { state: sidebarState, cycle: cycleSidebar, open: openSidebar } = useSidebar(orientation)
+  const {
+    state: sidebarState,
+    setState: setSidebarState,
+    open: openSidebar,
+  } = useSidebar(orientation)
 
   // Wait for backend to be ready before fetching data (retries indefinitely)
   useEffect(() => {
@@ -24,12 +29,14 @@ export function App() {
     data: calendar,
     loading: calendarLoading,
     error: calendarError,
-  } = useApi(getCalendar, [backendReady])
+    lastRefresh: calendarLastRefresh,
+  } = useApi(getCalendar, [backendReady], { refetchInterval: 120000 }) // 2 minutes
   const {
     data: weather,
     loading: weatherLoading,
     error: weatherError,
-  } = useApi(getWeather, [backendReady])
+    lastRefresh: weatherLastRefresh,
+  } = useApi(getWeather, [backendReady], { refetchInterval: 600000 }) // 10 minutes
   const {
     data: familyMembers,
     loading: familyLoading,
@@ -74,11 +81,15 @@ export function App() {
       <Header weather={weather.current} sidebarState={sidebarState} onOpenSidebar={openSidebar} />
       <FamilyPills members={familyMembers} events={calendar.events} />
       <div className="flex flex-1 overflow-hidden">
-        <Sidebar state={sidebarState} onCycle={cycleSidebar} />
+        <Sidebar state={sidebarState} onChange={setSidebarState} />
         <main className="flex-1 overflow-y-auto p-5">
           <WeekGrid events={calendar.events} members={familyMembers} orientation={orientation} />
         </main>
       </div>
+      <StatusBar
+        calendarLastRefresh={calendarLastRefresh}
+        weatherLastRefresh={weatherLastRefresh}
+      />
     </div>
   )
 }
