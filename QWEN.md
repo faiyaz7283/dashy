@@ -47,6 +47,9 @@ dashy/
 │           ├── _wildcard.local-key.pem
 │           ├── _wildcard.local.pem
 │           └── tls.yml
+├── scripts/               # Deployment scripts
+│   ├── start-chromium-kiosk.sh    # Wrapper script with retry logic
+│   └── chromium-kiosk.desktop     # Autostart configuration
 ├── env/                   # Environment variables
 │   ├── .env.dev.example   # Template (committed)
 │   └── .env.dev           # Actual values (gitignored)
@@ -150,27 +153,58 @@ make clean      # Stop and clean all environments
 - **Co-author:** Always include `Co-Authored-By: Qwen Code <qwen@alibabacloud.com>`
 - **PR Flow:** Work on `development` → Create PR → Merge to `main` → Deploy to Pi
 
-### Deployment Workflow (Automated)
+### CI/CD Workflow (Smart Change Detection)
+
+GitHub Actions uses intelligent change detection to optimize CI time:
+
+**Change Detection:**
+- `frontend/**` changes → run frontend tests + build frontend image
+- `backend/**` changes → run backend tests + build backend image
+- No code changes → skip all tests and builds
+- Both changed → run everything
+
+**Performance:**
+- Frontend-only changes: Skip backend tests and image build
+- Backend-only changes: Skip frontend tests and image build
+- Documentation/config changes: Skip all tests and builds
+
+**Implementation:**
+- Uses `dorny/paths-filter` action to detect changes
+- Separate jobs for frontend and backend
+- Each job only runs when its component changes
+
+### Deployment Workflow (Intelligent)
 
 ```bash
 make deploy-pi
 ```
 
-This command:
-1. Pulls latest `main` branch locally
-2. Pushes to Pi (pulls `main` on Pi)
-3. Stops containers on Pi
-4. Builds frontend with `--no-cache` (ensures build args are applied)
-5. Starts containers on Pi
-6. Restarts Chromium kiosk
-7. Verifies frontend and backend are accessible
-8. Switches back to `development` branch locally
+This command uses smart change detection to optimize deployment time:
+
+1. **Detects changes** by comparing last deployed commit with current HEAD
+2. **Categorizes changes**:
+   - `frontend/**` changes → rebuild frontend only
+   - `backend/**` changes → rebuild backend only
+   - `compose/` or `.env` changes → full infrastructure rebuild
+   - Other changes (Makefile, scripts, etc.) → no rebuilds needed
+3. **Deploys only what changed**:
+   - Stops/rebuilds/restarts only affected services
+   - Updates Chromium kiosk configuration if scripts changed
+   - Verifies deployment
+4. **Syncs branches**: Merges `main` into `development` and pushes
+
+**Performance:**
+- **Frontend-only changes**: ~30-60 seconds (instead of 3-4 minutes)
+- **Backend-only changes**: ~30-60 seconds
+- **No changes**: Instant skip
+- **Infrastructure changes**: Full rebuild (same as before)
 
 **Key points:**
 - Always use `make deploy-pi` for Pi deployments (never manual steps)
-- Frontend always builds fresh with `--no-cache` (Docker cache issue with build args)
+- Frontend builds with `--no-cache` only when frontend changes (ensures build args are applied)
 - Kiosk auto-restarts after deployment
 - Local machine stays on `development` branch after deployment
+- Tracks last deployed commit on Pi in `.last-deployed-commit` file
 
 ### Frontend-First Approach
 
@@ -246,9 +280,31 @@ Children (Arya, 8 and Raya, 4) are not in v1 calendar scope but the system suppo
    Pragma: no-cache
    Expires: 0
    ```
-2. **Retry logic with exponential backoff** (api.ts) — 3 retries with 1s, 2s, 4s delays
-3. **Health check before fetching** (App.tsx) — Waits up to 30s for backend, shows "Connecting to backend..." message
-4. **Deploy with --no-cache** (Makefile) — Ensures build args are always applied
+2. **Improved retry logic** (api.ts) — 5 retries with 2s base delay (2s, 4s, 8s, 16s, 32s = ~62 seconds total)
+3. **Error retry interval** (useApi.ts) — Retries every 10 seconds when in error state instead of waiting for full polling interval
+4. **Health check before fetching** (App.tsx) — Waits up to 30s for backend, shows "Connecting to backend..." message
+5. **Deploy with --no-cache** (Makefile) — Ensures build args are always applied
+
+### Blank Screen After Pi Reboot
+
+**Problem:** After Pi reboot, Chromium showed blank grey screen instead of dashboard.
+
+**Root cause:** Chromium autostart didn't wait for display server and backend services to be ready.
+
+**Solution implemented:**
+1. **Wrapper script** (`scripts/start-chromium-kiosk.sh`) — Waits up to 30s for X display, 120s for backend services
+2. **Version-controlled configuration** — Autostart config tracked in git, deployed automatically
+3. **Retry logic** — Script retries service checks before launching Chromium
+
+### Weather Icon Not Displaying on Pi
+
+**Problem:** Weather widget showed rectangle instead of emoji on Pi's Chromium.
+
+**Root cause:** Pi's Chromium doesn't have emoji font support.
+
+**Solution implemented:**
+- **SVG-based icons** (`WeatherIcon.tsx`) — Replaced emoji with SVG icons for consistent rendering across all browsers/devices
+- Better foundation for future animated weather features
 
 ### Docker Build Cache Issue with VITE_API_URL
 
@@ -273,8 +329,14 @@ certutil -d sql:/home/rpi4_main/.pki/nssdb -A -t 'C,,' -n 'mkcert' -i /tmp/rootC
 
 - **Browser:** Chromium with kiosk flags
 - **URL:** `https://dashy.local` (HTTPS via Traefik)
-- **Auto-start:** systemd service (`lightdm`) restarts on boot
+- **Auto-start:** Wrapper script (`scripts/start-chromium-kiosk.sh`) with retry logic
+- **Configuration:** Version-controlled in `scripts/chromium-kiosk.desktop`
 - **Certificate:** mkcert root CA imported into Chromium's NSS database
+
+The wrapper script ensures reliable startup by:
+1. Waiting for X display to be ready (up to 30 seconds)
+2. Waiting for backend services to be available (up to 120 seconds)
+3. Only then launching Chromium in kiosk mode
 
 ### Deployment Command
 
@@ -282,12 +344,16 @@ certutil -d sql:/home/rpi4_main/.pki/nssdb -A -t 'C,,' -n 'mkcert' -i /tmp/rootC
 make deploy-pi
 ```
 
-This fully automated command:
-1. Syncs local `main` branch
-2. Deploys to Pi (git pull, docker compose up --build)
-3. Restarts Chromium kiosk
-4. Verifies deployment
-5. Switches back to `development` branch
+This intelligent deployment command:
+1. **Detects changes** between last deployment and current HEAD
+2. **Syncs local `main` branch**
+3. **Pushes to Pi** (git pull on Pi)
+4. **Configures Chromium kiosk** (copies wrapper script and autostart config)
+5. **Rebuilds only what changed** (frontend/backend/infrastructure)
+6. **Restarts affected services** only
+7. **Verifies deployment** (checks frontend and backend accessibility)
+8. **Records deployment commit** on Pi
+9. **Syncs branches** (merges main into development)
 
 ### Pi Environment
 
