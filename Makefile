@@ -286,7 +286,7 @@ endif
 # DEPLOYMENT
 # ==============================================================================
 
-PI_HOST ?= rpi4_main@dashy.local
+PI_HOST ?= r4pi
 PI_DIR ?= ~/dashy
 
 deploy:
