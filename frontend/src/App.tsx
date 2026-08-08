@@ -30,12 +30,14 @@ export function App() {
     loading: calendarLoading,
     error: calendarError,
     lastRefresh: calendarLastRefresh,
+    refetch: refetchCalendar,
   } = useApi(getCalendar, [backendReady], { refetchInterval: 120000 }) // 2 minutes
   const {
     data: weather,
     loading: weatherLoading,
     error: weatherError,
     lastRefresh: weatherLastRefresh,
+    refetch: refetchWeather,
   } = useApi(getWeather, [backendReady], { refetchInterval: 600000 }) // 10 minutes
   const {
     data: familyMembers,
@@ -89,6 +91,12 @@ export function App() {
       <StatusBar
         calendarLastRefresh={calendarLastRefresh}
         weatherLastRefresh={weatherLastRefresh}
+        onRefreshCalendar={refetchCalendar}
+        onRefreshWeather={refetchWeather}
+        onRefreshAll={() => {
+          refetchCalendar()
+          refetchWeather()
+        }}
       />
     </div>
   )
