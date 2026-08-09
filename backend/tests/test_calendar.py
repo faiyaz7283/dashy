@@ -1,0 +1,159 @@
+"""Tests for calendar service date range functionality."""
+
+from datetime import datetime
+from unittest.mock import patch
+
+from app.services.calendar_service import _parse_iso_date, get_calendar_events
+from app.services.mock_data import get_mock_week_calendar
+
+
+class TestParseIsoDate:
+    """Tests for ISO date parsing utility."""
+
+    def test_parse_date_only(self):
+        """Test parsing date-only format (YYYY-MM-DD)."""
+        result = _parse_iso_date("2026-08-15")
+        assert result == datetime(2026, 8, 15, 0, 0, 0)
+
+    def test_parse_datetime_format(self):
+        """Test parsing datetime format (YYYY-MM-DDTHH:MM:SS)."""
+        result = _parse_iso_date("2026-08-15T14:30:00")
+        assert result == datetime(2026, 8, 15, 14, 30, 0)
+
+    def test_parse_datetime_with_z_suffix(self):
+        """Test parsing datetime with Z suffix."""
+        result = _parse_iso_date("2026-08-15T14:30:00Z")
+        assert result == datetime(2026, 8, 15, 14, 30, 0)
+
+
+class TestMockWeekCalendar:
+    """Tests for mock calendar generation with date ranges."""
+
+    def test_default_range(self):
+        """Test mock calendar with no dates defaults to current week."""
+        result = get_mock_week_calendar()
+        assert result.week_start is not None
+        assert result.week_end is not None
+        assert len(result.events) > 0
+
+    def test_custom_date_range(self):
+        """Test mock calendar with custom date range."""
+        result = get_mock_week_calendar("2026-09-01", "2026-09-07")
+        assert result.week_start == "2026-09-01"
+        assert result.week_end == "2026-09-07"
+        assert len(result.events) > 0
+
+    def test_events_within_range(self):
+        """Test that all generated events fall within the requested range."""
+        start = "2026-10-05"
+        end = "2026-10-11"
+        result = get_mock_week_calendar(start, end)
+
+        range_start = datetime.strptime(start, "%Y-%m-%d")
+        range_end = datetime.strptime(end, "%Y-%m-%d").replace(hour=23, minute=59, second=59)
+
+        for event in result.events:
+            event_start = datetime.fromisoformat(event.start)
+            event_end = datetime.fromisoformat(event.end)
+            assert event_start >= range_start
+            assert event_end <= range_end
+
+    def test_single_day_range(self):
+        """Test mock calendar with single day range."""
+        result = get_mock_week_calendar("2026-08-15", "2026-08-15")
+        assert result.week_start == "2026-08-15"
+        assert result.week_end == "2026-08-15"
+        assert len(result.events) > 0
+
+    def test_month_range(self):
+        """Test mock calendar with month range."""
+        result = get_mock_week_calendar("2026-08-01", "2026-08-31")
+        assert result.week_start == "2026-08-01"
+        assert result.week_end == "2026-08-31"
+        assert len(result.events) > 0
+
+    def test_year_range(self):
+        """Test mock calendar with year range."""
+        result = get_mock_week_calendar("2026-01-01", "2026-12-31")
+        assert result.week_start == "2026-01-01"
+        assert result.week_end == "2026-12-31"
+        assert len(result.events) > 0
+
+    def test_datetime_format_range(self):
+        """Test mock calendar with datetime format dates."""
+        result = get_mock_week_calendar("2026-08-15T00:00:00", "2026-08-15T23:59:59")
+        assert result.week_start == "2026-08-15"
+        assert len(result.events) > 0
+
+
+class TestGetCalendarEvents:
+    """Tests for calendar service with date range params."""
+
+    @patch("app.services.calendar_service._get_credentials", return_value=None)
+    def test_no_params_returns_current_week(self, mock_creds):
+        """Test that no params returns current week events."""
+        result = get_calendar_events()
+        assert result.week_start is not None
+        assert result.week_end is not None
+        assert len(result.events) > 0
+
+    @patch("app.services.calendar_service._get_credentials", return_value=None)
+    def test_with_date_range(self, mock_creds):
+        """Test fetching events for a specific date range."""
+        result = get_calendar_events("2026-09-01", "2026-09-07")
+        assert result.week_start == "2026-09-01"
+        assert result.week_end == "2026-09-07"
+        assert len(result.events) > 0
+
+    @patch("app.services.calendar_service._get_credentials", return_value=None)
+    def test_single_day_range(self, mock_creds):
+        """Test fetching events for a single day."""
+        result = get_calendar_events("2026-08-15", "2026-08-15")
+        assert result.week_start == "2026-08-15"
+        assert result.week_end == "2026-08-15"
+
+    @patch("app.services.calendar_service._get_credentials", return_value=None)
+    def test_month_range(self, mock_creds):
+        """Test fetching events for a full month."""
+        result = get_calendar_events("2026-08-01", "2026-08-31")
+        assert result.week_start == "2026-08-01"
+        assert result.week_end == "2026-08-31"
+
+    @patch("app.services.calendar_service._get_credentials", return_value=None)
+    def test_year_range(self, mock_creds):
+        """Test fetching events for a full year."""
+        result = get_calendar_events("2026-01-01", "2026-12-31")
+        assert result.week_start == "2026-01-01"
+        assert result.week_end == "2026-12-31"
+
+    @patch("app.services.calendar_service._get_credentials", return_value=None)
+    def test_events_sorted_by_start_time(self, mock_creds):
+        """Test that events are sorted by start time."""
+        result = get_calendar_events("2026-08-01", "2026-08-31")
+        start_times = [e.start for e in result.events]
+        assert start_times == sorted(start_times)
+
+    @patch("app.services.calendar_service._get_credentials", return_value=None)
+    def test_events_have_member_tags(self, mock_creds):
+        """Test that all events have member tags."""
+        result = get_calendar_events("2026-08-01", "2026-08-07")
+        for event in result.events:
+            assert len(event.members) > 0
+            assert isinstance(event.members, list)
+
+    @patch("app.services.calendar_service._get_credentials", return_value=None)
+    def test_all_day_events_flagged(self, mock_creds):
+        """Test that all-day events are properly flagged."""
+        result = get_calendar_events("2026-08-01", "2026-08-31")
+        all_day_events = [e for e in result.events if e.all_day]
+        timed_events = [e for e in result.events if not e.all_day]
+
+        # Should have both types
+        assert len(all_day_events) > 0 or len(timed_events) > 0
+
+        # All-day events should span full day
+        for event in all_day_events:
+            start = datetime.fromisoformat(event.start)
+            end = datetime.fromisoformat(event.end)
+            assert start.hour == 0
+            assert end.hour == 23

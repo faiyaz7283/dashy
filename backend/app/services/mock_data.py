@@ -35,151 +35,88 @@ def get_mock_family_members() -> list[FamilyMember]:
     ]
 
 
-def get_mock_week_calendar() -> WeekCalendar:
-    today = datetime.now()
-    monday = today - timedelta(days=today.weekday())
-    sunday = monday + timedelta(days=6)
+def get_mock_week_calendar(
+    start_date: str | None = None, end_date: str | None = None
+) -> WeekCalendar:
+    """
+    Generate mock calendar events relative to the requested date range.
 
-    events = [
-        CalendarEvent(
-            id="1",
-            title="Team Standup",
-            start="2026-08-04T09:00:00",
-            end="2026-08-04T09:30:00",
-            members=["faiyaz"],
-        ),
-        CalendarEvent(
-            id="2",
-            title="Morning Yoga",
-            start="2026-08-04T10:00:00",
-            end="2026-08-04T11:00:00",
-            members=["trisha"],
-        ),
-        CalendarEvent(
-            id="3",
-            title="Soccer Practice",
-            start="2026-08-04T16:00:00",
-            end="2026-08-04T17:30:00",
-            members=["arya"],
-        ),
-        CalendarEvent(
-            id="4",
-            title="Dentist Appt",
-            start="2026-08-05T08:00:00",
-            end="2026-08-05T09:00:00",
-            members=["faiyaz", "arya"],
-        ),
-        CalendarEvent(
-            id="5",
-            title="Grocery Shopping",
-            start="2026-08-05T11:00:00",
-            end="2026-08-05T12:00:00",
-            members=["trisha"],
-        ),
-        CalendarEvent(
-            id="6",
-            title="Preschool",
-            start="2026-08-05T09:00:00",
-            end="2026-08-05T12:00:00",
-            members=["raya"],
-        ),
-        CalendarEvent(
-            id="7",
-            title="Gym",
-            start="2026-08-05T18:00:00",
-            end="2026-08-05T19:00:00",
-            members=["faiyaz"],
-        ),
-        CalendarEvent(
-            id="8",
-            title="Reading Club",
-            start="2026-08-06T15:00:00",
-            end="2026-08-06T16:00:00",
-            members=["arya"],
-        ),
-        CalendarEvent(
-            id="9",
-            title="Piano Lesson",
-            start="2026-08-06T16:00:00",
-            end="2026-08-06T17:00:00",
-            members=["trisha", "arya"],
-        ),
-        CalendarEvent(
-            id="10",
-            title="Date Night",
-            start="2026-08-06T19:00:00",
-            end="2026-08-06T22:00:00",
-            members=["faiyaz", "trisha"],
-        ),
-        CalendarEvent(
-            id="11",
-            title="Playdate w/ Lily",
-            start="2026-08-07T10:00:00",
-            end="2026-08-07T12:00:00",
-            members=["raya"],
-        ),
-        CalendarEvent(
-            id="12",
-            title="Cook Dinner",
-            start="2026-08-07T17:00:00",
-            end="2026-08-07T18:30:00",
-            members=["trisha"],
-        ),
-        CalendarEvent(
-            id="13",
-            title="Science Fair Project",
-            start="2026-08-08T00:00:00",
-            end="2026-08-08T23:59:00",
-            all_day=True,
-            members=["arya", "faiyaz"],
-        ),
-        CalendarEvent(
-            id="14",
-            title="Team Offsite",
-            start="2026-08-08T13:00:00",
-            end="2026-08-08T17:00:00",
-            members=["faiyaz"],
-        ),
-        CalendarEvent(
-            id="15",
-            title="Family Movie Night",
-            start="2026-08-08T19:00:00",
-            end="2026-08-08T21:00:00",
-            members=["faiyaz", "trisha", "arya", "raya"],
-        ),
-        CalendarEvent(
-            id="16",
-            title="Park Visit",
-            start="2026-08-09T10:00:00",
-            end="2026-08-09T12:00:00",
-            members=["raya", "arya"],
-        ),
-        CalendarEvent(
-            id="17",
-            title="Brunch w/ Friends",
-            start="2026-08-09T11:00:00",
-            end="2026-08-09T13:00:00",
-            members=["trisha", "faiyaz"],
-        ),
-        CalendarEvent(
-            id="18",
-            title="Meal Prep",
-            start="2026-08-10T11:00:00",
-            end="2026-08-10T13:00:00",
-            members=["faiyaz", "trisha"],
-        ),
-        CalendarEvent(
-            id="19",
-            title="Homework Catch-up",
-            start="2026-08-10T15:00:00",
-            end="2026-08-10T17:00:00",
-            members=["arya"],
-        ),
+    If no dates provided, defaults to current week.
+    Events are generated with realistic patterns shifted to the target range.
+    """
+    if start_date and end_date:
+        # Parse the requested range
+        if "T" in start_date:
+            range_start = datetime.fromisoformat(start_date.replace("Z", ""))
+        else:
+            range_start = datetime.strptime(start_date, "%Y-%m-%d").replace(
+                hour=0, minute=0, second=0
+            )
+        if "T" in end_date:
+            range_end = datetime.fromisoformat(end_date.replace("Z", ""))
+        else:
+            range_end = datetime.strptime(end_date, "%Y-%m-%d").replace(
+                hour=23, minute=59, second=59
+            )
+    else:
+        # Default to current week
+        today = datetime.now()
+        range_start = today - timedelta(days=today.weekday())
+        range_start = range_start.replace(hour=0, minute=0, second=0)
+        range_end = range_start + timedelta(days=6, hours=23, minutes=59)
+
+    total_days = (range_end - range_start).days + 1
+
+    # Event templates: (day_offset, start_h, start_m, end_h, end_m, title, members, all_day)
+    event_templates = [
+        (0, 9, 0, 9, 30, "Team Standup", ["faiyaz"], False),
+        (0, 10, 0, 11, 0, "Morning Yoga", ["trisha"], False),
+        (0, 16, 0, 17, 30, "Soccer Practice", ["arya"], False),
+        (1, 8, 0, 9, 0, "Dentist Appt", ["faiyaz", "arya"], False),
+        (1, 9, 0, 12, 0, "Preschool", ["raya"], False),
+        (1, 11, 0, 12, 0, "Grocery Shopping", ["trisha"], False),
+        (1, 18, 0, 19, 0, "Gym", ["faiyaz"], False),
+        (2, 15, 0, 16, 0, "Reading Club", ["arya"], False),
+        (2, 16, 0, 17, 0, "Piano Lesson", ["trisha", "arya"], False),
+        (2, 19, 0, 22, 0, "Date Night", ["faiyaz", "trisha"], False),
+        (3, 10, 0, 12, 0, "Playdate w/ Lily", ["raya"], False),
+        (3, 17, 0, 18, 30, "Cook Dinner", ["trisha"], False),
+        (4, 0, 0, 23, 59, "Science Fair Project", ["arya", "faiyaz"], True),
+        (4, 13, 0, 17, 0, "Team Offsite", ["faiyaz"], False),
+        (4, 19, 0, 21, 0, "Family Movie Night", ["faiyaz", "trisha", "arya", "raya"], False),
+        (5, 10, 0, 12, 0, "Park Visit", ["raya", "arya"], False),
+        (5, 11, 0, 13, 0, "Brunch w/ Friends", ["trisha", "faiyaz"], False),
+        (6, 11, 0, 13, 0, "Meal Prep", ["faiyaz", "trisha"], False),
+        (6, 15, 0, 17, 0, "Homework Catch-up", ["arya"], False),
     ]
 
+    events = []
+    for idx, (day_offset, sh, sm, eh, em, title, members, all_day) in enumerate(event_templates, 1):
+        # Wrap day_offset to fit within the range
+        actual_day = day_offset % total_days
+        event_start = range_start + timedelta(days=actual_day)
+        event_start = event_start.replace(hour=sh, minute=sm)
+        event_end = range_start + timedelta(days=actual_day)
+        event_end = event_end.replace(hour=eh, minute=em)
+
+        if all_day:
+            event_start = event_start.replace(hour=0, minute=0)
+            event_end = event_end.replace(hour=23, minute=59)
+
+        events.append(
+            CalendarEvent(
+                id=str(idx),
+                title=title,
+                start=event_start.strftime("%Y-%m-%dT%H:%M:%S"),
+                end=event_end.strftime("%Y-%m-%dT%H:%M:%S"),
+                all_day=all_day,
+                members=members,
+            )
+        )
+
     return WeekCalendar(
-        week_start=monday.strftime("%Y-%m-%d"),
-        week_end=sunday.strftime("%Y-%m-%d"),
+        week_start=range_start.strftime("%Y-%m-%d"),
+        week_end=range_end.strftime("%Y-%m-%d"),
         events=events,
     )
 

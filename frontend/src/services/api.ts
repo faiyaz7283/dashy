@@ -1,10 +1,21 @@
-import type { FamilyMember, WeekCalendar, WeatherResponse } from '../types'
+import type { CalendarEvent, FamilyMember, WeekCalendar, WeatherResponse } from '../types'
 
 const API_BASE = import.meta.env.VITE_API_URL
 
 if (!API_BASE) {
   throw new Error('VITE_API_URL environment variable is required')
 }
+
+/** Cache TTL in milliseconds (2 minutes). */
+const CACHE_TTL = 120_000
+
+interface CacheEntry {
+  events: CalendarEvent[]
+  fetchedAt: number
+}
+
+/** In-memory cache for calendar events, keyed by date range. */
+const calendarCache = new Map<string, CacheEntry>()
 
 async function fetchWithRetry<T>(url: string, maxRetries = 5, delayMs = 2000): Promise<T> {
   let lastError: Error | null = null
@@ -49,8 +60,45 @@ export async function waitForBackend(onProgress?: (elapsedMs: number) => void): 
   }
 }
 
-export async function getCalendar(): Promise<WeekCalendar> {
-  return fetchWithRetry<WeekCalendar>(`${API_BASE}/api/calendar`)
+/**
+ * Fetch calendar events for a date range.
+ *
+ * Uses an in-memory cache to avoid redundant API calls within the TTL window.
+ * Rapid view switching (e.g. Day -> Week -> Day) will hit the cache on the
+ * second visit to the same range.
+ *
+ * @param startDate - ISO format start date (e.g. "2026-08-08").
+ * @param endDate - ISO format end date (e.g. "2026-08-08").
+ * @returns Calendar events for the requested range.
+ */
+export async function getCalendar(startDate: string, endDate: string): Promise<WeekCalendar> {
+  const cacheKey = `${startDate}_${endDate}`
+  const cached = calendarCache.get(cacheKey)
+
+  if (cached && Date.now() - cached.fetchedAt < CACHE_TTL) {
+    return {
+      week_start: startDate,
+      week_end: endDate,
+      events: cached.events,
+    }
+  }
+
+  const params = new URLSearchParams({ start_date: startDate, end_date: endDate })
+  const data = await fetchWithRetry<WeekCalendar>(`${API_BASE}/api/calendar?${params}`)
+
+  calendarCache.set(cacheKey, {
+    events: data.events,
+    fetchedAt: Date.now(),
+  })
+
+  return data
+}
+
+/**
+ * Clear the calendar cache. Useful for forcing a fresh fetch.
+ */
+export function clearCalendarCache(): void {
+  calendarCache.clear()
 }
 
 export async function getWeather(): Promise<WeatherResponse> {

@@ -15,8 +15,8 @@ import { StatusBar } from './components/StatusBar'
 import { DateDisplay } from './components/DateDisplay'
 import { useOrientation } from './hooks/useOrientation'
 import { useSidebar } from './hooks/useSidebar'
-import { useApi } from './hooks/useApi'
-import { getCalendar, getWeather, getFamilyMembers, waitForBackend } from './services/api'
+import { useCalendarEvents } from './hooks/useCalendarEvents'
+import { getWeather, getFamilyMembers, waitForBackend } from './services/api'
 import { colors, spacing, layout } from './theme/tokens'
 import {
   getWeekDays,
@@ -68,12 +68,12 @@ export function App() {
   }, [])
 
   const {
-    data: calendar,
+    events: calendarEvents,
     loading: calendarLoading,
     error: calendarError,
     lastRefresh: calendarLastRefresh,
     refetch: refetchCalendar,
-  } = useApi(getCalendar, [backendReady], { refetchInterval: 120000 }) // 2 minutes
+  } = useCalendarEvents(currentView, currentDate)
   const {
     data: weather,
     loading: weatherLoading,
@@ -200,16 +200,15 @@ export function App() {
     )
   }
 
-  if (!calendar || !weather || !familyMembers) {
+  if (!weather || !familyMembers) {
     return null
   }
 
   // Calculate sub-header info based on current view
   const getSubHeaderInfo = () => {
-    const events = calendar.events
     switch (currentView) {
       case 'day': {
-        const dayEvents = events.filter((e) => isSameDay(new Date(e.start), currentDate))
+        const dayEvents = calendarEvents.filter((e) => isSameDay(new Date(e.start), currentDate))
         const density = getAbsoluteDensity(dayEvents.length)
         return {
           title: formatDaySubHeader(currentDate),
@@ -221,7 +220,7 @@ export function App() {
         const weekDays = getWeekDays(currentDate)
         const weekStart = weekDays[0]
         const weekEnd = weekDays[6]
-        const weekEvents = events.filter((e) => {
+        const weekEvents = calendarEvents.filter((e) => {
           const d = new Date(e.start)
           return d >= weekStart && d <= weekEnd
         })
@@ -233,7 +232,7 @@ export function App() {
         }
       }
       case 'month': {
-        const monthEvents = events.filter((e) => {
+        const monthEvents = calendarEvents.filter((e) => {
           const d = new Date(e.start)
           return (
             d.getFullYear() === currentDate.getFullYear() && d.getMonth() === currentDate.getMonth()
@@ -247,7 +246,7 @@ export function App() {
         }
       }
       case 'year': {
-        const yearEvents = events.filter((e) => {
+        const yearEvents = calendarEvents.filter((e) => {
           const d = new Date(e.start)
           return d.getFullYear() === currentDate.getFullYear()
         })
@@ -262,6 +261,9 @@ export function App() {
   }
 
   const subHeaderInfo = getSubHeaderInfo()
+
+  // Use calendarEvents directly for rendering (already filtered by view in the hook)
+  const events = calendarEvents
 
   // Compute sidebar width for SideNav positioning
   const sidebarWidth =
@@ -278,13 +280,11 @@ export function App() {
   const renderView = () => {
     switch (currentView) {
       case 'day':
-        return (
-          <DayView currentDate={currentDate} events={calendar.events} members={familyMembers} />
-        )
+        return <DayView currentDate={currentDate} events={events} members={familyMembers} />
       case 'week':
         return (
           <WeekGrid
-            events={calendar.events}
+            events={events}
             members={familyMembers}
             orientation={orientation}
             currentDate={currentDate}
@@ -295,7 +295,7 @@ export function App() {
         return (
           <MonthView
             currentDate={currentDate}
-            events={calendar.events}
+            events={events}
             members={familyMembers}
             onDayClick={handleDayClick}
           />
@@ -304,7 +304,7 @@ export function App() {
         return (
           <YearView
             currentDate={currentDate}
-            events={calendar.events}
+            events={events}
             members={familyMembers}
             onMonthClick={handleMonthClick}
             onDayClick={handleDayClick}
@@ -371,7 +371,7 @@ export function App() {
             />
           </Header>
         }
-        familyPills={<FamilyPills members={familyMembers} events={calendar.events} />}
+        familyPills={<FamilyPills members={familyMembers} events={events} />}
         subHeader={
           <SubHeader
             title={subHeaderInfo.title}
