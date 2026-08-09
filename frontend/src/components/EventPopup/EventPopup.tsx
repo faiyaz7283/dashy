@@ -32,7 +32,7 @@ interface EventPopupProps {
 export function EventPopup({ visible, x, y, dateLabel, events, members }: EventPopupProps) {
   if (!visible || events.length === 0) return null
 
-  // Edge-aware positioning
+  // Edge-aware positioning - clamp to viewport instead of flipping
   const popupWidth = 260
   const popupEstHeight = 200
   const offset = 12
@@ -41,10 +41,9 @@ export function EventPopup({ visible, x, y, dateLabel, events, members }: EventP
 
   let left = x + offset
   let top = y + offset
-  if (left + popupWidth > vw - offset) left = x - popupWidth - offset
-  if (left < offset) left = offset
-  if (top + popupEstHeight > vh - offset) top = y - popupEstHeight - offset
-  if (top < offset) top = offset
+  // Clamp to viewport bounds, keeping popup as close to cursor as possible
+  left = Math.max(offset, Math.min(left, vw - popupWidth - offset))
+  top = Math.max(offset, Math.min(top, vh - popupEstHeight - offset))
 
   return (
     <div
