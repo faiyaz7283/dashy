@@ -17,6 +17,7 @@ import { useOrientation } from './hooks/useOrientation'
 import { useSidebar } from './hooks/useSidebar'
 import { useCalendarEvents } from './hooks/useCalendarEvents'
 import { useApi } from './hooks/useApi'
+import { useAutoHideHeader } from './hooks/useAutoHideHeader'
 import { getWeather, getFamilyMembers, waitForBackend } from './services/api'
 import { colors, spacing, layout } from './theme/tokens'
 import {
@@ -49,6 +50,9 @@ export function App() {
     setState: setSidebarState,
     open: openSidebar,
   } = useSidebar(orientation)
+
+  // Auto-hide header when mouse is away from top of screen
+  const headerVisible = useAutoHideHeader({ triggerZone: 60, hideDelay: 3000 })
 
   // Persist view and date changes
   useEffect(() => {
@@ -325,7 +329,7 @@ export function App() {
         sidebarWidth={sidebarWidth}
       />
 
-      {/* Unified sticky area */}
+      {/* Unified sticky area with auto-hide */}
       <StickyArea
         header={
           <Header
@@ -369,6 +373,7 @@ export function App() {
             />
           </Header>
         }
+        visible={headerVisible}
       />
 
       {/* Main content area */}
