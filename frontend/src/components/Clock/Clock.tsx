@@ -17,5 +17,5 @@ export function Clock() {
     hour12: true,
   })
 
-  return <span className="text-lg text-gray-500">{timeStr}</span>
+  return <span style={{ fontSize: '14px', color: '#6b7280', whiteSpace: 'nowrap' }}>{timeStr}</span>
 }

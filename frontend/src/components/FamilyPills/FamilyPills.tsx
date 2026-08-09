@@ -22,7 +22,8 @@ export function FamilyPills({ members, events }: FamilyPillsProps) {
         display: 'flex',
         alignItems: 'center',
         gap: `${spacing.xs}px`,
-        overflowX: 'auto',
+        overflow: 'hidden',
+        flexWrap: 'nowrap',
       }}
     >
       {members.map((m) => {

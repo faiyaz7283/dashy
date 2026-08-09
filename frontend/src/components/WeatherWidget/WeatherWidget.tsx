@@ -12,9 +12,17 @@ interface WeatherWidgetProps {
  */
 export function WeatherWidget({ weather }: WeatherWidgetProps) {
   return (
-    <div className="flex items-center gap-1 text-gray-600">
-      <WeatherIcon condition={weather.icon} className="w-5 h-5" />
-      <span className="text-lg font-medium">{Math.round(weather.temperature)}°</span>
+    <div
+      style={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: '4px',
+        color: '#4b5563',
+        whiteSpace: 'nowrap',
+      }}
+    >
+      <WeatherIcon condition={weather.icon} className="w-4 h-4" />
+      <span style={{ fontSize: '14px', fontWeight: 500 }}>{Math.round(weather.temperature)}°</span>
     </div>
   )
 }

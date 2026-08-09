@@ -89,10 +89,11 @@ export function Header({
         <div style={{ display: 'flex', alignItems: 'center', gap: `${spacing.md}px` }}>
           <h1
             style={{
-              fontSize: `${typography.headerTitle.size}px`,
+              fontSize: '16px',
               fontWeight: typography.headerTitle.weight,
               color: colors.textPrimary,
               margin: 0,
+              whiteSpace: 'nowrap',
             }}
           >
             {dateStr}
