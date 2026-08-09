@@ -1,5 +1,8 @@
 import type { CalendarEvent, FamilyMember } from '../../types'
+import type { DensityLevel } from '../../theme/config'
 import { EventCard } from '../EventCard'
+import { colors, radii, spacing, typography, densityBarColors } from '../../theme/tokens'
+import { getShortWeekday } from '../../utils/dateFormat'
 
 interface DayCardProps {
   date: Date
@@ -7,42 +10,149 @@ interface DayCardProps {
   members: FamilyMember[]
   isToday: boolean
   isNextWeek?: boolean
+  /** End date for next week range (used when isNextWeek is true). */
+  nextWeekEnd?: Date
+  /** Density level for the density bar indicator. */
+  density?: DensityLevel
+  /** Callback when the card is clicked. */
+  onClick?: () => void
 }
 
-export function DayCard({ date, events, members, isToday, isNextWeek }: DayCardProps) {
-  const dayName = date.toLocaleDateString('en-US', { weekday: 'short' })
+export function DayCard({
+  date,
+  events,
+  members,
+  isToday,
+  isNextWeek,
+  nextWeekEnd,
+  density = 'none',
+  onClick,
+}: DayCardProps) {
+  const dayName = getShortWeekday(date)
   const dayNum = date.getDate()
+  const eventCount = events.length
+
+  // Format date range for next week card
+  const formatNextWeekRange = () => {
+    if (!nextWeekEnd) return 'Next week'
+    const startDay = date.getDate()
+    const endDay = nextWeekEnd.getDate()
+    const startMonth = date.toLocaleDateString('en-US', { month: 'short' })
+    const endMonth = nextWeekEnd.toLocaleDateString('en-US', { month: 'short' })
+    if (startMonth === endMonth) {
+      return `${startMonth} ${startDay} – ${endDay}`
+    }
+    return `${startMonth} ${startDay} – ${endMonth} ${endDay}`
+  }
 
   return (
     <div
-      className={`rounded-xl border p-4 ${
-        isNextWeek ? 'border-dashed border-gray-300 opacity-70' : 'border-gray-200'
-      } bg-white`}
+      onClick={onClick}
+      style={{
+        borderRadius: `${radii['2xl']}px`,
+        border: `1px solid ${isNextWeek ? colors.borderDark : colors.border}`,
+        borderStyle: isNextWeek ? 'dashed' : 'solid',
+        padding: `${spacing.lg}px`,
+        background: colors.white,
+        opacity: isNextWeek ? 0.7 : 1,
+        cursor: onClick ? 'pointer' : 'default',
+        transition: 'box-shadow 0.15s, transform 0.1s',
+      }}
+      onMouseEnter={(e) => {
+        if (!isNextWeek && onClick) {
+          e.currentTarget.style.boxShadow = '0 4px 12px rgba(0,0,0,0.08)'
+          e.currentTarget.style.transform = 'translateY(-1px)'
+        }
+      }}
+      onMouseLeave={(e) => {
+        e.currentTarget.style.boxShadow = 'none'
+        e.currentTarget.style.transform = 'none'
+      }}
     >
-      <div className="flex items-center justify-between mb-3">
-        <div>
-          <h2 className="text-lg font-bold text-gray-800">
-            {isNextWeek ? 'Next week' : `${dayName} `}
-            {!isNextWeek &&
-              (isToday ? (
-                <span className="inline-flex items-center justify-center w-7 h-7 rounded-full bg-indigo-600 text-white text-sm font-bold ml-1">
-                  {dayNum}
-                </span>
-              ) : (
-                <span className="ml-1">{dayNum}</span>
-              ))}
-          </h2>
-          <p className="text-xs text-gray-400 mt-0.5">
-            {isNextWeek ? 'Aug 11 – 17' : `${events.length} event${events.length !== 1 ? 's' : ''}`}
-          </p>
+      {/* Day header: single line with day name, number, and event count badge */}
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          marginBottom: `${spacing.md}px`,
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+          {!isNextWeek && (
+            <span
+              style={{
+                fontSize: `${typography.dayCardTitle.size}px`,
+                fontWeight: typography.dayCardTitle.weight,
+                color: colors.textPrimary,
+              }}
+            >
+              {dayName}
+            </span>
+          )}
+          {!isNextWeek && (
+            <span
+              style={{
+                fontSize: isToday
+                  ? `${typography.dayCardTitle.size}px`
+                  : `${typography.dayCardTitle.size}px`,
+                fontWeight: typography.dayCardTitle.weight,
+                color: isToday ? colors.white : colors.textPrimary,
+                background: isToday ? colors.primary : 'transparent',
+                width: isToday ? '28px' : 'auto',
+                height: isToday ? '28px' : 'auto',
+                borderRadius: isToday ? '50%' : '0',
+                display: isToday ? 'inline-flex' : 'inline',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+            >
+              {dayNum}
+            </span>
+          )}
+          {isNextWeek && (
+            <span
+              style={{
+                fontSize: `${typography.dayCardTitle.size}px`,
+                fontWeight: typography.dayCardTitle.weight,
+                color: colors.textPrimary,
+              }}
+            >
+              {formatNextWeekRange()}
+            </span>
+          )}
         </div>
+        {/* Event count badge */}
         {!isNextWeek && (
-          <button className="text-xs text-indigo-500 hover:text-indigo-700 font-medium">
-            + Add
-          </button>
+          <span
+            style={{
+              fontSize: `${typography.badge.size}px`,
+              fontWeight: typography.badge.weight,
+              padding: '2px 8px',
+              borderRadius: '999px',
+              background: isToday ? colors.primaryLight : colors.bgHover,
+              color: isToday ? colors.primary : colors.textMuted,
+            }}
+          >
+            {eventCount} event{eventCount !== 1 ? 's' : ''}
+          </span>
         )}
       </div>
-      <div className="space-y-2">
+
+      {/* Density bar */}
+      {!isNextWeek && (
+        <div
+          style={{
+            height: '4px',
+            borderRadius: '2px',
+            background: densityBarColors[density],
+            marginBottom: `${spacing.md}px`,
+          }}
+        />
+      )}
+
+      {/* Events */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: `${spacing.sm}px` }}>
         {events.map((event) => (
           <EventCard key={event.id} event={event} members={members} />
         ))}

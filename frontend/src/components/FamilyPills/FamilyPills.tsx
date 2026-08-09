@@ -1,4 +1,5 @@
 import type { FamilyMember, CalendarEvent } from '../../types'
+import { colors, spacing, radii, typography, memberColors } from '../../theme/tokens'
 
 interface FamilyPillsProps {
   members: FamilyMember[]
@@ -6,42 +7,74 @@ interface FamilyPillsProps {
 }
 
 export function FamilyPills({ members, events }: FamilyPillsProps) {
-  const bgColors: Record<string, string> = {
-    faiyaz: 'bg-blue-50 border-blue-200',
-    trisha: 'bg-pink-50 border-pink-200',
-    arya: 'bg-green-50 border-green-200',
-    raya: 'bg-amber-50 border-amber-200',
-  }
-  const textColors: Record<string, string> = {
-    faiyaz: 'text-blue-700',
-    trisha: 'text-pink-700',
-    arya: 'text-green-700',
-    raya: 'text-amber-700',
-  }
-  const countColors: Record<string, string> = {
-    faiyaz: 'text-blue-400',
-    trisha: 'text-pink-400',
-    arya: 'text-green-400',
-    raya: 'text-amber-400',
-  }
-
   return (
-    <div className="bg-white border-b border-gray-200 px-6 py-2.5 flex items-center gap-2.5 overflow-x-auto">
+    <div
+      style={{
+        background: colors.white,
+        borderBottom: `1px solid ${colors.border}`,
+        padding: `${spacing.sm + 2}px ${spacing.xl}px`,
+        display: 'flex',
+        alignItems: 'center',
+        gap: `${spacing.sm}px`,
+        overflowX: 'auto',
+      }}
+    >
       {members.map((m) => {
         const eventCount = events.filter((e) => e.members.includes(m.key)).length
+        const memberColor = memberColors[m.key] || {
+          bg: colors.bgHover,
+          border: colors.border,
+          text: colors.textMuted,
+        }
         return (
           <div
             key={m.key}
-            className={`flex items-center gap-1.5 px-3 py-1 rounded-full border shrink-0 ${bgColors[m.key]}`}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: `${spacing.sm - 4}px`,
+              padding: `${spacing.xs}px ${spacing.md}px`,
+              borderRadius: `${radii.full}px`,
+              border: `1px solid ${memberColor.border}`,
+              background: memberColor.bg,
+              flexShrink: 0,
+            }}
           >
             <span
-              className="w-5 h-5 rounded-full flex items-center justify-center text-xs font-bold text-white"
-              style={{ backgroundColor: m.color }}
+              style={{
+                width: `${typography.pillAvatar.size}px`,
+                height: `${typography.pillAvatar.size}px`,
+                borderRadius: '50%',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: `${typography.pillAvatar.fontSize}px`,
+                fontWeight: typography.pillAvatar.weight,
+                color: colors.white,
+                backgroundColor: m.color,
+              }}
             >
               {m.initial}
             </span>
-            <span className={`text-sm font-medium ${textColors[m.key]}`}>{m.name}</span>
-            <span className={`text-xs ${countColors[m.key]}`}>{eventCount} events</span>
+            <span
+              style={{
+                fontSize: `${typography.pillText.size}px`,
+                fontWeight: typography.pillText.weight,
+                color: memberColor.text,
+              }}
+            >
+              {m.name}
+            </span>
+            <span
+              style={{
+                fontSize: `${typography.pillCount.size}px`,
+                fontWeight: typography.pillCount.weight,
+                color: memberColor.text,
+                opacity: 0.7,
+              }}
+            >
+              {eventCount} events
+            </span>
           </div>
         )
       })}

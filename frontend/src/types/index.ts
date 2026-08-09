@@ -6,12 +6,16 @@ export interface FamilyMember {
   initial: string
 }
 
+/** Available calendar view modes. */
+export type CalendarView = 'day' | 'week' | 'month' | 'year'
+
 export interface CalendarEvent {
   id: string
   title: string
   start: string // ISO date string
   end: string
   all_day?: boolean
+  location?: string
   members: string[] // family member keys
 }
 

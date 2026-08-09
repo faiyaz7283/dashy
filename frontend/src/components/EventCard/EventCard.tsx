@@ -1,4 +1,5 @@
 import type { CalendarEvent, FamilyMember } from '../../types'
+import { colors, radii, spacing, typography, memberColors } from '../../theme/tokens'
 
 interface EventCardProps {
   event: CalendarEvent
@@ -20,43 +21,75 @@ export function EventCard({ event, members }: EventCardProps) {
     hour12: true,
   })
 
-  const bgColor: Record<string, string> = {
-    faiyaz: 'bg-blue-50',
-    trisha: 'bg-pink-50',
-    arya: 'bg-green-50',
-    raya: 'bg-amber-50',
-  }
-  const borderColor: Record<string, string> = {
-    faiyaz: 'border-faiyaz',
-    trisha: 'border-trisha',
-    arya: 'border-arya',
-    raya: 'border-raya',
-  }
-
-  const bg = primaryMember ? bgColor[primaryMember.key] : 'bg-gray-50'
-  const border = primaryMember ? borderColor[primaryMember.key] : 'border-gray-300'
+  const mc = primaryMember ? memberColors[primaryMember.key] : null
+  const bg = mc ? mc.bg : colors.bgHover
+  const borderLeft = mc ? mc.avatar : colors.borderDark
 
   return (
     <div
-      className={`rounded-lg p-3 ${bg} border-l-4 ${border} cursor-pointer transition-transform hover:scale-[1.01]`}
+      style={{
+        borderRadius: `${radii.lg}px`,
+        padding: `${spacing.md}px`,
+        background: bg,
+        borderLeft: `3px solid ${borderLeft}`,
+        cursor: 'pointer',
+        transition: 'transform 0.15s',
+      }}
+      onMouseEnter={(e) => {
+        e.currentTarget.style.transform = 'scale(1.01)'
+      }}
+      onMouseLeave={(e) => {
+        e.currentTarget.style.transform = 'scale(1)'
+      }}
     >
-      <div className="font-semibold text-sm text-gray-800">{event.title}</div>
-      <div className="text-xs text-gray-500 mt-0.5">
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '6px',
+        }}
+      >
+        {primaryMember && (
+          <span
+            style={{
+              width: '18px',
+              height: '18px',
+              borderRadius: '50%',
+              fontSize: '9px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: colors.white,
+              fontWeight: 600,
+              backgroundColor: primaryMember.color,
+              flexShrink: 0,
+            }}
+          >
+            {primaryMember.initial}
+          </span>
+        )}
+        <span
+          style={{
+            fontWeight: typography.eventTitle.weight,
+            fontSize: `${typography.eventTitle.size}px`,
+            color: colors.textPrimary,
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+            whiteSpace: 'nowrap',
+          }}
+        >
+          {event.title}
+        </span>
+      </div>
+      <div
+        style={{
+          fontSize: `${typography.eventTime.size}px`,
+          color: colors.textMuted,
+          marginTop: '2px',
+        }}
+      >
         {event.all_day ? 'All day' : `${startTime} – ${endTime}`}
       </div>
-      {eventMembers.length > 0 && (
-        <div className="flex gap-1 mt-2">
-          {eventMembers.map((m) => (
-            <span
-              key={m.key}
-              className="w-[22px] h-[22px] rounded-full flex items-center justify-center text-[11px] font-semibold text-white"
-              style={{ backgroundColor: m.color }}
-            >
-              {m.initial}
-            </span>
-          ))}
-        </div>
-      )}
     </div>
   )
 }

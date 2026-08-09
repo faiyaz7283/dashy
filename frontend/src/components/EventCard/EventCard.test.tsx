@@ -63,7 +63,7 @@ describe('EventCard', () => {
       members: ['faiyaz', 'trisha'],
     }
     render(<EventCard event={multiMemberEvent} members={mockMembers} />)
+    // Primary member initial should be shown
     expect(screen.getByText('F')).toBeInTheDocument()
-    expect(screen.getByText('T')).toBeInTheDocument()
   })
 })

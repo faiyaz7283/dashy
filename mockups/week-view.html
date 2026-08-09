@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dashy — Week View Mockup</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Inter', 'Segoe UI', sans-serif; background: #f9fafb; color: #1f2937; }
+
+  /* Side navigation arrows */
+  .side-nav { position: fixed; top: 50%; transform: translateY(-50%); z-index: 40; display: flex; flex-direction: column; gap: 8px; }
+  .side-nav-left { left: 8px; }
+  .side-nav-right { right: 8px; }
+  .side-nav-arrow { width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; background: white; border: 1px solid #e5e7eb; border-radius: 50%; cursor: pointer; color: #9ca3af; box-shadow: 0 2px 6px rgba(0,0,0,0.06); transition: all 0.15s; opacity: 0.7; font-size: 18px; }
+  .side-nav-arrow:hover { color: #4f46e5; border-color: #4f46e5; box-shadow: 0 4px 12px rgba(79,70,229,0.15); opacity: 1; transform: scale(1.1); }
+
+  /* Unified sticky area */
+  .sticky-area { background: white; border-bottom: 1px solid #e5e7eb; flex-shrink: 0; z-index: 10; }
+  .header { border-bottom: 1px solid #f3f4f6; }
+
+  /* Header with View Switcher */
+  .header { background: white; padding: 12px 24px; display: flex; align-items: center; justify-content: space-between; }
+  .header-left { display: flex; align-items: center; gap: 12px; }
+  .logo { width: 36px; height: 36px; background: #4f46e5; border-radius: 8px; display: flex; align-items: center; justify-content: center; color: white; font-weight: 700; font-size: 18px; }
+  .header-title { font-size: 20px; font-weight: 600; color: #1f2937; }
+  .header-clock { font-size: 14px; color: #6b7280; margin-left: 4px; }
+
+  .view-switcher { display: flex; align-items: center; gap: 8px; }
+  .view-toggle { display: flex; background: #f3f4f6; border-radius: 8px; padding: 2px; gap: 2px; }
+  .view-btn { width: 56px; padding: 6px 0; font-size: 13px; font-weight: 500; color: #6b7280; background: transparent; border: none; border-radius: 6px; cursor: pointer; transition: all 0.15s; text-align: center; }
+  .view-btn:hover { color: #374151; }
+  .view-btn.active { background: white; color: #4f46e5; font-weight: 600; box-shadow: 0 1px 2px rgba(0,0,0,0.06); }
+  .separator { width: 1px; height: 24px; background: #e5e7eb; margin: 0 4px; }
+  .nav-cluster { display: flex; align-items: center; gap: 4px; }
+  .nav-arrow { width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; border: 1px solid #e5e7eb; background: white; border-radius: 8px; cursor: pointer; color: #6b7280; }
+  .nav-arrow:hover { background: #f3f4f6; }
+  .today-btn { padding: 6px 16px; font-size: 13px; font-weight: 600; color: #4f46e5; background: #eef2ff; border: none; border-radius: 8px; cursor: pointer; }
+  .today-btn:hover { background: #e0e7ff; }
+  .date-display { display: flex; align-items: center; gap: 6px; padding: 6px 12px; background: white; border: 1px solid #e5e7eb; border-radius: 8px; cursor: pointer; width: 200px; }
+  .date-text { font-size: 13px; font-weight: 500; color: #374151; flex: 1; text-align: center; }
+
+  /* Family Pills */
+  .family-pills { background: white; padding: 10px 24px; display: flex; gap: 8px; overflow-x: auto; border-bottom: 1px solid #f3f4f6; }
+  .pill { display: flex; align-items: center; gap: 6px; padding: 4px 12px; border-radius: 999px; border: 1px solid; font-size: 13px; font-weight: 500; }
+  .pill-avatar { width: 20px; height: 20px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; color: white; }
+  .pill-faiyaz { background: #eff6ff; border-color: #bfdbfe; color: #1e40af; }
+  .pill-faiyaz .pill-avatar { background: #3b82f6; }
+  .pill-trisha { background: #fdf2f8; border-color: #fbcfe8; color: #9d174d; }
+  .pill-trisha .pill-avatar { background: #ec4899; }
+  .pill-arya { background: #f0fdf4; border-color: #bbf7d0; color: #166534; }
+  .pill-arya .pill-avatar { background: #22c55e; }
+  .pill-raya { background: #fffbeb; border-color: #fde68a; color: #92400e; }
+  .pill-raya .pill-avatar { background: #f59e0b; }
+  .pill-count { font-size: 11px; opacity: 0.7; }
+
+  /* Main Content */
+  .main-content { padding: 20px 24px; flex: 1; overflow-y: auto; }
+
+  /* View Sub-header */
+  .view-subheader { display: flex; align-items: center; justify-content: space-between; padding: 12px 24px; }
+  .view-subheader-left { display: flex; align-items: center; gap: 10px; }
+  .view-subheader-title { font-size: 18px; font-weight: 700; color: #1f2937; }
+  .view-subheader-badge { display: inline-flex; align-items: center; font-size: 11px; font-weight: 600; padding: 3px 10px; border-radius: 999px; }
+  .view-subheader-badge.density-none { background: #f3f4f6; color: #6b7280; }
+  .view-subheader-badge.density-low { background: #dcfce7; color: #16a34a; }
+  .view-subheader-badge.density-medium { background: #fef3c7; color: #d97706; }
+  .view-subheader-badge.density-high { background: #fee2e2; color: #dc2626; }
+
+  /* Week Grid */
+  .week-grid { background: white; border-radius: 12px; border: 1px solid #e5e7eb; overflow: hidden; }
+  .week-header { display: grid; grid-template-columns: repeat(7, 1fr); border-bottom: 1px solid #e5e7eb; }
+  .week-header-cell { padding: 12px 8px; text-align: center; border-right: 1px solid #e5e7eb; }
+  .week-header-cell:last-child { border-right: none; }
+  .week-day-name { font-size: 11px; font-weight: 600; color: #9ca3af; text-transform: uppercase; letter-spacing: 0.5px; }
+  .week-day-num { font-size: 20px; font-weight: 600; color: #374151; margin-top: 4px; }
+  .week-header-cell.today .week-day-num { background: #4f46e5; color: white; width: 32px; height: 32px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-weight: 700; margin: 4px auto 0; }
+  .week-day-density { height: 4px; margin-top: 8px; border-radius: 2px; }
+  .week-day-density.density-none { background: #f3f4f6; }
+  .week-day-density.density-low { background: #bbf7d0; }
+  .week-day-density.density-medium { background: #fcd34d; }
+  .week-day-density.density-high { background: #fca5a5; }
+
+  .week-body { display: grid; grid-template-columns: repeat(7, 1fr); }
+  .week-day-col { min-height: 400px; border-right: 1px solid #f3f4f6; padding: 8px; position: relative; }
+  .week-day-col:last-child { border-right: none; }
+  .week-event { background: white; border-left: 3px solid; border-radius: 6px; padding: 6px 8px; margin-bottom: 6px; font-size: 11px; cursor: pointer; transition: all 0.15s; }
+  .week-event:hover { transform: translateX(2px); box-shadow: 0 2px 6px rgba(0,0,0,0.08); }
+  .week-event-blue { border-color: #3b82f6; background: #eff6ff; color: #1e40af; }
+  .week-event-pink { border-color: #ec4899; background: #fdf2f8; color: #9d174d; }
+  .week-event-green { border-color: #22c55e; background: #f0fdf4; color: #166534; }
+  .week-event-amber { border-color: #f59e0b; background: #fffbeb; color: #92400e; }
+  .week-event-title { font-weight: 600; margin-bottom: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .week-event-time { font-size: 10px; opacity: 0.8; }
+
+  /* Annotation */
+  .annotation { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: #1f2937; color: white; padding: 10px 20px; border-radius: 8px; font-size: 13px; font-weight: 500; z-index: 100; box-shadow: 0 4px 12px rgba(0,0,0,0.15); }
+
+  /* Status bar */
+  .statusbar { height: 28px; background: #f9fafb; border-top: 1px solid #e5e7eb; display: flex; align-items: center; justify-content: center; padding: 0 16px; font-size: 12px; color: #9ca3af; }
+  .status-dot { width: 6px; height: 6px; border-radius: 50%; background: #22c55e; margin-right: 6px; }
+</style>
+</head>
+<body style="display: flex; flex-direction: column; height: 100vh; overflow: hidden;">
+
+<!-- Side Navigation Arrows -->
+<div class="side-nav side-nav-left">
+  <div class="side-nav-arrow" title="Previous week">‹</div>
+</div>
+<div class="side-nav side-nav-right">
+  <div class="side-nav-arrow" title="Next week">›</div>
+</div>
+
+<!-- Unified Sticky Area -->
+<div class="sticky-area">
+  <div class="header">
+    <div class="header-left">
+      <div class="logo">D</div>
+      <span class="header-title">Sat, Aug 8</span>
+      <span class="header-clock">7:45 PM</span>
+    </div>
+    <div class="view-switcher">
+      <div class="view-toggle">
+        <button class="view-btn">Day</button>
+        <button class="view-btn active">Week</button>
+        <button class="view-btn">Month</button>
+        <button class="view-btn">Year</button>
+      </div>
+      <div class="separator"></div>
+      <div class="nav-cluster">
+        <button class="nav-arrow">‹</button>
+        <button class="today-btn">Today</button>
+        <button class="nav-arrow">›</button>
+      </div>
+      <div class="separator"></div>
+      <div class="date-display">
+        <span class="date-text">Aug 4 - 10, 2026</span>
+      </div>
+    </div>
+  </div>
+  <div class="family-pills">
+    <div class="pill pill-faiyaz">
+      <div class="pill-avatar">F</div>
+      <span>Faiyaz</span>
+      <span class="pill-count">5 events</span>
+    </div>
+    <div class="pill pill-trisha">
+      <div class="pill-avatar">T</div>
+      <span>Trisha</span>
+      <span class="pill-count">4 events</span>
+    </div>
+    <div class="pill pill-arya">
+      <div class="pill-avatar">A</div>
+      <span>Arya</span>
+      <span class="pill-count">2 events</span>
+    </div>
+    <div class="pill pill-raya">
+      <div class="pill-avatar">R</div>
+      <span>Raya</span>
+      <span class="pill-count">2 events</span>
+    </div>
+  </div>
+  <div class="view-subheader">
+    <div class="view-subheader-left">
+      <div class="view-subheader-title">Monday, August 4th to Sunday, August 10th, 2026</div>
+      <div class="view-subheader-badge density-medium">13 events</div>
+    </div>
+  </div>
+</div>
+
+<!-- Main Content: Week Grid -->
+<div class="main-content">
+  <div class="week-grid">
+    <div class="week-header">
+      <div class="week-header-cell">
+        <div class="week-day-name">Mon</div>
+        <div class="week-day-num">4</div>
+        <div class="week-day-density density-medium"></div>
+      </div>
+      <div class="week-header-cell">
+        <div class="week-day-name">Tue</div>
+        <div class="week-day-num">5</div>
+        <div class="week-day-density density-low"></div>
+      </div>
+      <div class="week-header-cell">
+        <div class="week-day-name">Wed</div>
+        <div class="week-day-num">6</div>
+        <div class="week-day-density density-low"></div>
+      </div>
+      <div class="week-header-cell">
+        <div class="week-day-name">Thu</div>
+        <div class="week-day-num">7</div>
+        <div class="week-day-density density-none"></div>
+      </div>
+      <div class="week-header-cell today">
+        <div class="week-day-name">Fri</div>
+        <div class="week-day-num">8</div>
+        <div class="week-day-density density-low"></div>
+      </div>
+      <div class="week-header-cell">
+        <div class="week-day-name">Sat</div>
+        <div class="week-day-num">9</div>
+        <div class="week-day-density density-none"></div>
+      </div>
+      <div class="week-header-cell">
+        <div class="week-day-name">Sun</div>
+        <div class="week-day-num">10</div>
+        <div class="week-day-density density-low"></div>
+      </div>
+    </div>
+    <div class="week-body">
+      <!-- Monday -->
+      <div class="week-day-col">
+        <div class="week-event week-event-blue">
+          <div class="week-event-title">Team Standup</div>
+          <div class="week-event-time">9:00 AM</div>
+        </div>
+        <div class="week-event week-event-pink">
+          <div class="week-event-title">Lunch with Sarah</div>
+          <div class="week-event-time">12:30 PM</div>
+        </div>
+        <div class="week-event week-event-green">
+          <div class="week-event-title">Soccer Practice</div>
+          <div class="week-event-time">4:00 PM</div>
+        </div>
+      </div>
+      <!-- Tuesday -->
+      <div class="week-day-col">
+        <div class="week-event week-event-amber">
+          <div class="week-event-title">Dentist Appointment</div>
+          <div class="week-event-time">10:00 AM</div>
+        </div>
+      </div>
+      <!-- Wednesday -->
+      <div class="week-day-col">
+        <div class="week-event week-event-blue">
+          <div class="week-event-title">Project Review</div>
+          <div class="week-event-time">2:00 PM</div>
+        </div>
+        <div class="week-event week-event-pink">
+          <div class="week-event-title">Yoga Class</div>
+          <div class="week-event-time">6:00 PM</div>
+        </div>
+      </div>
+      <!-- Thursday -->
+      <div class="week-day-col"></div>
+      <!-- Friday (Today) -->
+      <div class="week-day-col">
+        <div class="week-event week-event-pink">
+          <div class="week-event-title">Lunch with Sarah</div>
+          <div class="week-event-time">12:30 PM</div>
+        </div>
+        <div class="week-event week-event-amber">
+          <div class="week-event-title">School Pickup</div>
+          <div class="week-event-time">3:00 PM</div>
+        </div>
+      </div>
+      <!-- Saturday -->
+      <div class="week-day-col"></div>
+      <!-- Sunday -->
+      <div class="week-day-col">
+        <div class="week-event week-event-blue">
+          <div class="week-event-title">Team Meeting</div>
+          <div class="week-event-time">10:00 AM</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Status Bar -->
+<div class="statusbar">
+  <span class="status-dot"></span>
+  Calendar refresh in 1m 42s
+  <span style="margin: 0 8px; color: #d1d5db;">|</span>
+  <span class="status-dot"></span>
+  Weather refresh in 8m 15s
+</div>
+
+<!-- Annotation -->
+<div class="annotation">
+  📐 <strong>Mockup: Week View</strong> — 7-day layout with daily density indicators. Click events for details.
+</div>
+
+</body>
+</html>

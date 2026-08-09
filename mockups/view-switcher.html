@@ -1,0 +1,571 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dashy — View Switcher Mockup</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Inter', 'Segoe UI', sans-serif; background: #f9fafb; color: #1f2937; }
+
+  /* Header */
+  .header { background: white; border-bottom: 1px solid #e5e7eb; padding: 12px 24px; display: flex; align-items: center; justify-content: space-between; }
+  .header-left { display: flex; align-items: center; gap: 12px; }
+  .logo { width: 36px; height: 36px; background: #4f46e5; border-radius: 8px; display: flex; align-items: center; justify-content: center; color: white; font-weight: 700; font-size: 18px; }
+  .header-title { font-size: 20px; font-weight: 600; color: #1f2937; }
+  .header-clock { font-size: 14px; color: #6b7280; margin-left: 4px; }
+
+  /* View Switcher - the main mockup target */
+  .view-switcher { display: flex; align-items: center; gap: 8px; }
+
+  /* View mode toggle */
+  .view-toggle { display: flex; background: #f3f4f6; border-radius: 8px; padding: 2px; gap: 2px; }
+  .view-btn { width: 56px; padding: 6px 0; font-size: 13px; font-weight: 500; color: #6b7280; background: transparent; border: none; border-radius: 6px; cursor: pointer; transition: all 0.15s; text-align: center; }
+  .view-btn:hover { color: #374151; }
+  .view-btn.active { background: white; color: #4f46e5; font-weight: 600; box-shadow: 0 1px 2px rgba(0,0,0,0.06); }
+
+  /* Navigation cluster */
+  .nav-cluster { display: flex; align-items: center; gap: 4px; }
+  .nav-arrow { width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; border: 1px solid #e5e7eb; background: white; border-radius: 8px; cursor: pointer; color: #6b7280; transition: all 0.15s; }
+  .nav-arrow:hover { background: #f3f4f6; color: #374151; border-color: #d1d5db; }
+  .nav-arrow svg { width: 16px; height: 16px; }
+
+  .today-btn { padding: 6px 16px; font-size: 13px; font-weight: 600; color: #6b7280; background: white; border: 1px solid #e5e7eb; border-radius: 8px; cursor: pointer; transition: all 0.15s; }
+  .today-btn:hover { background: #f3f4f6; }
+  .today-btn.is-today { color: #4f46e5; background: #eef2ff; border-color: transparent; }
+  .today-btn.is-today:hover { background: #e0e7ff; }
+
+  /* Date range display + picker */
+  .date-display { display: flex; align-items: center; gap: 6px; padding: 6px 12px; background: white; border: 1px solid #e5e7eb; border-radius: 8px; cursor: pointer; transition: all 0.15s; width: 200px; position: relative; }
+  .date-display:hover { border-color: #d1d5db; background: #f9fafb; }
+  .date-text { font-size: 13px; font-weight: 500; color: #374151; white-space: nowrap; flex: 1; text-align: center; }
+  .date-calendar-icon { width: 14px; height: 14px; color: #9ca3af; flex-shrink: 0; }
+  .date-chevron { width: 12px; height: 12px; color: #9ca3af; flex-shrink: 0; }
+
+  /* Week highlight in picker */
+  .dp-day.in-week { font-weight: 600; }
+  .dp-day.in-week:hover { filter: brightness(0.95); }
+  .dp-day.in-week-past { background: #f3f4f6; color: #6b7280; }
+  .dp-day.in-week-today { background: #4f46e5; color: white; }
+  .dp-day.in-week-future { background: #dbeafe; color: #1e40af; }
+  
+  /* Selected date emphasis - simple border */
+  .dp-day.selected-date { 
+    border: 2px solid #4f46e5;
+    font-weight: 700;
+  }
+  .dp-day.selected-date.in-week-past { border-color: #6b7280; }
+  .dp-day.selected-date.in-week-today { border-color: #4f46e5; }
+  .dp-day.selected-date.in-week-future { border-color: #3b82f6; }
+
+  /* Year nav arrows */
+  .dp-year-nav { display: flex; align-items: center; gap: 2px; }
+  .dp-nav-double { width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; border-radius: 6px; border: none; background: transparent; cursor: pointer; color: #9ca3af; }
+  .dp-nav-double:hover { background: #f3f4f6; color: #6b7280; }
+
+  /* Date picker popup */
+  .date-picker-popup { display: none; position: absolute; top: 100%; right: 0; margin-top: 8px; background: white; border: 1px solid #e5e7eb; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); padding: 16px; z-index: 50; min-width: 280px; }
+  .date-picker-popup.open { display: block; }
+  .dp-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+  .dp-title { font-size: 14px; font-weight: 600; color: #1f2937; }
+  .dp-nav { width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; border-radius: 6px; border: none; background: transparent; cursor: pointer; color: #6b7280; }
+  .dp-nav:hover { background: #f3f4f6; }
+  .dp-weekdays { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; margin-bottom: 4px; }
+  .dp-weekday { text-align: center; font-size: 11px; font-weight: 500; color: #9ca3af; padding: 4px; }
+  .dp-days { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; }
+  .dp-day { width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; font-size: 13px; border-radius: 6px; cursor: pointer; color: #374151; border: none; background: transparent; }
+  .dp-day:hover { background: #f3f4f6; }
+  .dp-day.today { background: #4f46e5; color: white; font-weight: 600; }
+  .dp-day.selected { background: #eef2ff; color: #4f46e5; font-weight: 600; }
+  .dp-day.other-month { color: #d1d5db; }
+
+  /* Filter button */
+  .filter-btn { display: flex; align-items: center; gap: 4px; padding: 6px 12px; font-size: 13px; font-weight: 500; color: #6b7280; background: white; border: 1px solid #e5e7eb; border-radius: 8px; cursor: pointer; transition: all 0.15s; }
+  .filter-btn:hover { background: #f3f4f6; border-color: #d1d5db; }
+  .filter-btn svg { width: 16px; height: 16px; }
+
+  /* Separator */
+  .separator { width: 1px; height: 24px; background: #e5e7eb; margin: 0 4px; }
+
+  /* Main content placeholder */
+  .main-content { padding: 20px; }
+  .placeholder-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
+  .placeholder-card { background: white; border: 1px solid #e5e7eb; border-radius: 12px; padding: 16px; min-height: 160px; }
+  .placeholder-card-header { font-size: 16px; font-weight: 700; color: #1f2937; margin-bottom: 4px; }
+  .placeholder-card-sub { font-size: 12px; color: #9ca3af; margin-bottom: 12px; }
+  .placeholder-event { padding: 8px 12px; border-radius: 8px; margin-bottom: 8px; font-size: 12px; font-weight: 500; border-left: 3px solid; }
+  .ev-blue { background: #eff6ff; border-color: #3b82f6; color: #1e40af; }
+  .ev-pink { background: #fdf2f8; border-color: #ec4899; color: #9d174d; }
+  .ev-green { background: #f0fdf4; border-color: #22c55e; color: #166534; }
+  .ev-amber { background: #fffbeb; border-color: #f59e0b; color: #92400e; }
+
+  /* Annotation */
+  .annotation { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: #1f2937; color: white; padding: 10px 20px; border-radius: 8px; font-size: 13px; font-weight: 500; z-index: 100; box-shadow: 0 4px 12px rgba(0,0,0,0.15); }
+  .annotation a { color: #818cf8; text-decoration: underline; }
+
+  /* Highlight border for mockup target */
+  .mockup-target { outline: 2px dashed #818cf8; outline-offset: 4px; border-radius: 12px; padding: 8px 12px; background: rgba(129, 140, 248, 0.04); position: relative; }
+  .mockup-label { position: absolute; top: -10px; left: 12px; background: #818cf8; color: white; font-size: 10px; font-weight: 600; padding: 2px 8px; border-radius: 4px; letter-spacing: 0.5px; text-transform: uppercase; }
+
+  /* Status bar */
+  .statusbar { height: 28px; background: #f9fafb; border-top: 1px solid #e5e7eb; display: flex; align-items: center; justify-content: center; padding: 0 16px; font-size: 12px; color: #9ca3af; }
+  .status-dot { width: 6px; height: 6px; border-radius: 50%; background: #22c55e; margin-right: 6px; }
+</style>
+</head>
+<body>
+
+<!-- Header with View Switcher -->
+<div class="header">
+  <div class="header-left">
+    <div class="logo">D</div>
+    <span class="header-title">Mon, Aug 8</span>
+    <span class="header-clock">5:32 PM</span>
+  </div>
+
+  <!-- VIEW SWITCHER COMPONENT (mockup target) -->
+  <div class="mockup-target" style="position: relative;">
+    <span class="mockup-label">View Switcher — New Component</span>
+    <div class="view-switcher">
+
+      <!-- View Mode Toggle -->
+      <div class="view-toggle">
+        <button class="view-btn" onclick="setView(this)">Day</button>
+        <button class="view-btn active" onclick="setView(this)">Week</button>
+        <button class="view-btn" onclick="setView(this)">Month</button>
+        <button class="view-btn" onclick="setView(this)">Year</button>
+      </div>
+
+      <div class="separator"></div>
+
+      <!-- Navigation Cluster -->
+      <div class="nav-cluster">
+        <button class="nav-arrow" title="Previous">
+          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+        </button>
+        <button class="today-btn">Today</button>
+        <button class="nav-arrow" title="Next">
+          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+        </button>
+      </div>
+
+      <div class="separator"></div>
+
+      <!-- Date Range Display + Picker -->
+      <div style="position: relative;">
+        <div class="date-display" onclick="toggleDatePicker()">
+          <svg class="date-calendar-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+          <span class="date-text" id="dateRangeText">Aug 4 – 10, 2026</span>
+          <svg class="date-chevron" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+        </div>
+
+        <!-- Date Picker Popup -->
+        <div class="date-picker-popup" id="datePicker">
+          <div class="dp-header">
+            <div class="dp-year-nav">
+              <button class="dp-nav-double" onclick="dpYearNav(-1)" title="Previous year">
+                <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 19l-7-7 7-7M18 19l-7-7 7-7"/></svg>
+              </button>
+              <button class="dp-nav" onclick="dpNav(-1)" title="Previous month">
+                <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+              </button>
+            </div>
+            <span class="dp-title">August 2026</span>
+            <div class="dp-year-nav">
+              <button class="dp-nav" onclick="dpNav(1)" title="Next month">
+                <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+              </button>
+              <button class="dp-nav-double" onclick="dpYearNav(1)" title="Next year">
+                <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 5l7 7-7 7M6 5l7 7-7 7"/></svg>
+              </button>
+            </div>
+          </div>
+          <div class="dp-weekdays">
+            <span class="dp-weekday">Mo</span>
+            <span class="dp-weekday">Tu</span>
+            <span class="dp-weekday">We</span>
+            <span class="dp-weekday">Th</span>
+            <span class="dp-weekday">Fr</span>
+            <span class="dp-weekday">Sa</span>
+            <span class="dp-weekday">Su</span>
+          </div>
+          <div class="dp-days">
+            <button class="dp-day other-month">27</button>
+            <button class="dp-day other-month">28</button>
+            <button class="dp-day other-month">29</button>
+            <button class="dp-day other-month">30</button>
+            <button class="dp-day other-month">31</button>
+            <button class="dp-day">1</button>
+            <button class="dp-day">2</button>
+            <button class="dp-day">3</button>
+            <button class="dp-day selected">4</button>
+            <button class="dp-day">5</button>
+            <button class="dp-day">6</button>
+            <button class="dp-day">7</button>
+            <button class="dp-day">8</button>
+            <button class="dp-day">9</button>
+            <button class="dp-day">10</button>
+            <button class="dp-day">11</button>
+            <button class="dp-day">12</button>
+            <button class="dp-day">13</button>
+            <button class="dp-day">14</button>
+            <button class="dp-day">15</button>
+            <button class="dp-day">16</button>
+            <button class="dp-day">17</button>
+            <button class="dp-day">18</button>
+            <button class="dp-day">19</button>
+            <button class="dp-day">20</button>
+            <button class="dp-day">21</button>
+            <button class="dp-day">22</button>
+            <button class="dp-day">23</button>
+            <button class="dp-day">24</button>
+            <button class="dp-day">25</button>
+            <button class="dp-day">26</button>
+            <button class="dp-day">27</button>
+            <button class="dp-day">28</button>
+            <button class="dp-day">29</button>
+            <button class="dp-day">30</button>
+            <button class="dp-day">31</button>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- Main Content Placeholder (Week View) -->
+<div class="main-content">
+  <div class="placeholder-grid">
+    <div class="placeholder-card">
+      <div class="placeholder-card-header">Mon <span style="display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:50%;background:#4f46e5;color:white;font-size:13px;font-weight:700;margin-left:4px;">4</span></div>
+      <div class="placeholder-card-sub">3 events</div>
+      <div class="placeholder-event ev-blue">Team Standup<br><span style="font-weight:400;font-size:11px;">9:00 AM – 9:15 AM</span></div>
+      <div class="placeholder-event ev-pink">Lunch with Sarah<br><span style="font-weight:400;font-size:11px;">12:30 PM – 1:30 PM</span></div>
+      <div class="placeholder-event ev-green">Soccer Practice<br><span style="font-weight:400;font-size:11px;">4:00 PM – 5:30 PM</span></div>
+    </div>
+    <div class="placeholder-card">
+      <div class="placeholder-card-header">Tue <span style="display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:50%;font-size:13px;color:#374151;margin-left:4px;">5</span></div>
+      <div class="placeholder-card-sub">1 event</div>
+      <div class="placeholder-event ev-amber">Dentist Appointment<br><span style="font-weight:400;font-size:11px;">10:00 AM – 11:00 AM</span></div>
+    </div>
+    <div class="placeholder-card">
+      <div class="placeholder-card-header">Wed <span style="display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:50%;font-size:13px;color:#374151;margin-left:4px;">6</span></div>
+      <div class="placeholder-card-sub">2 events</div>
+      <div class="placeholder-event ev-blue">Project Review<br><span style="font-weight:400;font-size:11px;">2:00 PM – 3:00 PM</span></div>
+      <div class="placeholder-event ev-pink">Yoga Class<br><span style="font-weight:400;font-size:11px;">6:00 PM – 7:00 PM</span></div>
+    </div>
+    <div class="placeholder-card">
+      <div class="placeholder-card-header">Thu <span style="display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:50%;font-size:13px;color:#374151;margin-left:4px;">7</span></div>
+      <div class="placeholder-card-sub">0 events</div>
+    </div>
+  </div>
+</div>
+
+<!-- Status Bar -->
+<div class="statusbar">
+  <span class="status-dot"></span>
+  Calendar refresh in 1m 42s
+  <span style="margin: 0 8px; color: #d1d5db;">|</span>
+  <span class="status-dot"></span>
+  Weather refresh in 8m 15s
+</div>
+
+<!-- Annotation -->
+<div class="annotation">
+  📐 <strong>Mockup 1: View Switcher</strong> — Dashed outline shows the new component. Click view buttons to toggle, click date to open picker.
+</div>
+
+<script>
+  let currentView = 'Week';
+
+  function setView(btn) {
+    document.querySelectorAll('.view-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    currentView = btn.textContent;
+    // selectedDate persists across view switches
+    updateDateText();
+    updatePickerMode();
+  }
+
+  function updateDateText() {
+    const dateText = document.getElementById('dateRangeText');
+    const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    const dayNames = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+    
+    if (currentView === 'Day') {
+      const d = new Date(selectedDate.year, selectedDate.month, selectedDate.day);
+      dateText.textContent = `${dayNames[d.getDay()]}, ${months[selectedDate.month]} ${selectedDate.day}, ${selectedDate.year}`;
+    } else if (currentView === 'Week') {
+      const monday = getMonday(selectedDate.year, selectedDate.month, selectedDate.day);
+      const sunday = new Date(monday);
+      sunday.setDate(monday.getDate() + 6);
+      if (monday.getMonth() === sunday.getMonth()) {
+        dateText.textContent = `${months[monday.getMonth()]} ${monday.getDate()} – ${sunday.getDate()}, ${monday.getFullYear()}`;
+      } else {
+        dateText.textContent = `${months[monday.getMonth()]} ${monday.getDate()} – ${months[sunday.getMonth()]} ${sunday.getDate()}, ${sunday.getFullYear()}`;
+      }
+    } else if (currentView === 'Month') {
+      const fullMonths = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+      dateText.textContent = `${fullMonths[selectedDate.month]} ${selectedDate.year}`;
+    } else if (currentView === 'Year') {
+      dateText.textContent = `${selectedDate.year}`;
+    }
+  }
+
+  // Simulated "today" for the mockup: Aug 8, 2026 (Saturday)
+  const TODAY = { year: 2026, month: 7, day: 8 }; // month is 0-indexed (7 = August)
+  let selectedDate = { year: TODAY.year, month: TODAY.month, day: TODAY.day }; // Start on today
+  let pickerMonth = { year: 2026, month: 7 }; // Picker showing August 2026
+
+  function isToday(year, month, day) {
+    return year === TODAY.year && month === TODAY.month && day === TODAY.day;
+  }
+
+  function isPast(year, month, day) {
+    const d = new Date(year, month, day);
+    const t = new Date(TODAY.year, TODAY.month, TODAY.day);
+    return d < t;
+  }
+
+  function isFuture(year, month, day) {
+    const d = new Date(year, month, day);
+    const t = new Date(TODAY.year, TODAY.month, TODAY.day);
+    return d > t;
+  }
+
+  function isViewingToday() {
+    // Today button is highlighted only when selected date IS today, regardless of view
+    return selectedDate.year === TODAY.year && selectedDate.month === TODAY.month && selectedDate.day === TODAY.day;
+  }
+
+  function getMonday(year, month, day) {
+    const d = new Date(year, month, day);
+    const dayOfWeek = d.getDay(); // 0=Sun, 1=Mon, ...
+    const diff = dayOfWeek === 0 ? -6 : 1 - dayOfWeek; // Monday start
+    d.setDate(d.getDate() + diff);
+    d.setHours(0, 0, 0, 0);
+    return d;
+  }
+
+  function updateTodayButton() {
+    const btn = document.querySelector('.today-btn');
+    if (isViewingToday()) {
+      btn.classList.add('is-today');
+    } else {
+      btn.classList.remove('is-today');
+    }
+  }
+
+  function updatePickerMode() {
+    const days = document.querySelectorAll('.dp-day');
+    // Reset all days
+    days.forEach(d => {
+      d.classList.remove('in-week', 'in-week-past', 'in-week-today', 'in-week-future', 'selected-date');
+      d.style.borderRadius = '6px';
+    });
+
+    // Always highlight the selected date
+    days.forEach(d => {
+      const cellYear = parseInt(d.dataset.year);
+      const cellMonth = parseInt(d.dataset.month);
+      const cellDay = parseInt(d.dataset.day);
+      
+      if (cellYear === selectedDate.year && cellMonth === selectedDate.month && cellDay === selectedDate.day) {
+        d.classList.add('selected-date');
+        
+        // Apply past/today/future coloring to selected date
+        if (isToday(cellYear, cellMonth, cellDay)) {
+          d.classList.add('in-week-today');
+        } else if (isPast(cellYear, cellMonth, cellDay)) {
+          d.classList.add('in-week-past');
+        } else {
+          d.classList.add('in-week-future');
+        }
+      }
+    });
+
+    // In Week view, additionally highlight the entire week
+    if (currentView === 'Week') {
+      const monday = getMonday(selectedDate.year, selectedDate.month, selectedDate.day);
+      
+      days.forEach(d => {
+        const cellYear = parseInt(d.dataset.year);
+        const cellMonth = parseInt(d.dataset.month);
+        const cellDay = parseInt(d.dataset.day);
+        
+        const cellDate = new Date(cellYear, cellMonth, cellDay);
+        const sunday = new Date(monday);
+        sunday.setDate(monday.getDate() + 6);
+        
+        if (cellDate >= monday && cellDate <= sunday) {
+          d.classList.add('in-week');
+          
+          // Determine if first/last in week for rounded corners
+          const diffFromMonday = Math.round((cellDate - monday) / (1000 * 60 * 60 * 24));
+          if (diffFromMonday === 0) d.style.borderRadius = '6px 0 0 6px';
+          else if (diffFromMonday === 6) d.style.borderRadius = '0 6px 6px 0';
+          else d.style.borderRadius = '0';
+          
+          // Apply past/today/future coloring to all week days
+          if (isToday(cellYear, cellMonth, cellDay)) {
+            d.classList.add('in-week-today');
+          } else if (isPast(cellYear, cellMonth, cellDay)) {
+            d.classList.add('in-week-past');
+          } else {
+            d.classList.add('in-week-future');
+          }
+        }
+      });
+    }
+    
+    updateTodayButton();
+  }
+
+  function toggleDatePicker() {
+    const picker = document.getElementById('datePicker');
+    picker.classList.toggle('open');
+  }
+
+  function dpNav(dir) {
+    // Month navigation
+    const title = document.querySelector('.dp-title');
+    const months = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+    const current = title.textContent.split(' ');
+    let idx = months.indexOf(current[0]);
+    let year = parseInt(current[1]);
+    idx += dir;
+    if (idx < 0) { idx = 11; year--; }
+    if (idx > 11) { idx = 0; year++; }
+    title.textContent = months[idx] + ' ' + year;
+    pickerMonth = { year: year, month: idx };
+    regenerateDays();
+  }
+
+  function dpYearNav(dir) {
+    // Year navigation
+    const title = document.querySelector('.dp-title');
+    const months = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+    const current = title.textContent.split(' ');
+    let idx = months.indexOf(current[0]);
+    let year = parseInt(current[1]) + dir;
+    title.textContent = months[idx] + ' ' + year;
+    pickerMonth = { year: year, month: idx };
+    regenerateDays();
+  }
+
+  function regenerateDays() {
+    // Regenerate the calendar grid for the current month
+    const daysContainer = document.querySelector('.dp-days');
+    if (!daysContainer) return;
+    
+    // Clear existing days
+    daysContainer.innerHTML = '';
+    
+    // Get first day of month and total days
+    const firstDay = new Date(pickerMonth.year, pickerMonth.month, 1);
+    const lastDay = new Date(pickerMonth.year, pickerMonth.month + 1, 0);
+    const totalDays = lastDay.getDate();
+    
+    // Monday start (0=Sun, 1=Mon, ...)
+    let startDayOfWeek = firstDay.getDay();
+    if (startDayOfWeek === 0) startDayOfWeek = 7; // Convert Sunday to 7
+    
+    // Previous month days
+    const prevMonth = pickerMonth.month === 0 ? 11 : pickerMonth.month - 1;
+    const prevYear = pickerMonth.month === 0 ? pickerMonth.year - 1 : pickerMonth.year;
+    const prevMonthLastDay = new Date(prevYear, prevMonth + 1, 0).getDate();
+    
+    for (let i = startDayOfWeek - 1; i > 0; i--) {
+      const day = prevMonthLastDay - i + 1;
+      const btn = document.createElement('button');
+      btn.className = 'dp-day other-month';
+      btn.textContent = day;
+      btn.dataset.year = prevYear;
+      btn.dataset.month = prevMonth;
+      btn.dataset.day = day;
+      daysContainer.appendChild(btn);
+    }
+    
+    // Current month days
+    for (let day = 1; day <= totalDays; day++) {
+      const btn = document.createElement('button');
+      btn.className = 'dp-day';
+      btn.textContent = day;
+      btn.dataset.year = pickerMonth.year;
+      btn.dataset.month = pickerMonth.month;
+      btn.dataset.day = day;
+      daysContainer.appendChild(btn);
+    }
+    
+    // Next month days
+    const totalCells = daysContainer.children.length;
+    const remainingCells = (7 - (totalCells % 7)) % 7;
+    const nextMonth = pickerMonth.month === 11 ? 0 : pickerMonth.month + 1;
+    const nextYear = pickerMonth.month === 11 ? pickerMonth.year + 1 : pickerMonth.year;
+    
+    for (let day = 1; day <= remainingCells; day++) {
+      const btn = document.createElement('button');
+      btn.className = 'dp-day other-month';
+      btn.textContent = day;
+      btn.dataset.year = nextYear;
+      btn.dataset.month = nextMonth;
+      btn.dataset.day = day;
+      daysContainer.appendChild(btn);
+    }
+    
+    // Re-attach click handlers
+    document.querySelectorAll('.dp-day').forEach(day => {
+      day.addEventListener('click', handleDayClick);
+    });
+    
+    updatePickerMode();
+  }
+  
+  function handleDayClick() {
+    const day = parseInt(this.textContent);
+    const year = parseInt(this.dataset.year);
+    const month = parseInt(this.dataset.month);
+    
+    selectedDate = { year, month, day };
+    
+    document.querySelectorAll('.dp-day').forEach(d => d.classList.remove('selected-date'));
+    this.classList.add('selected-date');
+    
+    updateDateText();
+    updatePickerMode();
+    
+    document.getElementById('datePicker').classList.remove('open');
+  }
+
+  // Close picker on outside click
+  document.addEventListener('click', (e) => {
+    const picker = document.getElementById('datePicker');
+    const display = document.querySelector('.date-display');
+    if (!picker.contains(e.target) && !display.contains(e.target)) {
+      picker.classList.remove('open');
+    }
+  });
+
+  // Day click in picker (including other-month days)
+  document.querySelectorAll('.dp-day').forEach(day => {
+    day.addEventListener('click', handleDayClick);
+  });
+
+  // Today button
+  document.querySelector('.today-btn').addEventListener('click', () => {
+    selectedDate = { year: TODAY.year, month: TODAY.month, day: TODAY.day };
+    pickerMonth = { year: TODAY.year, month: TODAY.month };
+    // Update picker title
+    const months = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+    document.querySelector('.dp-title').textContent = months[TODAY.month] + ' ' + TODAY.year;
+    regenerateDays();
+    updateDateText();
+  });
+
+  // Initialize - regenerate days with proper data attributes
+  regenerateDays();
+  updateDateText();
+</script>
+
+</body>
+</html>
