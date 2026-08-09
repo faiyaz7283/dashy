@@ -11,13 +11,30 @@ class FamilyMember(BaseModel):
     initial: str
 
 
+class Attendee(BaseModel):
+    """Represents an event attendee with RSVP status."""
+
+    member_key: str | None = None  # null for external guests not in family config
+    email: str
+    display_name: str
+    status: Literal["accepted", "declined", "tentative", "needsAction"]
+    color: str  # member color or default grey for external guests
+
+
 class CalendarEvent(BaseModel):
     id: str
     title: str
     start: str  # ISO format
     end: str  # ISO format
     all_day: bool = False
-    members: list[str]  # list of member keys
+    members: list[str] = []  # list of member keys (backward compatible)
+    description: str | None = None
+    location: str | None = None
+    organizer: str | None = None  # member key of the event organizer
+    attendees: list[Attendee] = []
+    recurring_event_id: str | None = None
+    is_recurring_instance: bool = False
+    recurrence_rule: str | None = None  # e.g., "RRULE:FREQ=WEEKLY;BYDAY=MO"
 
 
 class WeekCalendar(BaseModel):

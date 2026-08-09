@@ -526,6 +526,54 @@ This intelligent deployment command:
    - No verbs in URLs: `/api/calendar/refresh` → POST `/api/calendar/refresh` or better yet, use cache headers
 30. **OpenAPI docs auto-generated** — FastAPI generates `/docs` automatically. Keep it accurate with proper type hints and docstrings.
 
+### Google Calendar API Integration
+
+**Current Implementation (READ operations):**
+- `events().list()` — Fetch events with date range filtering (`timeMin`/`timeMax`)
+- `singleEvents=True` — Expand recurring events into individual instances
+- `orderBy="startTime"` — Sort events chronologically
+
+**Enhanced Backend Capabilities (Ready for Frontend):**
+- **Event Deduplication** — Shared events across family calendars are merged into single events with combined attendees
+- **Full Event Details** — Description, location, organizer identification
+- **Attendee Management** — RSVP status tracking (accepted/declined/tentative/needsAction), color-coded by family member
+- **Recurring Event Support** — Recurrence rules (RRULE) preserved, recurring event IDs tracked
+- **External Guest Handling** — Non-family attendees shown with default grey color
+
+**CalendarEvent Model Fields:**
+```python
+class CalendarEvent(BaseModel):
+    id: str
+    title: str
+    start: str  # ISO format
+    end: str  # ISO format
+    all_day: bool = False
+    members: list[str] = []  # Family member keys
+    description: str | None = None
+    location: str | None = None
+    organizer: str | None = None  # Member key of organizer
+    attendees: list[Attendee] = []  # Full attendee list with RSVP status
+    recurring_event_id: str | None = None
+    is_recurring_instance: bool = False
+    recurrence_rule: str | None = None  # e.g., "RRULE:FREQ=WEEKLY;BYDAY=MO"
+```
+
+**Attendee Model:**
+```python
+class Attendee(BaseModel):
+    member_key: str | None = None  # null for external guests
+    email: str
+    display_name: str
+    status: Literal["accepted", "declined", "tentative", "needsAction"]
+    color: str  # Family member color or default grey (#9ca3af)
+```
+
+**Future Enhancements (Not Yet Implemented):**
+- Search capability (`events().list(q="...")`) — Deferred to dedicated session
+- Event creation (`events().insert()`) — Requires OAuth 2.0 user consent flow
+- Event updates (`events().patch()`) — Requires write permissions
+- Real-time updates (`events().watch()`) — Requires public HTTPS endpoint (Cloudflare Tunnel)
+
 ### Git Workflow
 
 20. **Atomic commits** — One logical change per commit. Clear messages describing "why" not just "what".

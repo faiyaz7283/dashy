@@ -3,7 +3,12 @@
 from datetime import datetime
 from unittest.mock import patch
 
-from app.services.calendar_service import _parse_iso_date, get_calendar_events
+from app.models import Attendee, CalendarEvent
+from app.services.calendar_service import (
+    _deduplicate_events,
+    _parse_iso_date,
+    get_calendar_events,
+)
 from app.services.mock_data import get_mock_week_calendar
 
 
@@ -157,3 +162,172 @@ class TestGetCalendarEvents:
             end = datetime.fromisoformat(event.end)
             assert start.hour == 0
             assert end.hour == 23
+
+
+class TestDeduplication:
+    """Tests for event deduplication logic."""
+
+    def test_deduplication_merges_same_event(self):
+        """Test that duplicate events with same ID are merged."""
+        # Create two events with same ID (simulating shared event on multiple calendars)
+        event1 = CalendarEvent(
+            id="event_123",
+            title="Family Dinner",
+            start="2026-08-10T18:00:00",
+            end="2026-08-10T20:00:00",
+            members=["faiyaz"],
+            attendees=[
+                Attendee(
+                    member_key="faiyaz",
+                    email="faiyaz@gmail.com",
+                    display_name="Faiyaz",
+                    status="accepted",
+                    color="#4A90E2",
+                )
+            ],
+            description="Bring dessert!",
+            location="Home",
+            organizer="faiyaz",
+        )
+
+        event2 = CalendarEvent(
+            id="event_123",  # Same ID
+            title="Family Dinner",
+            start="2026-08-10T18:00:00",
+            end="2026-08-10T20:00:00",
+            members=["trisha"],
+            attendees=[
+                Attendee(
+                    member_key="trisha",
+                    email="trisha@gmail.com",
+                    display_name="Trisha",
+                    status="accepted",
+                    color="#E24A8D",
+                )
+            ],
+            description=None,  # Missing description
+            location=None,  # Missing location
+            organizer=None,
+        )
+
+        result = _deduplicate_events([event1, event2])
+
+        # Should be merged into one event
+        assert len(result) == 1
+        merged = result[0]
+
+        # Members should be combined
+        assert set(merged.members) == {"faiyaz", "trisha"}
+
+        # Attendees should be combined
+        assert len(merged.attendees) == 2
+
+        # Description/location should come from the event that has them
+        assert merged.description == "Bring dessert!"
+        assert merged.location == "Home"
+        assert merged.organizer == "faiyaz"
+
+    def test_deduplication_preserves_unique_events(self):
+        """Test that unique events are not affected."""
+        event1 = CalendarEvent(
+            id="event_1",
+            title="Event 1",
+            start="2026-08-10T09:00:00",
+            end="2026-08-10T10:00:00",
+            members=["faiyaz"],
+        )
+
+        event2 = CalendarEvent(
+            id="event_2",
+            title="Event 2",
+            start="2026-08-10T11:00:00",
+            end="2026-08-10T12:00:00",
+            members=["trisha"],
+        )
+
+        result = _deduplicate_events([event1, event2])
+
+        # Both events should be preserved
+        assert len(result) == 2
+        assert result[0].id == "event_1"
+        assert result[1].id == "event_2"
+
+    def test_deduplication_sorts_by_start_time(self):
+        """Test that deduplicated events are sorted by start time."""
+        event1 = CalendarEvent(
+            id="event_1",
+            title="Later Event",
+            start="2026-08-10T15:00:00",
+            end="2026-08-10T16:00:00",
+            members=["faiyaz"],
+        )
+
+        event2 = CalendarEvent(
+            id="event_2",
+            title="Earlier Event",
+            start="2026-08-10T09:00:00",
+            end="2026-08-10T10:00:00",
+            members=["trisha"],
+        )
+
+        result = _deduplicate_events([event1, event2])
+
+        # Should be sorted by start time
+        assert result[0].id == "event_2"
+        assert result[1].id == "event_1"
+
+
+class TestEventDetails:
+    """Tests for enhanced event details in mock data."""
+
+    def test_events_have_description(self):
+        """Test that mock events include descriptions."""
+        result = get_mock_week_calendar("2026-08-10", "2026-08-16")
+
+        # At least some events should have descriptions
+        events_with_desc = [e for e in result.events if e.description]
+        assert len(events_with_desc) > 0
+
+    def test_events_have_location(self):
+        """Test that mock events include locations."""
+        result = get_mock_week_calendar("2026-08-10", "2026-08-16")
+
+        # At least some events should have locations
+        events_with_location = [e for e in result.events if e.location]
+        assert len(events_with_location) > 0
+
+    def test_events_have_attendees(self):
+        """Test that mock events include attendees with RSVP status."""
+        result = get_mock_week_calendar("2026-08-10", "2026-08-16")
+
+        # All events should have attendees
+        for event in result.events:
+            assert len(event.attendees) > 0
+
+            # Each attendee should have required fields
+            for attendee in event.attendees:
+                assert attendee.email
+                assert attendee.display_name
+                assert attendee.status in ["accepted", "declined", "tentative", "needsAction"]
+                assert attendee.color
+
+    def test_events_have_organizer(self):
+        """Test that mock events identify the organizer."""
+        result = get_mock_week_calendar("2026-08-10", "2026-08-16")
+
+        # All events should have an organizer
+        for event in result.events:
+            assert event.organizer is not None
+            assert event.organizer in ["faiyaz", "trisha", "arya", "raya"]
+
+    def test_recurring_events_have_rule(self):
+        """Test that recurring events have recurrence rules."""
+        result = get_mock_week_calendar("2026-08-10", "2026-08-16")
+
+        # Some events should be recurring
+        recurring_events = [e for e in result.events if e.recurrence_rule]
+        assert len(recurring_events) > 0
+
+        # Recurrence rule should follow RRULE format
+        for event in recurring_events:
+            assert event.recurrence_rule.startswith("RRULE:")
