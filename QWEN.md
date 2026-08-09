@@ -16,6 +16,8 @@
 - **Kiosk:** Chromium auto-starts on boot, displays dashboard with real calendar data
 - **Views:** Day, Week, Month, Year with navigation and auto-refresh
 - **Header:** Auto-collapsing (hides after 3s, shows on mouse near top)
+- **Backend:** Enhanced with event deduplication, attendees, recurring events, full event details
+- **Frontend:** Event component refactor planned — see `frontend/src/docs/event-architecture-analysis.md`
 
 ---
 
@@ -57,6 +59,8 @@ dashy/
 │   └── .env.dev           # Actual values (gitignored)
 ├── frontend/              # React + TypeScript + Vite + Tailwind
 │   ├── src/
+│   │   ├── docs/          # Architecture analysis and design documents
+│   │   │   └── event-architecture-analysis.md  # Event component refactor plan
 │   │   ├── components/    # One component per folder with barrel export
 │   │   │   ├── Header/           # Main header (logo, date, clock, weather, controls)
 │   │   │   ├── Sidebar/          # Collapsible sidebar with navigation
