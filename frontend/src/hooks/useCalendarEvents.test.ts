@@ -52,11 +52,12 @@ describe('useCalendarEvents', () => {
   it('computes correct date range for day view', async () => {
     mockGetCalendar.mockResolvedValue(mockResponse)
 
-    const date = new Date('2026-08-15')
+    // Use local timezone construction to avoid UTC offset issues
+    const date = new Date(2026, 7, 15) // Aug 15, 2026 (month is 0-indexed)
     renderHook(() => useCalendarEvents('day', date))
 
     await waitFor(() => {
-      expect(mockGetCalendar).toHaveBeenCalledWith('2026-08-15', '2026-08-15')
+      expect(mockGetCalendar).toHaveBeenCalledWith('2026-08-15', '2026-08-15', expect.any(Object))
     })
   })
 
@@ -64,33 +65,33 @@ describe('useCalendarEvents', () => {
     mockGetCalendar.mockResolvedValue(mockResponse)
 
     // Wednesday Aug 12, 2026 -> week is Mon Aug 10 to Sun Aug 16
-    const date = new Date('2026-08-12')
+    const date = new Date(2026, 7, 12) // Aug 12, 2026 (month is 0-indexed)
     renderHook(() => useCalendarEvents('week', date))
 
     await waitFor(() => {
-      expect(mockGetCalendar).toHaveBeenCalledWith('2026-08-10', '2026-08-16')
+      expect(mockGetCalendar).toHaveBeenCalledWith('2026-08-10', '2026-08-16', expect.any(Object))
     })
   })
 
   it('computes correct date range for month view', async () => {
     mockGetCalendar.mockResolvedValue(mockResponse)
 
-    const date = new Date('2026-08-15')
+    const date = new Date(2026, 7, 15) // Aug 15, 2026 (month is 0-indexed)
     renderHook(() => useCalendarEvents('month', date))
 
     await waitFor(() => {
-      expect(mockGetCalendar).toHaveBeenCalledWith('2026-08-01', '2026-08-31')
+      expect(mockGetCalendar).toHaveBeenCalledWith('2026-08-01', '2026-08-31', expect.any(Object))
     })
   })
 
   it('computes correct date range for year view', async () => {
     mockGetCalendar.mockResolvedValue(mockResponse)
 
-    const date = new Date('2026-08-15')
+    const date = new Date(2026, 7, 15) // Aug 15, 2026 (month is 0-indexed)
     renderHook(() => useCalendarEvents('year', date))
 
     await waitFor(() => {
-      expect(mockGetCalendar).toHaveBeenCalledWith('2026-01-01', '2026-12-31')
+      expect(mockGetCalendar).toHaveBeenCalledWith('2026-01-01', '2026-12-31', expect.any(Object))
     })
   })
 
@@ -98,7 +99,7 @@ describe('useCalendarEvents', () => {
     mockGetCalendar.mockResolvedValue(mockResponse)
 
     const { rerender } = renderHook(
-      ({ view }: { view: CalendarView }) => useCalendarEvents(view, new Date('2026-08-12')),
+      ({ view }: { view: CalendarView }) => useCalendarEvents(view, new Date(2026, 7, 12)),
       { initialProps: { view: 'day' as CalendarView } },
     )
 
@@ -111,28 +112,28 @@ describe('useCalendarEvents', () => {
 
     // Verify it was called with week range (may take a moment)
     await new Promise((resolve) => setTimeout(resolve, 100))
-    expect(mockGetCalendar).toHaveBeenCalledWith('2026-08-10', '2026-08-16')
+    expect(mockGetCalendar).toHaveBeenCalledWith('2026-08-10', '2026-08-16', expect.any(Object))
   })
 
   it('refetches when date changes', async () => {
     mockGetCalendar.mockResolvedValue(mockResponse)
 
     const { rerender } = renderHook(({ date }) => useCalendarEvents('day', date), {
-      initialProps: { date: new Date('2026-08-12') },
+      initialProps: { date: new Date(2026, 7, 12) }, // Aug 12, 2026
     })
 
     await waitFor(() => {
-      expect(mockGetCalendar).toHaveBeenCalledWith('2026-08-12', '2026-08-12')
+      expect(mockGetCalendar).toHaveBeenCalledWith('2026-08-12', '2026-08-12', expect.any(Object))
     })
 
     // Change date
     await act(async () => {
-      rerender({ date: new Date('2026-08-13') })
+      rerender({ date: new Date(2026, 7, 13) }) // Aug 13, 2026
     })
 
     // Should have been called with new date
     await waitFor(() => {
-      expect(mockGetCalendar).toHaveBeenCalledWith('2026-08-13', '2026-08-13')
+      expect(mockGetCalendar).toHaveBeenCalledWith('2026-08-13', '2026-08-13', expect.any(Object))
     })
   })
 
