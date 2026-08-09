@@ -3,7 +3,7 @@ import type { CalendarView } from './types'
 import { Header } from './components/Header'
 import { Sidebar } from './components/Sidebar'
 import { FamilyPills } from './components/FamilyPills'
-import { SubHeader } from './components/SubHeader'
+import { DensityBadge } from './components/DensityBadge'
 import { StickyArea } from './components/StickyArea'
 import { ViewSwitcher } from './components/ViewSwitcher'
 import { SideNav } from './components/SideNav'
@@ -30,7 +30,6 @@ import {
 import { getRelativeDensity, getAbsoluteDensity } from './utils/density'
 
 const VIEW_STORAGE_KEY = 'dashy-calendar-view'
-const DATE_STORAGE_KEY = 'dashy-calendar-date'
 
 export function App() {
   const [backendReady, setBackendReady] = useState(false)
@@ -42,10 +41,7 @@ export function App() {
     return (saved as CalendarView) || 'week'
   })
 
-  const [currentDate, setCurrentDate] = useState<Date>(() => {
-    const saved = localStorage.getItem(DATE_STORAGE_KEY)
-    return saved ? new Date(saved) : new Date()
-  })
+  const [currentDate, setCurrentDate] = useState<Date>(() => new Date())
 
   const orientation = useOrientation()
   const {
@@ -59,10 +55,6 @@ export function App() {
     localStorage.setItem(VIEW_STORAGE_KEY, currentView)
   }, [currentView])
 
-  useEffect(() => {
-    localStorage.setItem(DATE_STORAGE_KEY, currentDate.toISOString())
-  }, [currentDate])
-
   // Wait for backend to be ready before fetching data (retries indefinitely)
   useEffect(() => {
     waitForBackend((ms) => setElapsed(ms)).then(() => setBackendReady(true))
@@ -74,6 +66,7 @@ export function App() {
     error: calendarError,
     lastRefresh: calendarLastRefresh,
     refetch: refetchCalendar,
+    forceRefresh,
   } = useCalendarEvents(currentView, currentDate)
   const {
     data: weather,
@@ -342,6 +335,11 @@ export function App() {
             onOpenSidebar={openSidebar}
             currentDate={currentDate}
           >
+            <FamilyPills members={familyMembers} events={events} />
+            <DensityBadge density={subHeaderInfo.density} label={subHeaderInfo.label} />
+            <div
+              style={{ width: '1px', height: '24px', background: colors.border, margin: '0 4px' }}
+            />
             <ViewSwitcher activeView={currentView} onViewChange={setCurrentView} />
             <div
               style={{ width: '1px', height: '24px', background: colors.border, margin: '0 4px' }}
@@ -372,23 +370,11 @@ export function App() {
             />
           </Header>
         }
-        familyPills={<FamilyPills members={familyMembers} events={events} />}
-        subHeader={
-          <SubHeader
-            title={subHeaderInfo.title}
-            density={subHeaderInfo.density}
-            eventCountLabel={subHeaderInfo.label}
-          />
-        }
       />
 
       {/* Main content area */}
       <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
-        <Sidebar
-          state={sidebarState}
-          onChange={setSidebarState}
-          onRefreshCalendar={refetchCalendar}
-        />
+        <Sidebar state={sidebarState} onChange={setSidebarState} onRefreshCalendar={forceRefresh} />
         <main style={{ flex: 1, overflowY: 'auto', padding: `${spacing.xl}px` }}>
           {renderView()}
         </main>

@@ -1,21 +1,27 @@
 import type { FamilyMember, CalendarEvent } from '../../types'
-import { colors, spacing, radii, typography, memberColors } from '../../theme/tokens'
+import { spacing, radii, typography, memberColors, colors } from '../../theme/tokens'
 
 interface FamilyPillsProps {
   members: FamilyMember[]
   events: CalendarEvent[]
 }
 
+/**
+ * Compact inline family pills for the header row.
+ *
+ * Shows small colored avatars with member names and event counts,
+ * designed to fit within the header bar without taking extra vertical space.
+ *
+ * @param props - Component props.
+ * @returns Inline family member pills sized for the header.
+ */
 export function FamilyPills({ members, events }: FamilyPillsProps) {
   return (
     <div
       style={{
-        background: colors.white,
-        borderBottom: `1px solid ${colors.border}`,
-        padding: `${spacing.sm + 2}px ${spacing.xl}px`,
         display: 'flex',
         alignItems: 'center',
-        gap: `${spacing.sm}px`,
+        gap: `${spacing.xs}px`,
         overflowX: 'auto',
       }}
     >
@@ -32,8 +38,8 @@ export function FamilyPills({ members, events }: FamilyPillsProps) {
             style={{
               display: 'flex',
               alignItems: 'center',
-              gap: `${spacing.sm - 4}px`,
-              padding: `${spacing.xs}px ${spacing.md}px`,
+              gap: '4px',
+              padding: `2px ${spacing.sm}px`,
               borderRadius: `${radii.full}px`,
               border: `1px solid ${memberColor.border}`,
               background: memberColor.bg,
@@ -42,13 +48,13 @@ export function FamilyPills({ members, events }: FamilyPillsProps) {
           >
             <span
               style={{
-                width: `${typography.pillAvatar.size}px`,
-                height: `${typography.pillAvatar.size}px`,
+                width: '16px',
+                height: '16px',
                 borderRadius: '50%',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                fontSize: `${typography.pillAvatar.fontSize}px`,
+                fontSize: '9px',
                 fontWeight: typography.pillAvatar.weight,
                 color: colors.white,
                 backgroundColor: m.color,
@@ -58,22 +64,24 @@ export function FamilyPills({ members, events }: FamilyPillsProps) {
             </span>
             <span
               style={{
-                fontSize: `${typography.pillText.size}px`,
+                fontSize: '11px',
                 fontWeight: typography.pillText.weight,
                 color: memberColor.text,
+                whiteSpace: 'nowrap',
               }}
             >
               {m.name}
             </span>
             <span
               style={{
-                fontSize: `${typography.pillCount.size}px`,
+                fontSize: '10px',
                 fontWeight: typography.pillCount.weight,
                 color: memberColor.text,
                 opacity: 0.7,
+                whiteSpace: 'nowrap',
               }}
             >
-              {eventCount} events
+              {eventCount}
             </span>
           </div>
         )

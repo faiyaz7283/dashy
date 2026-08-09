@@ -9,6 +9,7 @@ interface UseCalendarEventsResult {
   error: string | null
   lastRefresh: number | null
   refetch: () => void
+  forceRefresh: () => void
 }
 
 /**
@@ -99,31 +100,38 @@ export function useCalendarEvents(
     }
   }, [])
 
-  const fetchData = useCallback(async () => {
-    setLoading(true)
-    setError(null)
+  const fetchData = useCallback(
+    async (bypassCache = false) => {
+      setLoading(true)
+      setError(null)
 
-    try {
-      const { startDate, endDate } = computeDateRange(currentView, currentDate)
-      const { data, cached } = await getCalendar(startDate, endDate)
+      try {
+        const { startDate, endDate } = computeDateRange(currentView, currentDate)
+        const { data, cached } = await getCalendar(startDate, endDate, { bypassCache })
 
-      if (isMountedRef.current) {
-        setEvents(data.events)
-        // Only update lastRefresh when we actually fetch from the network
-        if (!cached) {
-          setLastRefresh(Date.now())
+        if (isMountedRef.current) {
+          setEvents(data.events)
+          // Only update lastRefresh when we actually fetch from the network
+          if (!cached) {
+            setLastRefresh(Date.now())
+          }
+        }
+      } catch (err) {
+        if (isMountedRef.current) {
+          setError(err instanceof Error ? err.message : 'Unknown error')
+        }
+      } finally {
+        if (isMountedRef.current) {
+          setLoading(false)
         }
       }
-    } catch (err) {
-      if (isMountedRef.current) {
-        setError(err instanceof Error ? err.message : 'Unknown error')
-      }
-    } finally {
-      if (isMountedRef.current) {
-        setLoading(false)
-      }
-    }
-  }, [currentView, currentDate])
+    },
+    [currentView, currentDate],
+  )
+
+  const forceRefresh = useCallback(() => {
+    fetchData(true)
+  }, [fetchData])
 
   // Fetch when view or date changes
   useEffect(() => {
@@ -143,5 +151,5 @@ export function useCalendarEvents(
     return () => clearInterval(interval)
   }, [fetchData, error])
 
-  return { events, loading, error, lastRefresh, refetch: fetchData }
+  return { events, loading, error, lastRefresh, refetch: fetchData, forceRefresh }
 }

@@ -110,12 +110,6 @@ export const layout = {
   /** Height of the top header bar. */
   headerHeight: 57,
 
-  /** Height of the family pills row. */
-  familyPillsHeight: 45,
-
-  /** Height of the view sub-header row. */
-  subHeaderHeight: 50,
-
   /** Height of the all-day section (day view only). */
   allDayHeight: 60,
 
