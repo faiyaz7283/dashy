@@ -111,16 +111,131 @@ def _parse_attendees(
     return attendees, organizer_member_key
 
 
-def _parse_recurring_info(gcal_event: dict) -> tuple[str | None, bool, str | None]:
+def _fetch_recurring_rules(
+    service, calendar_id: str, time_min: datetime, time_max: datetime
+) -> dict[str, str]:
+    """
+    Fetch master recurring events to extract RRULE definitions.
+
+    Google Calendar API only includes the `recurrence` field (RRULE) on master
+    recurring events, not on expanded instances. This function fetches events
+    with singleEvents=False to get the master events and build a mapping of
+    recurring_event_id -> RRULE string.
+
+    Args:
+        service: Google Calendar API service instance
+        calendar_id: The calendar ID to fetch from
+        time_min: Start of the date range
+        time_max: End of the date range
+
+    Returns:
+        Dict mapping recurring_event_id to RRULE string
+    """
+    recurring_rules: dict[str, str] = {}
+
+    try:
+        # Fetch with singleEvents=False to get master recurring events
+        events_result = (
+            service.events()
+            .list(
+                calendarId=calendar_id,
+                timeMin=time_min.isoformat() + "Z",
+                timeMax=time_max.isoformat() + "Z",
+                singleEvents=False,
+                orderBy="startTime",
+            )
+            .execute()
+        )
+
+        for event in events_result.get("items", []):
+            # Master recurring events have "recurrence" field
+            recurrence_rules = event.get("recurrence", [])
+            if recurrence_rules:
+                event_id = event.get("id", "")
+                recurring_rules[event_id] = recurrence_rules[0]
+
+    except HttpError as e:
+        print(f"Error fetching recurring rules for calendar {calendar_id}: {e}")
+
+    return recurring_rules
+
+
+def _fetch_cancelled_instances(
+    service, calendar_id: str, time_min: datetime, time_max: datetime
+) -> set[str]:
+    """
+    Fetch cancelled instances (exceptions) of recurring events.
+
+    When a recurring event has an exception (e.g., "Every Monday except this week"),
+    Google Calendar represents the cancelled instance as a separate event with
+    status="cancelled". We need to track these to exclude them from results.
+
+    Args:
+        service: Google Calendar API service instance
+        calendar_id: The calendar ID to fetch from
+        time_min: Start of the date range
+        time_max: End of the date range
+
+    Returns:
+        Set of event IDs that are cancelled instances
+    """
+    cancelled_ids: set[str] = set()
+
+    try:
+        # Fetch with singleEvents=False to see cancelled exceptions
+        events_result = (
+            service.events()
+            .list(
+                calendarId=calendar_id,
+                timeMin=time_min.isoformat() + "Z",
+                timeMax=time_max.isoformat() + "Z",
+                singleEvents=False,
+                orderBy="startTime",
+                showDeleted=True,  # Include cancelled events
+            )
+            .execute()
+        )
+
+        for event in events_result.get("items", []):
+            # Cancelled instances have status="cancelled" and recurringEventId
+            if (
+                event.get("status") == "cancelled"
+                and event.get("recurringEventId")
+            ):
+                cancelled_ids.add(event.get("id", ""))
+
+    except HttpError as e:
+        print(f"Error fetching cancelled instances for calendar {calendar_id}: {e}")
+
+    return cancelled_ids
+
+
+def _parse_recurring_info(
+    gcal_event: dict, recurring_rules: dict[str, str]
+) -> tuple[str | None, bool, str | None]:
     """
     Extract recurring event metadata.
+
+    Uses the recurring_rules map (from master events) to get the RRULE
+    for instances that don't have it directly.
+
+    Args:
+        gcal_event: Raw Google Calendar event dict
+        recurring_rules: Map of recurring_event_id -> RRULE string
 
     Returns:
         Tuple of (recurring_event_id, is_recurring_instance, recurrence_rule)
     """
     recurring_event_id = gcal_event.get("recurringEventId")
     recurrence_rules = gcal_event.get("recurrence", [])
-    recurrence_rule = recurrence_rules[0] if recurrence_rules else None
+
+    # Get RRULE from event itself (master) or from lookup map (instance)
+    if recurrence_rules:
+        recurrence_rule = recurrence_rules[0]
+    elif recurring_event_id and recurring_event_id in recurring_rules:
+        recurrence_rule = recurring_rules[recurring_event_id]
+    else:
+        recurrence_rule = None
 
     # If recurringEventId exists, this is an instance of a recurring event
     is_instance = recurring_event_id is not None
@@ -128,13 +243,31 @@ def _parse_recurring_info(gcal_event: dict) -> tuple[str | None, bool, str | Non
     return recurring_event_id, is_instance, recurrence_rule
 
 
-def _parse_event(gcal_event: dict, member_key: str, family_members: dict) -> CalendarEvent:
+def _parse_event(
+    gcal_event: dict,
+    member_key: str,
+    family_members: dict,
+    recurring_rules: dict[str, str],
+) -> CalendarEvent:
     """
     Convert Google Calendar event to our CalendarEvent model.
 
     Extracts full event details including attendees, description, location,
     and recurring event metadata.
+
+    Args:
+        gcal_event: Raw Google Calendar event dict
+        member_key: Family member key whose calendar this came from
+        family_members: Dict of family member configs
+        recurring_rules: Map of recurring_event_id -> RRULE string
+
+    Returns:
+        CalendarEvent with full details
     """
+    # Skip cancelled events (exceptions to recurring events)
+    if gcal_event.get("status") == "cancelled":
+        return None
+
     start = gcal_event.get("start", {})
     end = gcal_event.get("end", {})
 
@@ -151,8 +284,10 @@ def _parse_event(gcal_event: dict, member_key: str, family_members: dict) -> Cal
     # Parse attendees and organizer
     attendees, organizer_key = _parse_attendees(gcal_event, family_members)
 
-    # Parse recurring event info
-    recurring_event_id, is_instance, recurrence_rule = _parse_recurring_info(gcal_event)
+    # Parse recurring event info (with RRULE lookup)
+    recurring_event_id, is_instance, recurrence_rule = _parse_recurring_info(
+        gcal_event, recurring_rules
+    )
 
     return CalendarEvent(
         id=gcal_event.get("id", ""),
@@ -296,6 +431,12 @@ def get_calendar_events(start_date: str | None = None, end_date: str | None = No
 
         for member in family_members_list:
             try:
+                # Pass 1: Fetch master recurring events to get RRULE definitions
+                recurring_rules = _fetch_recurring_rules(
+                    service, member.calendar_id, time_min, time_max
+                )
+
+                # Pass 2: Fetch expanded instances with singleEvents=True
                 events_result = (
                     service.events()
                     .list(
@@ -309,7 +450,11 @@ def get_calendar_events(start_date: str | None = None, end_date: str | None = No
                 )
 
                 for event in events_result.get("items", []):
-                    all_events.append(_parse_event(event, member.key, family_members))
+                    parsed_event = _parse_event(
+                        event, member.key, family_members, recurring_rules
+                    )
+                    if parsed_event:  # Skip cancelled events
+                        all_events.append(parsed_event)
 
             except HttpError as e:
                 print(f"Error fetching {member.name}'s calendar: {e}")

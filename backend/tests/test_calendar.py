@@ -6,7 +6,9 @@ from unittest.mock import patch
 from app.models import Attendee, CalendarEvent
 from app.services.calendar_service import (
     _deduplicate_events,
+    _fetch_recurring_rules,
     _parse_iso_date,
+    _parse_recurring_info,
     get_calendar_events,
 )
 from app.services.mock_data import get_mock_week_calendar
@@ -331,3 +333,78 @@ class TestEventDetails:
         # Recurrence rule should follow RRULE format
         for event in recurring_events:
             assert event.recurrence_rule.startswith("RRULE:")
+
+
+class TestRecurringEventHandling:
+    """Tests for recurring event RRULE fetching and parsing."""
+
+    def test_parse_recurring_info_with_direct_rule(self):
+        """Test parsing recurring info when RRULE is in the event itself."""
+        gcal_event = {
+            "id": "master_event_123",
+            "recurrence": ["RRULE:FREQ=WEEKLY;BYDAY=MO"],
+        }
+        recurring_rules = {}
+
+        recurring_id, is_instance, rule = _parse_recurring_info(
+            gcal_event, recurring_rules
+        )
+
+        assert recurring_id is None
+        assert is_instance is False
+        assert rule == "RRULE:FREQ=WEEKLY;BYDAY=MO"
+
+    def test_parse_recurring_info_with_lookup(self):
+        """Test parsing recurring info when RRULE comes from lookup map."""
+        gcal_event = {
+            "id": "instance_456",
+            "recurringEventId": "master_event_123",
+        }
+        recurring_rules = {
+            "master_event_123": "RRULE:FREQ=DAILY;BYDAY=MO,TU,WE,TH,FR"
+        }
+
+        recurring_id, is_instance, rule = _parse_recurring_info(
+            gcal_event, recurring_rules
+        )
+
+        assert recurring_id == "master_event_123"
+        assert is_instance is True
+        assert rule == "RRULE:FREQ=DAILY;BYDAY=MO,TU,WE,TH,FR"
+
+    def test_parse_recurring_info_non_recurring(self):
+        """Test parsing non-recurring event."""
+        gcal_event = {
+            "id": "single_event_789",
+        }
+        recurring_rules = {}
+
+        recurring_id, is_instance, rule = _parse_recurring_info(
+            gcal_event, recurring_rules
+        )
+
+        assert recurring_id is None
+        assert is_instance is False
+        assert rule is None
+
+    def test_parse_event_skips_cancelled(self):
+        """Test that cancelled events are skipped."""
+        from app.services.calendar_service import _parse_event
+        from app.config import FamilyMemberConfig
+
+        gcal_event = {
+            "id": "cancelled_123",
+            "status": "cancelled",
+            "summary": "Cancelled Event",
+        }
+        family_members = {
+            "faiyaz": FamilyMemberConfig(
+                name="Faiyaz",
+                key="faiyaz",
+                calendar_id="faiyaz@gmail.com",
+                color="#4A90E2",
+            )
+        }
+
+        result = _parse_event(gcal_event, "faiyaz", family_members, {})
+        assert result is None

@@ -195,7 +195,14 @@ GitHub Actions uses intelligent change detection to optimize CI time:
 
 ### Deployment Workflow (Intelligent)
 
+**CI Gate:** GitHub Actions MUST pass on `main` before deploying to Pi. Never deploy if CI is failing.
+
 ```bash
+# 1. Verify CI passed on main
+gh run list --limit 1 --branch main
+# Must show ✓ status before proceeding
+
+# 2. Deploy to Pi
 make deploy-pi
 ```
 
