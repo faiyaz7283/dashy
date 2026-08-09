@@ -65,7 +65,6 @@ export function App() {
     loading: calendarLoading,
     error: calendarError,
     lastRefresh: calendarLastRefresh,
-    refetch: refetchCalendar,
     forceRefresh,
   } = useCalendarEvents(currentView, currentDate)
   const {
