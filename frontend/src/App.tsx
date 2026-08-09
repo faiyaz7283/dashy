@@ -16,6 +16,7 @@ import { DateDisplay } from './components/DateDisplay'
 import { useOrientation } from './hooks/useOrientation'
 import { useSidebar } from './hooks/useSidebar'
 import { useCalendarEvents } from './hooks/useCalendarEvents'
+import { useApi } from './hooks/useApi'
 import { getWeather, getFamilyMembers, waitForBackend } from './services/api'
 import { colors, spacing, layout } from './theme/tokens'
 import {

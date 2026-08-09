@@ -3,7 +3,7 @@ import { getCalendar, clearCalendarCache } from './api'
 
 // Mock fetch to simulate API responses
 const mockFetch = vi.fn()
-global.fetch = mockFetch
+vi.stubGlobal('fetch', mockFetch)
 
 describe('getCalendar', () => {
   beforeEach(() => {

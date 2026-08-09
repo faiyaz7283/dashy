@@ -1,6 +1,7 @@
 import { renderHook, waitFor, act } from '@testing-library/react'
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { useCalendarEvents } from './useCalendarEvents'
+import type { CalendarView } from '../types'
 import * as api from '../services/api'
 
 // Mock the API module
@@ -93,16 +94,17 @@ describe('useCalendarEvents', () => {
   it('refetches when view changes', async () => {
     mockGetCalendar.mockResolvedValue(mockResponse)
 
-    const { rerender } = renderHook(({ view }) => useCalendarEvents(view, new Date('2026-08-12')), {
-      initialProps: { view: 'day' as const },
-    })
+    const { rerender } = renderHook(
+      ({ view }: { view: CalendarView }) => useCalendarEvents(view, new Date('2026-08-12')),
+      { initialProps: { view: 'day' as CalendarView } },
+    )
 
     await waitFor(() => {
       expect(mockGetCalendar).toHaveBeenCalled()
     })
 
     // Change to week view - should trigger new fetch with different range
-    rerender({ view: 'week' as const })
+    rerender({ view: 'week' as CalendarView })
 
     // Verify it was called with week range (may take a moment)
     await new Promise((resolve) => setTimeout(resolve, 100))
