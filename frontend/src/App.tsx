@@ -388,7 +388,7 @@ export function App() {
           onChange={setSidebarState}
           onRefreshCalendar={refetchCalendar}
         />
-        <main style={{ flex: 1, overflow: 'hidden', padding: `${spacing.xl}px` }}>
+        <main style={{ flex: 1, overflowY: 'auto', padding: `${spacing.xl}px` }}>
           {renderView()}
         </main>
       </div>
