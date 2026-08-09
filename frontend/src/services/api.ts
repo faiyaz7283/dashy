@@ -69,17 +69,23 @@ export async function waitForBackend(onProgress?: (elapsedMs: number) => void): 
  *
  * @param startDate - ISO format start date (e.g. "2026-08-08").
  * @param endDate - ISO format end date (e.g. "2026-08-08").
- * @returns Calendar events for the requested range.
+ * @returns Object containing the calendar data and a boolean indicating if it was served from cache.
  */
-export async function getCalendar(startDate: string, endDate: string): Promise<WeekCalendar> {
+export async function getCalendar(
+  startDate: string,
+  endDate: string,
+): Promise<{ data: WeekCalendar; cached: boolean }> {
   const cacheKey = `${startDate}_${endDate}`
   const cached = calendarCache.get(cacheKey)
 
   if (cached && Date.now() - cached.fetchedAt < CACHE_TTL) {
     return {
-      week_start: startDate,
-      week_end: endDate,
-      events: cached.events,
+      data: {
+        week_start: startDate,
+        week_end: endDate,
+        events: cached.events,
+      },
+      cached: true,
     }
   }
 
@@ -91,7 +97,7 @@ export async function getCalendar(startDate: string, endDate: string): Promise<W
     fetchedAt: Date.now(),
   })
 
-  return data
+  return { data, cached: false }
 }
 
 /**

@@ -28,9 +28,12 @@ describe('useCalendarEvents', () => {
   ]
 
   const mockResponse = {
-    week_start: '2026-08-10',
-    week_end: '2026-08-16',
-    events: mockEvents,
+    data: {
+      week_start: '2026-08-10',
+      week_end: '2026-08-16',
+      events: mockEvents,
+    },
+    cached: false,
   }
 
   it('fetches events on mount', async () => {

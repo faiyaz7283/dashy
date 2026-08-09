@@ -105,11 +105,14 @@ export function useCalendarEvents(
 
     try {
       const { startDate, endDate } = computeDateRange(currentView, currentDate)
-      const data = await getCalendar(startDate, endDate)
+      const { data, cached } = await getCalendar(startDate, endDate)
 
       if (isMountedRef.current) {
         setEvents(data.events)
-        setLastRefresh(Date.now())
+        // Only update lastRefresh when we actually fetch from the network
+        if (!cached) {
+          setLastRefresh(Date.now())
+        }
       }
     } catch (err) {
       if (isMountedRef.current) {

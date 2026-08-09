@@ -38,10 +38,14 @@ describe('getCalendar', () => {
 
     const result = await getCalendar('2026-08-10', '2026-08-16')
 
-    expect(result).toEqual(mockResponse)
+    expect(result).toEqual({ data: mockResponse, cached: false })
     expect(mockFetch).toHaveBeenCalledTimes(1)
-    expect(mockFetch).toHaveBeenCalledWith(expect.stringContaining('start_date=2026-08-10'))
-    expect(mockFetch).toHaveBeenCalledWith(expect.stringContaining('end_date=2026-08-16'))
+    expect(mockFetch).toHaveBeenCalledWith(
+      expect.stringContaining('start_date=2026-08-10'),
+    )
+    expect(mockFetch).toHaveBeenCalledWith(
+      expect.stringContaining('end_date=2026-08-16'),
+    )
   })
 
   it('returns cached data on second call within TTL', async () => {
@@ -57,7 +61,7 @@ describe('getCalendar', () => {
     // Second call - should use cache
     const result2 = await getCalendar('2026-08-10', '2026-08-16')
     expect(mockFetch).toHaveBeenCalledTimes(1) // Still 1, no new fetch
-    expect(result2).toEqual(result1)
+    expect(result2).toEqual({ data: mockResponse, cached: true })
   })
 
   it('fetches fresh data after cache expires', async () => {
@@ -134,7 +138,7 @@ describe('getCalendar', () => {
     })
 
     const result = await getCalendar('2026-08-10', '2026-08-16')
-    expect(result).toEqual(mockResponse)
+    expect(result).toEqual({ data: mockResponse, cached: false })
     expect(mockFetch).toHaveBeenCalledTimes(2)
   }, 60000)
 })
