@@ -127,5 +127,18 @@ export function useCalendarEvents(
     fetchData()
   }, [fetchData])
 
+  // Auto-refresh every 2 minutes (matches cache TTL and status bar countdown)
+  useEffect(() => {
+    const errorRetry = 10_000 // 10 seconds when in error state
+    const normalInterval = 120_000 // 2 minutes
+    const intervalMs = error ? errorRetry : normalInterval
+
+    const interval = setInterval(() => {
+      fetchData()
+    }, intervalMs)
+
+    return () => clearInterval(interval)
+  }, [fetchData, error])
+
   return { events, loading, error, lastRefresh, refetch: fetchData }
 }
