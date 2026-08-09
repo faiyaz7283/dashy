@@ -14,6 +14,8 @@
 - **Pi URLs:** https://dashy.local (frontend), https://api.dashy.local (backend)
 - **API Services:** Google Calendar + OpenWeatherMap (fall back to mock when credentials missing)
 - **Kiosk:** Chromium auto-starts on boot, displays dashboard with real calendar data
+- **Views:** Day, Week, Month, Year with navigation and auto-refresh
+- **Header:** Auto-collapsing (hides after 3s, shows on mouse near top)
 
 ---
 
@@ -56,18 +58,36 @@ dashy/
 ├── frontend/              # React + TypeScript + Vite + Tailwind
 │   ├── src/
 │   │   ├── components/    # One component per folder with barrel export
-│   │   │   ├── Header/
-│   │   │   ├── Sidebar/
-│   │   │   ├── FamilyPills/
-│   │   │   ├── WeekGrid/
-│   │   │   ├── DayCard/
-│   │   │   ├── EventCard/
-│   │   │   ├── WeatherWidget/
-│   │   │   └── Clock/
-│   │   ├── data/          # Mock data (replaced by API calls later)
-│   │   ├── hooks/         # Custom hooks (useOrientation, useSidebar, useApi)
-│   │   ├── services/      # API service layer (api.ts with retry logic)
+│   │   │   ├── Header/           # Main header (logo, date, clock, weather, controls)
+│   │   │   ├── Sidebar/          # Collapsible sidebar with navigation
+│   │   │   ├── FamilyPills/      # Compact inline family member pills
+│   │   │   ├── DensityBadge/     # Event count badge with density coloring
+│   │   │   ├── SubHeader/        # (Deprecated - consolidated into Header)
+│   │   │   ├── StickyArea/       # Auto-collapsing sticky header wrapper
+│   │   │   ├── ViewSwitcher/     # Day/Week/Month/Year view buttons
+│   │   │   ├── SideNav/          # Previous/Next navigation arrows
+│   │   │   ├── WeekGrid/         # Week view (7 day cards)
+│   │   │   ├── DayCard/          # Individual day card component
+│   │   │   ├── EventCard/        # Event card for week/day views
+│   │   │   ├── EventPopup/       # Hover popup with event details
+│   │   │   ├── AllDaySection/    # All-day events (day view)
+│   │   │   ├── DayView/          # Day view with hourly timeline
+│   │   │   ├── MonthView/        # Month grid view
+│   │   │   ├── YearView/         # Year view with mini calendars
+│   │   │   ├── WeatherWidget/    # Current weather display
+│   │   │   ├── Clock/            # Live clock display
+│   │   │   ├── DateDisplay/      # Date picker for custom dates
+│   │   │   └── StatusBar/        # Bottom status bar with refresh info
+│   │   ├── hooks/         # Custom hooks
+│   │   │   ├── useOrientation.ts    # Screen orientation detection
+│   │   │   ├── useSidebar.ts        # Sidebar state management
+│   │   │   ├── useApi.ts            # Generic API fetch hook
+│   │   │   ├── useCalendarEvents.ts # Calendar events with caching
+│   │   │   └── useAutoHideHeader.ts # Auto-hide header on mouse proximity
+│   │   ├── services/      # API service layer (api.ts with retry + cache)
 │   │   ├── types/         # TypeScript type definitions
+│   │   ├── theme/         # Design tokens (colors, spacing, typography)
+│   │   ├── utils/         # Date formatting, density calculations
 │   │   ├── test/          # Test setup
 │   │   ├── App.tsx
 │   │   └── main.tsx
@@ -150,7 +170,7 @@ make clean      # Stop and clean all environments
 
 - **Branch:** `development` for all work, `main` for stable releases
 - **Commits:** Atomic, clear messages describing "why" not just "what"
-- **Co-author:** Always include `Co-Authored-By: Qwen Code <qwen@alibabacloud.com>`
+- **Co-author:** Always include `Co-Authored-By: Oz <oz-agent@warp.dev>`
 - **PR Flow:** Work on `development` → Create PR → Merge to `main` → Deploy to Pi
 
 ### CI/CD Workflow (Smart Change Detection)
@@ -263,6 +283,65 @@ Children (Arya, 8 and Raya, 4) are not in v1 calendar scope but the system suppo
 ---
 
 ## Known Issues & Resolutions
+
+### Auto-Collapsing Header
+
+**Feature:** Header automatically hides to maximize calendar viewing space.
+
+**Behavior:**
+- Header visible when mouse is within 60px of top of screen
+- Collapses after 3 seconds when mouse leaves trigger zone
+- Smooth transition (150ms) using maxHeight animation
+- Content smoothly moves up when header collapses
+- Implemented via `useAutoHideHeader` hook
+
+### Header Consolidation
+
+**Feature:** Reduced header from 3 rows to 1 row for better space utilization.
+
+**Changes:**
+- FamilyPills made compact (16px avatars, 11px names) and moved into header row
+- DensityBadge moved into header (between pills and ViewSwitcher)
+- SubHeader component removed from layout (redundant with header date)
+- StickyArea simplified to only header + optional allDaySection
+- Saves ~95px vertical space for calendar content
+
+### Manual Refresh Fix
+
+**Problem:** Manual refresh button was using cached data within 2-minute window.
+
+**Solution:**
+- Added `bypassCache` option to `getCalendar()` API function
+- Added `forceRefresh()` to `useCalendarEvents` hook
+- Sidebar refresh button now calls `forceRefresh()` to bypass cache
+
+### Date Persistence Removed
+
+**Problem:** Header date stuck on previous day after midnight (persisted in localStorage).
+
+**Solution:**
+- Removed localStorage persistence for `currentDate`
+- `currentDate` now initializes to `new Date()` on every page load
+- View type (day/week/month/year) still persisted
+- Ensures tablet always shows today's schedule on reload
+
+### Event Popup Positioning Fix
+
+**Problem:** Popup flipped to opposite side of cursor when near viewport edge, creating large gaps.
+
+**Solution:**
+- Changed from flip logic to clamp logic
+- Popup now stays as close to cursor as possible while avoiding viewport overflow
+- Uses `Math.max/min` to clamp position within bounds
+
+### CI Test Fixes
+
+**Problem:** Tests failing on CI due to timezone issues and missing env vars.
+
+**Solution:**
+- Fixed timezone issues in `useCalendarEvents.test.ts` (use `new Date(year, month, day)` instead of ISO strings)
+- Updated test assertions for new `getCalendar` options parameter
+- Added `VITE_API_URL` to `vitest.config.ts` env
 
 ### "Error: Failed to fetch" on Pi Kiosk
 
@@ -387,7 +466,7 @@ This intelligent deployment command:
 2. **Always use Docker** — No local npm/pip installs outside containers for dev
 3. **Update QWEN.md** — When conventions or status change
 4. **Mock data first** — Build frontend with fake data, define API contract, then build backend
-5. **Co-author commits** — Always include `Co-Authored-By: Qwen Code <qwen@alibabacloud.com>`
+5. **Co-author commits** — Always include `Co-Authored-By: Oz <oz-agent@warp.dev>`
 6. **Latest versions** — Never pin to old versions unless there's a specific compatibility reason
 7. **Pi deployment** — Test with `docker-compose.prod.yml` before deploying to Pi
 
@@ -450,7 +529,7 @@ This intelligent deployment command:
 ### Git Workflow
 
 20. **Atomic commits** — One logical change per commit. Clear messages describing "why" not just "what".
-21. **Co-author all AI-assisted commits** — Always include `Co-Authored-By: Qwen Code <qwen@alibabacloud.com>`.
+21. **Co-author all AI-assisted commits** — Always include `Co-Authored-By: Oz <oz-agent@warp.dev>`.
 22. **Branch: `development`** — All work on `development`, `main` is for stable releases only.
 
 ### Architecture Decisions
