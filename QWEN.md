@@ -314,7 +314,7 @@ The model:
 - **Boot medium:** NVMe SSD (WD Blue SN500 500 GB) via Realtek RTL9210 USB 3.0 bridge
 - **Rollback medium:** Original 64 GB microSD card (untouched; can be reinserted to boot)
 - **Display:** 1360×768 HDMI TV (Hisense), NOT touchscreen
-- **Kiosk mode:** Chromium auto-start on boot, full-screen
+- **Kiosk mode:** Chromium auto-start on boot, full-screen, mouse cursor auto-hides after 2 s of idle
 
 ### Rotating the Display (Portrait Mode)
 
@@ -521,11 +521,13 @@ certutil -d sql:/home/rpi4_main/.pki/nssdb -A -t 'C,,' -n 'mkcert' -i /tmp/rootC
 - **Auto-start:** Wrapper script (`scripts/start-chromium-kiosk.sh`) with retry logic
 - **Configuration:** Version-controlled in `scripts/chromium-kiosk.desktop`
 - **Certificate:** mkcert root CA imported into Chromium's NSS database
+- **Idle cursor hiding:** `unclutter-xfixes` hides the mouse pointer after 2 seconds of inactivity (useful for wall-mounted displays with a visible mouse laser)
 
 The wrapper script ensures reliable startup by:
 1. Waiting for X display to be ready (up to 30 seconds)
 2. Waiting for backend services to be available (up to 120 seconds)
-3. Only then launching Chromium in kiosk mode
+3. Starting `unclutter-xfixes` to hide the idle cursor
+4. Only then launching Chromium in kiosk mode
 
 ### Deployment Command
 
