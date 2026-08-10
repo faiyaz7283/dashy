@@ -28,6 +28,8 @@ interface YearViewProps {
   onMonthClick: (month: number) => void
   /** Callback when a day is clicked. */
   onDayClick: (date: Date) => void
+  /** Screen orientation — controls the month grid columns. */
+  orientation?: 'landscape' | 'portrait'
 }
 
 const monthNames = [
@@ -108,6 +110,7 @@ export function YearView({
   members,
   onMonthClick,
   onDayClick,
+  orientation = 'landscape',
 }: YearViewProps) {
   const { popupState, handleDayMouseEnter, handleMouseMove, handleMouseLeave } =
     useEventInteraction(events)
@@ -116,6 +119,11 @@ export function YearView({
   const today = new Date()
   const selectedMonth = currentDate.getMonth()
   const currentMonth = today.getMonth()
+  const cols =
+    orientation === 'landscape'
+      ? themeConfig.calendar.yearGridLandscape
+      : themeConfig.calendar.yearGridPortrait
+  const rows = 12 / cols
 
   // Calculate event counts per month for density
   const monthEventCounts = Array.from({ length: 12 }, (_, m) => {
@@ -127,13 +135,13 @@ export function YearView({
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
-      {/* Year grid: 4 columns × 3 rows, stretched to fill available height */}
+      {/* Year grid: 4×3 landscape / 3×4 portrait, stretched to fill available height */}
       <div
         onMouseLeave={handleMouseLeave}
         style={{
           display: 'grid',
-          gridTemplateColumns: `repeat(${themeConfig.calendar.yearGridColumns}, 1fr)`,
-          gridTemplateRows: 'repeat(3, minmax(0, 1fr))',
+          gridTemplateColumns: `repeat(${cols}, 1fr)`,
+          gridTemplateRows: `repeat(${rows}, minmax(0, 1fr))`,
           gap: '20px',
           flex: 1,
           minHeight: 0,

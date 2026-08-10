@@ -47,6 +47,7 @@ export function WeekGrid({ events, members, orientation, currentDate, onDayClick
     orientation === 'landscape'
       ? themeConfig.calendar.weekGridLandscape
       : themeConfig.calendar.weekGridPortrait
+  const rows = Math.ceil(themeConfig.calendar.weekDaysCount / cols)
 
   // Calculate event counts for each day to determine density
   const dayCounts = weekDays.map((date) => getEventsForDay(events, date).length)
@@ -57,6 +58,7 @@ export function WeekGrid({ events, members, orientation, currentDate, onDayClick
         style={{
           display: 'grid',
           gridTemplateColumns: `repeat(${cols}, 1fr)`,
+          gridTemplateRows: `repeat(${rows}, minmax(0, 1fr))`,
           gap: `${spacing.lg}px`,
           height: '100%',
         }}

@@ -298,6 +298,7 @@ export function App() {
             members={familyMembers}
             onMonthClick={handleMonthClick}
             onDayClick={handleDayClick}
+            orientation={orientation}
           />
         )
     }
@@ -336,6 +337,7 @@ export function App() {
             sidebarState={sidebarState}
             onOpenSidebar={openSidebar}
             currentDate={currentDate}
+            orientation={orientation}
           >
             <FamilyPills members={familyMembers} events={events} />
             <DensityBadge density={densityInfo.density} label={densityInfo.label} />

@@ -297,7 +297,8 @@ The model:
 4. **Token-based sizing stays** — Components keep using px design tokens; tokens are the 1920px baseline and zoom handles larger screens. Do NOT introduce vw/clamp sizing in components.
 5. **Floating layers** — Popups/modals render via `createPortal` to `document.body` (outside the zoomed root) so viewport/cursor coordinates stay exact; apply the `useUiScale` factor to their content wrapper only.
 6. **vh gotcha** — Under zoom, `100vh` evaluates in zoomed pixels; divide by the factor: `height: calc(100vh / ${uiScale})` (see App.tsx).
-7. **Display test matrix** — Verify visual changes on: Pi TV (1366×768 class), laptop (~1440–1512 CSS px), and a large/ultrawide monitor (≥2560 CSS px).
+7. **Orientation-aware** — `useOrientation` (viewport-based) drives portrait layouts: week view uses 2 columns (`weekGridPortrait`), year view 3×4 (`yearGridPortrait`), and the header stacks its controls on a second row. Views must keep filling the available height in both orientations.
+8. **Display test matrix** — Verify visual changes on: Pi TV (1366×768 class), laptop (~1440–1512 CSS px), a large/ultrawide monitor (≥2560 CSS px), and portrait (a tall narrow browser window is enough).
 
 ---
 

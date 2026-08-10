@@ -14,6 +14,8 @@ interface HeaderProps {
   children?: ReactNode
   /** Date to display in the header. Defaults to today. */
   currentDate?: Date
+  /** Screen orientation — portrait stacks the controls on a second row. */
+  orientation?: 'landscape' | 'portrait'
 }
 
 export function Header({
@@ -22,8 +24,10 @@ export function Header({
   onOpenSidebar,
   children,
   currentDate = new Date(),
+  orientation = 'landscape',
 }: HeaderProps) {
   const dateStr = formatHeaderDate(currentDate)
+  const isPortrait = orientation === 'portrait'
 
   return (
     <header
@@ -32,8 +36,10 @@ export function Header({
         borderBottom: `1px solid ${colors.border}`,
         padding: `${spacing.md}px ${spacing.xl}px`,
         display: 'flex',
-        alignItems: 'center',
+        flexDirection: isPortrait ? 'column' : 'row',
+        alignItems: isPortrait ? 'stretch' : 'center',
         justifyContent: 'space-between',
+        gap: isPortrait ? `${spacing.sm}px` : 0,
         flexShrink: 0,
       }}
     >
@@ -103,7 +109,14 @@ export function Header({
         </div>
       </div>
       {children && (
-        <div style={{ display: 'flex', alignItems: 'center', gap: `${spacing.sm}px` }}>
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: `${spacing.sm}px`,
+            ...(isPortrait ? { flexWrap: 'wrap', justifyContent: 'space-between' } : undefined),
+          }}
+        >
           {children}
         </div>
       )}
