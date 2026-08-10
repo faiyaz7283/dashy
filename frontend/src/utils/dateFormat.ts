@@ -2,7 +2,7 @@
  * Date formatting utilities for calendar views.
  *
  * Provides consistent date formatting across all views, including ordinal
- * suffixes (1st, 2nd, 3rd, etc.) and view-specific sub-header formats.
+ * suffixes (1st, 2nd, 3rd, etc.).
  */
 
 import { themeConfig } from '../theme/config'
@@ -37,42 +37,6 @@ export function getOrdinalSuffix(day: number): string {
 }
 
 /**
- * Formats a date with ordinal suffix (e.g., "August 8th, 2026").
- *
- * @param date - The date to format.
- * @param options - Formatting options.
- * @param options.includeWeekday - Whether to include the weekday name.
- * @returns The formatted date string.
- *
- * @example
- * ```ts
- * formatDateWithOrdinal(new Date('2026-08-08'));
- * // 'August 8th, 2026'
- *
- * formatDateWithOrdinal(new Date('2026-08-08'), { includeWeekday: true });
- * // 'Saturday, August 8th, 2026'
- * ```
- */
-export function formatDateWithOrdinal(
-  date: Date,
-  options: { includeWeekday?: boolean } = {},
-): string {
-  const { locale } = themeConfig.dateFormat
-  const { includeWeekday = false } = options
-
-  const weekday = date.toLocaleDateString(locale, { weekday: 'long' })
-  const month = date.toLocaleDateString(locale, { month: 'long' })
-  const day = date.getDate()
-  const year = date.getFullYear()
-  const suffix = getOrdinalSuffix(day)
-
-  if (includeWeekday) {
-    return `${weekday}, ${month} ${day}${suffix}, ${year}`
-  }
-  return `${month} ${day}${suffix}, ${year}`
-}
-
-/**
  * Formats a date for the main header display (e.g., "Wed, Aug 5th").
  *
  * Includes ordinal suffix on the day number.
@@ -87,64 +51,6 @@ export function formatHeaderDate(date: Date): string {
   const day = date.getDate()
   const suffix = getOrdinalSuffix(day)
   return `${weekday}, ${month} ${day}${suffix}`
-}
-
-/**
- * Formats the sub-header for day view (e.g., "Saturday, August 8th, 2026").
- *
- * @param date - The date to format.
- * @returns The day view sub-header string.
- */
-export function formatDaySubHeader(date: Date): string {
-  return formatDateWithOrdinal(date, { includeWeekday: true })
-}
-
-/**
- * Formats the sub-header for week view
- * (e.g., "Monday, August 4th to Sunday, August 10th, 2026").
- *
- * @param weekStart - The first day of the week (Monday).
- * @param weekEnd - The last day of the week (Sunday).
- * @returns The week view sub-header string.
- */
-export function formatWeekSubHeader(weekStart: Date, weekEnd: Date): string {
-  const { locale } = themeConfig.dateFormat
-
-  const startWeekday = weekStart.toLocaleDateString(locale, { weekday: 'long' })
-  const startMonth = weekStart.toLocaleDateString(locale, { month: 'long' })
-  const startDay = weekStart.getDate()
-  const startSuffix = getOrdinalSuffix(startDay)
-
-  const endWeekday = weekEnd.toLocaleDateString(locale, { weekday: 'long' })
-  const endMonth = weekEnd.toLocaleDateString(locale, { month: 'long' })
-  const endDay = weekEnd.getDate()
-  const endSuffix = getOrdinalSuffix(endDay)
-  const year = weekEnd.getFullYear()
-
-  return `${startWeekday}, ${startMonth} ${startDay}${startSuffix} to ${endWeekday}, ${endMonth} ${endDay}${endSuffix}, ${year}`
-}
-
-/**
- * Formats the sub-header for month view (e.g., "August 2026").
- *
- * @param date - Any date within the month to format.
- * @returns The month view sub-header string.
- */
-export function formatMonthSubHeader(date: Date): string {
-  const { locale } = themeConfig.dateFormat
-  const month = date.toLocaleDateString(locale, { month: 'long' })
-  const year = date.getFullYear()
-  return `${month} ${year}`
-}
-
-/**
- * Formats the sub-header for year view (e.g., "2026").
- *
- * @param date - Any date within the year to format.
- * @returns The year view sub-header string.
- */
-export function formatYearSubHeader(date: Date): string {
-  return String(date.getFullYear())
 }
 
 /**

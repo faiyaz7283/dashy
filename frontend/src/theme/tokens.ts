@@ -170,9 +170,6 @@ export const typography = {
   /** Clock display. */
   clock: { size: 14, weight: 400 },
 
-  /** View sub-header title. */
-  subHeaderTitle: { size: 18, weight: 700 },
-
   /** Density / event count badge. */
   badge: { size: 11, weight: 600 },
 

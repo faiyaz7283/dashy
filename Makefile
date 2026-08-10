@@ -1,6 +1,6 @@
 .PHONY: help \
         dev-up dev-down dev-logs dev-shell dev-shell-frontend dev-restart dev-build dev-rebuild \
-        test-up test-down test-logs test-shell test-build test-rebuild test test-frontend test-backend \
+        test test-frontend test-backend \
         lint lint-frontend lint-backend format format-frontend format-backend \
         typecheck typecheck-frontend \
         build build-frontend build-backend \
@@ -34,8 +34,6 @@ help:
 	@echo "  make dev-rebuild         - Rebuild containers (no cache)"
 	@echo ""
 	@echo "🧪 Testing:"
-	@echo "  make test-up             - Start test environment"
-	@echo "  make test-down           - Stop test environment"
 	@echo "  make test                - Run all tests"
 	@echo "  make test-frontend       - Run frontend tests"
 	@echo "  make test-backend        - Run backend tests"
@@ -140,29 +138,6 @@ dev-rebuild:
 # ==============================================================================
 # TESTING
 # ==============================================================================
-
-test-up:
-	@echo " Starting TEST environment..."
-	@docker compose -f compose/docker-compose.test.yml up -d --build --remove-orphans
-	@echo "✅ Test services started"
-
-test-down:
-	@echo " Stopping TEST environment..."
-	@docker compose -f compose/docker-compose.test.yml down
-	@echo "✅ Test stopped"
-
-test-logs:
-	@docker compose -f compose/docker-compose.test.yml logs -f
-
-test-shell:
-	@docker compose -f compose/docker-compose.test.yml exec backend /bin/bash
-
-test-build:
-	@docker compose -f compose/docker-compose.test.yml build
-
-test-rebuild:
-	@docker compose -f compose/docker-compose.test.yml build --no-cache
-	@docker compose -f compose/docker-compose.test.yml up -d --remove-orphans
 
 test:
 	@echo "🧪 Running all tests..."
@@ -402,7 +377,6 @@ deploy-restart:
 clean:
 	@echo " Cleaning all environments..."
 	@docker compose -f compose/docker-compose.dev.yml down -v --remove-orphans 2>/dev/null || true
-	@docker compose -f compose/docker-compose.test.yml down -v --remove-orphans 2>/dev/null || true
 	@echo "✅ Cleaned"
 
 # ==============================================================================

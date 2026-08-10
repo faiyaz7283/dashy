@@ -16,6 +16,8 @@
 - **Kiosk:** Chromium auto-starts on boot, displays dashboard with real calendar data
 - **Views:** Day, Week, Month, Year with navigation and auto-refresh
 - **Header:** Auto-collapsing (hides after 3s, shows on mouse near top)
+- **Backend:** Enhanced with event deduplication, attendees, recurring events, full event details
+- **Frontend:** Event component refactor planned — see `frontend/src/docs/event-architecture-analysis.md`
 
 ---
 
@@ -57,12 +59,13 @@ dashy/
 │   └── .env.dev           # Actual values (gitignored)
 ├── frontend/              # React + TypeScript + Vite + Tailwind
 │   ├── src/
+│   │   ├── docs/          # Architecture analysis and design documents
+│   │   │   └── event-architecture-analysis.md  # Event component refactor plan
 │   │   ├── components/    # One component per folder with barrel export
 │   │   │   ├── Header/           # Main header (logo, date, clock, weather, controls)
 │   │   │   ├── Sidebar/          # Collapsible sidebar with navigation
 │   │   │   ├── FamilyPills/      # Compact inline family member pills
 │   │   │   ├── DensityBadge/     # Event count badge with density coloring
-│   │   │   ├── SubHeader/        # (Deprecated - consolidated into Header)
 │   │   │   ├── StickyArea/       # Auto-collapsing sticky header wrapper
 │   │   │   ├── ViewSwitcher/     # Day/Week/Month/Year view buttons
 │   │   │   ├── SideNav/          # Previous/Next navigation arrows
@@ -309,7 +312,6 @@ Children (Arya, 8 and Raya, 4) are not in v1 calendar scope but the system suppo
 **Changes:**
 - FamilyPills made compact (16px avatars, 11px names) and moved into header row
 - DensityBadge moved into header (between pills and ViewSwitcher)
-- SubHeader component removed from layout (redundant with header date)
 - StickyArea simplified to only header + optional allDaySection
 - Saves ~95px vertical space for calendar content
 

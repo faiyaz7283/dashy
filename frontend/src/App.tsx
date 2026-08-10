@@ -20,14 +20,7 @@ import { useApi } from './hooks/useApi'
 import { useAutoHideHeader } from './hooks/useAutoHideHeader'
 import { getWeather, getFamilyMembers, waitForBackend } from './services/api'
 import { colors, spacing, layout } from './theme/tokens'
-import {
-  getWeekDays,
-  isSameDay,
-  formatWeekSubHeader,
-  formatMonthSubHeader,
-  formatYearSubHeader,
-  formatDaySubHeader,
-} from './utils/dateFormat'
+import { getWeekDays, isSameDay } from './utils/dateFormat'
 import { getRelativeDensity, getAbsoluteDensity } from './utils/density'
 
 const VIEW_STORAGE_KEY = 'dashy-calendar-view'
@@ -201,14 +194,13 @@ export function App() {
     return null
   }
 
-  // Calculate sub-header info based on current view
-  const getSubHeaderInfo = () => {
+  // Calculate density badge info based on current view
+  const getDensityInfo = () => {
     switch (currentView) {
       case 'day': {
         const dayEvents = calendarEvents.filter((e) => isSameDay(new Date(e.start), currentDate))
         const density = getAbsoluteDensity(dayEvents.length)
         return {
-          title: formatDaySubHeader(currentDate),
           density,
           label: `${dayEvents.length} event${dayEvents.length !== 1 ? 's' : ''}`,
         }
@@ -223,7 +215,6 @@ export function App() {
         })
         const density = getRelativeDensity(weekEvents.length, [weekEvents.length])
         return {
-          title: formatWeekSubHeader(weekStart, weekEnd),
           density,
           label: `${weekEvents.length} events`,
         }
@@ -237,7 +228,6 @@ export function App() {
         })
         const density = getRelativeDensity(monthEvents.length, [monthEvents.length])
         return {
-          title: formatMonthSubHeader(currentDate),
           density,
           label: `${monthEvents.length} events`,
         }
@@ -249,7 +239,6 @@ export function App() {
         })
         const density = getRelativeDensity(yearEvents.length, [yearEvents.length])
         return {
-          title: formatYearSubHeader(currentDate),
           density,
           label: `${yearEvents.length} events`,
         }
@@ -257,7 +246,7 @@ export function App() {
     }
   }
 
-  const subHeaderInfo = getSubHeaderInfo()
+  const densityInfo = getDensityInfo()
 
   // Use calendarEvents directly for rendering (already filtered by view in the hook)
   const events = calendarEvents
@@ -339,7 +328,7 @@ export function App() {
             currentDate={currentDate}
           >
             <FamilyPills members={familyMembers} events={events} />
-            <DensityBadge density={subHeaderInfo.density} label={subHeaderInfo.label} />
+            <DensityBadge density={densityInfo.density} label={densityInfo.label} />
             <div
               style={{ width: '1px', height: '24px', background: colors.border, margin: '0 4px' }}
             />
