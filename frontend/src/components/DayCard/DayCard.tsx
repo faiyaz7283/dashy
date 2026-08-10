@@ -67,6 +67,8 @@ export function DayCard({
         opacity: isNextWeek ? 0.7 : 1,
         cursor: onClick ? 'pointer' : 'default',
         transition: 'box-shadow 0.15s, transform 0.1s',
+        minHeight: 0,
+        overflow: 'hidden',
       }}
       onMouseEnter={(e) => {
         if (!isNextWeek && onClick) {
