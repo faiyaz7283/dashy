@@ -3,23 +3,18 @@
  *
  * Shows an hourly timeline with events positioned by time, an all-day events
  * section, a current time indicator (red line), and auto-scroll to current time.
- * Clicking events opens a detail modal.
+ * Hovering an event shows a popup; clicking an event opens the detail modal.
  */
 
 import { useState, useEffect, useRef } from 'react'
 import type { CalendarEvent, FamilyMember } from '../../types'
-import {
-  colors,
-  spacing,
-  radii,
-  typography,
-  layout,
-  memberColors,
-  zIndices,
-} from '../../theme/tokens'
+import { colors, spacing, radii, typography, layout, zIndices } from '../../theme/tokens'
 import { themeConfig } from '../../theme/config'
 import { isSameDay } from '../../utils/dateFormat'
+import { EventItem } from '../EventItem'
+import { EventPopup } from '../EventPopup'
 import { EventModal } from '../EventModal'
+import { useEventInteraction } from '../../hooks/useEventInteraction'
 
 interface DayViewProps {
   /** The date to display. */
@@ -35,6 +30,13 @@ interface DayViewProps {
  */
 function getTimedEvents(events: CalendarEvent[], date: Date): CalendarEvent[] {
   return events.filter((e) => isSameDay(new Date(e.start), date) && !e.all_day)
+}
+
+/**
+ * Gets all events for a specific date.
+ */
+function getEventsForDate(events: CalendarEvent[], date: Date): CalendarEvent[] {
+  return events.filter((e) => isSameDay(new Date(e.start), date))
 }
 
 /**
@@ -69,7 +71,15 @@ function getEventHeightPx(event: CalendarEvent): number {
  * @returns The day view UI.
  */
 export function DayView({ currentDate, events, members }: DayViewProps) {
-  const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null)
+  const {
+    popupState,
+    selectedEvent,
+    handleDayMouseEnter,
+    handleMouseMove,
+    handleMouseLeave,
+    openEvent,
+    closeEvent,
+  } = useEventInteraction(events)
   const [currentTimeTop, setCurrentTimeTop] = useState<number>(0)
   const timelineRef = useRef<HTMLDivElement>(null)
 
@@ -118,7 +128,10 @@ export function DayView({ currentDate, events, members }: DayViewProps) {
   }
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+    <div
+      onMouseLeave={handleMouseLeave}
+      style={{ display: 'flex', flexDirection: 'column', height: '100%' }}
+    >
       {/* Timeline container with sticky all-day section */}
       <div
         ref={timelineRef}
@@ -154,51 +167,22 @@ export function DayView({ currentDate, events, members }: DayViewProps) {
             >
               All-day
             </div>
-            {allDayEvents.map((event) => {
-              const eventMembers = members.filter((m) => event.members.includes(m.key))
-              const primaryMember = eventMembers[0]
-              const mc = primaryMember ? memberColors[primaryMember.key] : null
-
-              return (
-                <div
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+              {allDayEvents.map((event) => (
+                <EventItem
                   key={event.id}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: `${spacing.sm}px`,
-                    padding: '6px 10px',
-                    borderRadius: `${radii.md}px`,
-                    marginBottom: '4px',
-                    fontSize: '13px',
-                    fontWeight: 500,
-                    borderLeft: `3px solid ${mc ? mc.avatar : colors.border}`,
-                    background: mc ? mc.bg : colors.bgHover,
-                    color: mc ? mc.text : colors.textMuted,
-                  }}
-                >
-                  {primaryMember && (
-                    <span
-                      style={{
-                        width: '18px',
-                        height: '18px',
-                        borderRadius: '50%',
-                        fontSize: '9px',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        color: colors.white,
-                        fontWeight: 600,
-                        backgroundColor: primaryMember.color,
-                        flexShrink: 0,
-                      }}
-                    >
-                      {primaryMember.initial}
-                    </span>
-                  )}
-                  <span>{event.title}</span>
-                </div>
-              )
-            })}
+                  event={event}
+                  members={members}
+                  variant="card"
+                  size="sm"
+                  showTime={false}
+                  onClick={openEvent}
+                  onMouseEnter={(e) => handleDayMouseEnter(e, currentDate)}
+                  onMouseMove={handleMouseMove}
+                  onMouseLeave={handleMouseLeave}
+                />
+              ))}
+            </div>
           </div>
         )}
         <div
@@ -257,79 +241,27 @@ export function DayView({ currentDate, events, members }: DayViewProps) {
 
           {/* Event blocks */}
           {timedEvents.map((event) => {
-            const eventMembers = members.filter((m) => event.members.includes(m.key))
-            const primaryMember = eventMembers[0]
-            const mc = primaryMember ? memberColors[primaryMember.key] : null
             const top = getEventTopPx(event)
             const height = getEventHeightPx(event)
 
             return (
-              <div
+              <EventItem
                 key={event.id}
-                onClick={() => setSelectedEvent(event)}
+                event={event}
+                members={members}
+                variant="block"
                 style={{
                   position: 'absolute',
                   left: `${layout.timelineLabelWidth + 4}px`,
                   right: '4px',
                   top: `${top}px`,
                   height: `${height}px`,
-                  borderRadius: `${radii.md}px`,
-                  padding: `0 10px`,
-                  background: mc ? mc.bg : colors.bgHover,
-                  borderLeft: `3px solid ${mc ? mc.avatar : colors.border}`,
-                  cursor: 'pointer',
-                  transition: 'transform 0.1s, box-shadow 0.1s',
-                  zIndex: zIndices.eventBlock,
-                  overflow: 'hidden',
-                  display: 'flex',
-                  alignItems: 'center',
                 }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.transform = 'scale(1.01)'
-                  e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.1)'
-                  e.currentTarget.style.zIndex = String(zIndices.eventBlockHover)
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.transform = 'scale(1)'
-                  e.currentTarget.style.boxShadow = 'none'
-                  e.currentTarget.style.zIndex = String(zIndices.eventBlock)
-                }}
-              >
-                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', width: '100%' }}>
-                  {primaryMember && (
-                    <span
-                      style={{
-                        width: '18px',
-                        height: '18px',
-                        borderRadius: '50%',
-                        fontSize: '9px',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        color: colors.white,
-                        fontWeight: 600,
-                        backgroundColor: primaryMember.color,
-                        flexShrink: 0,
-                      }}
-                    >
-                      {primaryMember.initial}
-                    </span>
-                  )}
-                  <span
-                    style={{
-                      fontSize: '12px',
-                      fontWeight: 600,
-                      color: colors.textPrimary,
-                      whiteSpace: 'nowrap',
-                      overflow: 'hidden',
-                      textOverflow: 'ellipsis',
-                      flex: 1,
-                    }}
-                  >
-                    {event.title}
-                  </span>
-                </div>
-              </div>
+                onClick={openEvent}
+                onMouseEnter={(e) => handleDayMouseEnter(e, currentDate)}
+                onMouseMove={handleMouseMove}
+                onMouseLeave={handleMouseLeave}
+              />
             )
           })}
 
@@ -363,19 +295,35 @@ export function DayView({ currentDate, events, members }: DayViewProps) {
         </div>
       </div>
 
+      {/* Event popup - shown when hovering events */}
+      {popupState.date && (
+        <EventPopup
+          visible={popupState.visible}
+          x={popupState.x}
+          y={popupState.y}
+          dateLabel={popupState.date.toLocaleDateString('en-US', {
+            weekday: 'short',
+            month: 'short',
+            day: 'numeric',
+          })}
+          events={getEventsForDate(events, popupState.date)}
+          members={members}
+        />
+      )}
+
       {/* Event detail modal */}
       <EventModal
         visible={selectedEvent !== null}
         event={selectedEvent}
         members={members}
-        onClose={() => setSelectedEvent(null)}
+        onClose={closeEvent}
         onEdit={() => {
           // TODO: Implement event editing
-          setSelectedEvent(null)
+          closeEvent()
         }}
         onDelete={() => {
           // TODO: Implement event deletion
-          setSelectedEvent(null)
+          closeEvent()
         }}
       />
     </div>
