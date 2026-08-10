@@ -113,4 +113,19 @@ describe('YearView', () => {
     expect(screen.getByText('January')).toBeInTheDocument()
     expect(screen.getByText('August')).toBeInTheDocument()
   })
+
+  it('renders all 12 months in portrait orientation', () => {
+    render(
+      <YearView
+        currentDate={mockDate}
+        events={mockEvents}
+        members={mockMembers}
+        onMonthClick={vi.fn()}
+        onDayClick={vi.fn()}
+        orientation="portrait"
+      />,
+    )
+    expect(screen.getByText('January')).toBeInTheDocument()
+    expect(screen.getByText('December')).toBeInTheDocument()
+  })
 })

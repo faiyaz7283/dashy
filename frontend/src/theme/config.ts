@@ -47,8 +47,9 @@ export const themeConfig = {
     weekGridLandscape: 4,
     weekGridPortrait: 2,
 
-    /** Year view grid: 4 columns × 3 rows = 12 months. */
-    yearGridColumns: 4,
+    /** Year view grid columns: 4×3 landscape, 3×4 portrait. */
+    yearGridLandscape: 4,
+    yearGridPortrait: 3,
 
     /** Day view timeline bounds (24h format). Full 24 hours. */
     timelineStartHour: 0,
