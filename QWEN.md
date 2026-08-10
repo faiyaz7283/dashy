@@ -2,7 +2,7 @@
 
 ## Project Overview
 
-**Dashy** is a DIY family command center dashboard inspired by [Skylight Calendar](https://myskylight.com). It runs on a Raspberry Pi 4 + 1080p HDMI monitor in kiosk mode, displaying a weekly calendar synced with Google Calendar and a weather widget.
+**Dashy** is a DIY family command center dashboard inspired by [Skylight Calendar](https://myskylight.com). It runs on a Raspberry Pi 4 + 1360×768 HDMI TV in kiosk mode, displaying a weekly calendar synced with Google Calendar and a weather widget.
 
 ### Current Status
 
@@ -310,8 +310,25 @@ The model:
 - **IP:** 192.168.1.194 (DHCP, may change)
 - **SSH:** Key-based auth (ed25519)
 - **Boot medium:** microSD card (64GB)
-- **Display:** 1080p HDMI (Hisense), NOT touchscreen
+- **Display:** 1360×768 HDMI TV (Hisense), NOT touchscreen
 - **Kiosk mode:** Chromium auto-start on boot, full-screen
+
+### Rotating the Display (Portrait Mode)
+
+The Pi runs the **labwc** Wayland compositor — use `wlr-randr`. (`xrandr` fails with `BadMatch`; it's only an XWayland shim here.)
+
+```bash
+# Rotate to portrait (90°):
+ssh r4pi "XDG_RUNTIME_DIR=/run/user/1000 WAYLAND_DISPLAY=wayland-0 wlr-randr --output HDMI-A-2 --transform 90"
+
+# Rotate back to landscape:
+ssh r4pi "XDG_RUNTIME_DIR=/run/user/1000 WAYLAND_DISPLAY=wayland-0 wlr-randr --output HDMI-A-2 --transform normal"
+```
+
+- **Output name:** `HDMI-A-2` — if rotation ever fails, verify with `wlr-randr` (no args)
+- **TV native resolution:** 1360×768 landscape (768×1360 portrait)
+- **Not persistent:** reboots and lightdm restarts (including `make deploy-pi`) reset to landscape. To make portrait permanent, add the rotate command to `scripts/start-chromium-kiosk.sh` before the Chromium launch.
+- **The app adapts automatically** — viewport-based detection (`useOrientation`): portrait grids (year 3×4, week 2×4), compacted header, UI zoom stays 1.0.
 
 ---
 
@@ -482,7 +499,7 @@ This intelligent deployment command:
 - **IP:** 192.168.1.194 (DHCP, may change)
 - **SSH:** Key-based auth (ed25519)
 - **Boot medium:** microSD card (64GB)
-- **Display:** 1080p HDMI (Hisense), NOT touchscreen
+- **Display:** 1360×768 HDMI TV (Hisense), NOT touchscreen
 
 ---
 
