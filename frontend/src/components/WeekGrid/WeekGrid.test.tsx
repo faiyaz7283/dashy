@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react'
+import { render, screen, fireEvent } from '@testing-library/react'
 import { describe, it, expect, vi } from 'vitest'
 import { WeekGrid } from './WeekGrid'
 import type { CalendarEvent, FamilyMember } from '../../types'
@@ -71,7 +71,7 @@ describe('WeekGrid', () => {
     expect(screen.getByText('Lunch Meeting')).toBeInTheDocument()
   })
 
-  it('calls onDayClick when a day card is clicked', () => {
+  it('calls onDayClick when a day card (not an event) is clicked', () => {
     const onDayClick = vi.fn()
     render(
       <WeekGrid
@@ -82,9 +82,26 @@ describe('WeekGrid', () => {
         onDayClick={onDayClick}
       />,
     )
-    // Click on Team Standup card
-    screen.getByText('Team Standup').closest('div')?.click()
+    // Click the day header (weekday name) — outside any event
+    screen.getByText('Mon').click()
     expect(onDayClick).toHaveBeenCalled()
+  })
+
+  it('opens the event modal when an event is clicked instead of navigating', () => {
+    const onDayClick = vi.fn()
+    render(
+      <WeekGrid
+        events={mockEvents}
+        members={mockMembers}
+        orientation="landscape"
+        currentDate={mockDate}
+        onDayClick={onDayClick}
+      />,
+    )
+    fireEvent.click(screen.getByText('Team Standup'))
+    expect(onDayClick).not.toHaveBeenCalled()
+    // Modal shows the event title in a heading
+    expect(screen.getByRole('heading', { name: 'Team Standup' })).toBeInTheDocument()
   })
 
   it('renders with portrait orientation', () => {

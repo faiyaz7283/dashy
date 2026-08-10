@@ -1,6 +1,6 @@
 import type { CalendarEvent, FamilyMember } from '../../types'
 import type { DensityLevel } from '../../theme/config'
-import { EventCard } from '../EventCard'
+import { EventItem } from '../EventItem'
 import { colors, radii, spacing, typography, densityBarColors } from '../../theme/tokens'
 import { getShortWeekday } from '../../utils/dateFormat'
 
@@ -16,6 +16,12 @@ interface DayCardProps {
   density?: DensityLevel
   /** Callback when the card is clicked. */
   onClick?: () => void
+  /** Callback when an event is clicked (opens the event modal). */
+  onEventClick?: (event: CalendarEvent) => void
+  /** Callback when an event is hovered (shows the day popup). */
+  onEventMouseEnter?: (e: React.MouseEvent, date: Date) => void
+  onEventMouseMove?: (e: React.MouseEvent) => void
+  onEventMouseLeave?: (e: React.MouseEvent) => void
 }
 
 export function DayCard({
@@ -27,6 +33,10 @@ export function DayCard({
   nextWeekEnd,
   density = 'none',
   onClick,
+  onEventClick,
+  onEventMouseEnter,
+  onEventMouseMove,
+  onEventMouseLeave,
 }: DayCardProps) {
   const dayName = getShortWeekday(date)
   const dayNum = date.getDate()
@@ -154,7 +164,16 @@ export function DayCard({
       {/* Events */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: `${spacing.sm}px` }}>
         {events.map((event) => (
-          <EventCard key={event.id} event={event} members={members} />
+          <EventItem
+            key={event.id}
+            event={event}
+            members={members}
+            variant="card"
+            onClick={onEventClick}
+            onMouseEnter={onEventMouseEnter ? (e) => onEventMouseEnter(e, date) : undefined}
+            onMouseMove={onEventMouseMove}
+            onMouseLeave={onEventMouseLeave}
+          />
         ))}
       </div>
     </div>
