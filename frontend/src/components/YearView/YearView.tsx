@@ -2,18 +2,28 @@
  * YearView component for displaying a full year calendar overview.
  *
  * Shows a 4×3 grid of mini-calendars (one per month) with weekly density bars
- * on the left of each mini-cal, event dots left of dates, event count badges
- * next to month names, and hover popups on event days. Clicking a month
- * navigates to month view; clicking a day navigates to day view.
+ * on the left of each mini-cal, segmented event indicators (DayIndicator) on
+ * dates, event count badges next to month names, and hover popups on event
+ * days. Clicking a month navigates to month view; clicking a day navigates
+ * to day view.
  */
 
-import { useState, useCallback } from 'react'
 import type { CalendarEvent, FamilyMember } from '../../types'
-import { colors, spacing, radii, typography, densityBarColors, shadows } from '../../theme/tokens'
+import {
+  colors,
+  spacing,
+  radii,
+  typography,
+  densityBarColors,
+  shadows,
+  layout,
+} from '../../theme/tokens'
 import { themeConfig } from '../../theme/config'
 import { isSameDay } from '../../utils/dateFormat'
 import { getRelativeDensity } from '../../utils/density'
+import { DayIndicator } from '../DayIndicator'
 import { EventPopup } from '../EventPopup'
+import { useEventInteraction } from '../../hooks/useEventInteraction'
 
 interface YearViewProps {
   /** The current year to display. */
@@ -101,12 +111,8 @@ export function YearView({
   onMonthClick,
   onDayClick,
 }: YearViewProps) {
-  const [popupState, setPopupState] = useState<{
-    visible: boolean
-    x: number
-    y: number
-    date: Date | null
-  }>({ visible: false, x: 0, y: 0, date: null })
+  const { popupState, handleDayMouseEnter, handleMouseMove, handleMouseLeave } =
+    useEventInteraction(events)
 
   const year = currentDate.getFullYear()
   const today = new Date()
@@ -121,40 +127,17 @@ export function YearView({
     }).length
   })
 
-  const handleDayMouseEnter = useCallback(
-    (e: React.MouseEvent, date: Date) => {
-      const dayEvents = getEventsForDate(events, date)
-      // Use functional update to ensure we always have the latest state
-      setPopupState(() => {
-        if (dayEvents.length > 0) {
-          return { visible: true, x: e.clientX, y: e.clientY, date }
-        }
-        return { visible: false, x: 0, y: 0, date: null }
-      })
-    },
-    [events],
-  )
-
-  const handleDayMouseMove = useCallback((e: React.MouseEvent) => {
-    setPopupState((prev) => {
-      if (!prev.visible) return prev
-      return { ...prev, x: e.clientX, y: e.clientY }
-    })
-  }, [])
-
-  const handleGridMouseLeave = useCallback(() => {
-    setPopupState(() => ({ visible: false, x: 0, y: 0, date: null }))
-  }, [])
-
   return (
     <div>
       {/* Year grid: 4 columns × 3 rows */}
       <div
-        onMouseLeave={handleGridMouseLeave}
+        onMouseLeave={handleMouseLeave}
         style={{
           display: 'grid',
           gridTemplateColumns: `repeat(${themeConfig.calendar.yearGridColumns}, 1fr)`,
           gap: '20px',
+          maxWidth: `${layout.yearGridMaxWidth}px`,
+          margin: '0 auto',
         }}
       >
         {Array.from({ length: 12 }, (_, monthIdx) => {
@@ -286,6 +269,7 @@ export function YearView({
                     flex: 1,
                     display: 'grid',
                     gridTemplateColumns: 'repeat(7, 1fr)',
+                    justifyItems: 'center',
                     gap: '1px',
                   }}
                 >
@@ -329,7 +313,7 @@ export function YearView({
                             handleDayMouseEnter(e, dayData.date)
                           }
                         }}
-                        onMouseMove={handleDayMouseMove}
+                        onMouseMove={handleMouseMove}
                         onMouseLeave={(e) => {
                           if (!isToday) {
                             e.currentTarget.style.background = 'transparent'
@@ -362,19 +346,8 @@ export function YearView({
                               }),
                         }}
                       >
-                        {/* Event dot */}
-                        {hasEvents && (
-                          <span
-                            style={{
-                              position: 'absolute',
-                              left: '1px',
-                              width: '4px',
-                              height: '4px',
-                              borderRadius: '50%',
-                              background: isToday ? colors.white : colors.primary,
-                            }}
-                          />
-                        )}
+                        {/* Event indicator — segmented micro-bar */}
+                        {hasEvents && <DayIndicator events={dayEvents} members={members} />}
                         <span>{dayData.day}</span>
                       </div>
                     )

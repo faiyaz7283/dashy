@@ -141,6 +141,9 @@ export const layout = {
 
   /** Day view timeline label column width. */
   timelineLabelWidth: 60,
+
+  /** Maximum width of the year view grid (keeps mini-calendars compact on wide screens). */
+  yearGridMaxWidth: 1800,
 } as const
 
 // ---------------------------------------------------------------------------
