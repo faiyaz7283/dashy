@@ -141,6 +141,12 @@ export const layout = {
 
   /** Day view timeline label column width. */
   timelineLabelWidth: 60,
+
+  /**
+   * Design baseline width. Below or equal to this the UI renders 1:1; on
+   * wider monitors the whole UI scales up uniformly (see useUiScale).
+   */
+  designWidth: 1920,
 } as const
 
 // ---------------------------------------------------------------------------

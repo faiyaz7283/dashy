@@ -18,6 +18,7 @@ import { useSidebar } from './hooks/useSidebar'
 import { useCalendarEvents } from './hooks/useCalendarEvents'
 import { useApi } from './hooks/useApi'
 import { useAutoHideHeader } from './hooks/useAutoHideHeader'
+import { useUiScale } from './hooks/useUiScale'
 import { getWeather, getFamilyMembers, waitForBackend } from './services/api'
 import { colors, spacing, layout } from './theme/tokens'
 import { getWeekDays, isSameDay } from './utils/dateFormat'
@@ -46,6 +47,9 @@ export function App() {
 
   // Auto-hide header when mouse is away from top of screen
   const headerVisible = useAutoHideHeader({ triggerZone: 60, hideDelay: 3000 })
+
+  // Uniform UI scale for wide/high-resolution monitors (1 on 1080p-class displays)
+  const uiScale = useUiScale()
 
   // Persist view and date changes
   useEffect(() => {
@@ -304,10 +308,15 @@ export function App() {
       style={{
         display: 'flex',
         flexDirection: 'column',
-        height: '100vh',
+        // 100vh evaluates in zoomed pixels under CSS zoom, so divide by the
+        // scale factor to make the app exactly fill the visible height
+        height: `calc(100vh / ${uiScale})`,
         background: colors.bg,
         fontFamily: "'Inter', system-ui, sans-serif",
         overflow: 'hidden',
+        // Uniform scale-up on wide monitors (zoom reflows layout, unlike
+        // transform: scale which breaks sticky/fixed positioning)
+        zoom: uiScale,
       }}
     >
       {/* Side navigation arrows */}

@@ -10,6 +10,7 @@ import type { AttendeeStatus, CalendarEvent, FamilyMember } from '../../types'
 import { createPortal } from 'react-dom'
 import { colors, radii, shadows, spacing, zIndices, densityColors } from '../../theme/tokens'
 import { formatRecurrenceRule } from '../../utils/recurrence'
+import { useUiScale } from '../../hooks/useUiScale'
 
 /** Small uppercase section label shared by modal body sections. */
 const sectionLabelStyle: React.CSSProperties = {
@@ -55,6 +56,8 @@ interface EventModalProps {
  * @returns The event modal UI.
  */
 export function EventModal({ visible, event, members, onClose }: EventModalProps) {
+  const scale = useUiScale()
+
   if (!visible || !event) return null
 
   const eventMembers = members.filter((m) => event.members.includes(m.key))
@@ -80,8 +83,8 @@ export function EventModal({ visible, event, members, onClose }: EventModalProps
     hour12: true,
   })
 
-  // Rendered via portal: escapes the app's scale-to-fit transform so the
-  // overlay covers the full viewport, not just the scaled canvas.
+  // Rendered via portal: escapes the app's root zoom so the overlay covers
+  // the full viewport; the dialog card applies the same zoom for consistency.
   return createPortal(
     <div
       style={{
@@ -107,6 +110,7 @@ export function EventModal({ visible, event, members, onClose }: EventModalProps
           maxHeight: '80vh',
           overflow: 'hidden',
           boxShadow: shadows.modal,
+          zoom: scale,
         }}
         onClick={(e) => e.stopPropagation()}
       >

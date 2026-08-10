@@ -19,7 +19,7 @@
 - **Backend:** Enhanced with event deduplication, attendees, recurring events, full event details
 - **Frontend:** Unified event architecture — `EventItem` (card/strip/block) + `useEventInteraction` across all views; see `frontend/src/docs/event-architecture-analysis.md`
 - **Event interactions:** Uniform across views — hover event = popup, click event = modal, click day = drill down (year view is navigation-only)
-- **Layout:** Fluid full-viewport — all views fill available width AND height (week/month/year grids stretch); fixed px typography stays constant on every display (no transform scaling — it breaks sticky/fixed positioning and shrinks text on lower-resolution screens)
+- **Layout:** Fluid full-viewport — all views fill available width AND height (week/month/year grids stretch). On monitors wider than 1920px the whole UI scales up uniformly via CSS `zoom` on the app root (`useUiScale`); never scales down, so 1080p-class displays (Pi, laptops) keep constant design-size text. Popup/modal portal to `body` and apply the same factor to their content only.
 
 ---
 
@@ -90,6 +90,7 @@ dashy/
 │   │   │   ├── useApi.ts            # Generic API fetch hook
 │   │   │   ├── useCalendarEvents.ts # Calendar events with caching
 │   │   │   ├── useEventInteraction.ts # Unified event popup/modal state
+│   │   │   ├── useUiScale.ts      # Uniform UI scale-up factor for wide monitors
 │   │   │   └── useAutoHideHeader.ts # Auto-hide header on mouse proximity
 │   │   ├── services/      # API service layer (api.ts with retry + cache)
 │   │   ├── types/         # TypeScript type definitions
@@ -284,6 +285,22 @@ Children (Arya, 8 and Raya, 4) are not in v1 calendar scope but the system suppo
 
 ---
 
+## Layout & Display Scaling (Design Principle)
+
+**Dashy is a fluid, full-window application. Every feature — current and future (todo lists, rewards, etc.) — must fit the visible window perfectly on any display, with no page-level scrolling and no hardcoded viewport assumptions.**
+
+The model:
+
+1. **Fluid layout** — The app fills the viewport edge to edge. Views stretch their content (flex/grid, `minmax(0, 1fr)` rows) to fill the available area rather than using natural content height. Overflow is clipped inside views, never a page scrollbar.
+2. **Uniform scale-up via CSS `zoom`** — `useUiScale` returns `max(1, viewportWidth / layout.designWidth)` (designWidth = 1920). Applied as `zoom` on the app root in `App.tsx`. Zoom reflows layout — unlike `transform: scale`, which breaks sticky/fixed positioning and letterboxes (reverted after testing).
+3. **Never scale down** — Displays ≤1920 CSS px wide (Pi TV, laptops) always render at 1.0 with design-size text. Readability beats fitting.
+4. **Token-based sizing stays** — Components keep using px design tokens; tokens are the 1920px baseline and zoom handles larger screens. Do NOT introduce vw/clamp sizing in components.
+5. **Floating layers** — Popups/modals render via `createPortal` to `document.body` (outside the zoomed root) so viewport/cursor coordinates stay exact; apply the `useUiScale` factor to their content wrapper only.
+6. **vh gotcha** — Under zoom, `100vh` evaluates in zoomed pixels; divide by the factor: `height: calc(100vh / ${uiScale})` (see App.tsx).
+7. **Display test matrix** — Verify visual changes on: Pi TV (1366×768 class), laptop (~1440–1512 CSS px), and a large/ultrawide monitor (≥2560 CSS px).
+
+---
+
 ## Raspberry Pi Details
 
 - **Hostname:** `dashy`
@@ -468,6 +485,7 @@ This intelligent deployment command:
 6. **Configurable, not hardcoded** — Family members, colors, API keys all via `.env`
 7. **Lint-free code** — Run linters before committing
 8. **TypeScript-ready** — React setup should support TS migration if needed later
+9. **Fluid display design** — Everything fluidly fits the visible window on any display (see Layout & Display Scaling). No hardcoded viewport assumptions, no page-level scrollbars
 
 ---
 
@@ -499,6 +517,7 @@ This intelligent deployment command:
 4. **Mock data in `src/data/`** — Never inline mock data in components. Keep it in the `data/` folder for easy swap to API calls later.
 5. **Custom hooks in `src/hooks/`** — Reusable logic (orientation detection, sidebar state) goes in hooks, not components.
 6. **Type definitions in `src/types/`** — All TypeScript interfaces/types live in `src/types/index.ts`.
+7. **Fluid layout required** — New views/features must fill the visible window (stretch via flex/grid + `minmax(0, 1fr)`), never introduce page-level scroll, and stay compatible with the root zoom scaling model: no vw/clamp sizing in components, floating layers portal to `body` and scale content via `useUiScale`. See "Layout & Display Scaling".
 
 ### Linting & Formatting
 
