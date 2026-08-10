@@ -32,23 +32,23 @@ export function useEdgeProximity(options: UseEdgeProximityOptions): boolean {
   const { edge, triggerZone = 60, hideDelay = 3000 } = options
 
   const [isVisible, setIsVisible] = useState(true)
-  const hideTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const idleTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const isVisibleRef = useRef(true)
 
-  const clearHideTimer = useCallback(() => {
-    if (hideTimerRef.current) {
-      clearTimeout(hideTimerRef.current)
-      hideTimerRef.current = null
+  const clearIdleTimer = useCallback(() => {
+    if (idleTimerRef.current) {
+      clearTimeout(idleTimerRef.current)
+      idleTimerRef.current = null
     }
   }, [])
 
-  const startHideTimer = useCallback(() => {
-    clearHideTimer()
-    hideTimerRef.current = setTimeout(() => {
+  const startIdleTimer = useCallback(() => {
+    clearIdleTimer()
+    idleTimerRef.current = setTimeout(() => {
       setIsVisible(false)
       isVisibleRef.current = false
     }, hideDelay)
-  }, [hideDelay, clearHideTimer])
+  }, [hideDelay, clearIdleTimer])
 
   useEffect(() => {
     const inZone = (e: MouseEvent): boolean => {
@@ -70,18 +70,20 @@ export function useEdgeProximity(options: UseEdgeProximityOptions): boolean {
           setIsVisible(true)
           isVisibleRef.current = true
         }
-        clearHideTimer()
-      } else if (isVisibleRef.current) {
-        startHideTimer()
       }
+      startIdleTimer()
     }
 
     window.addEventListener('mousemove', handleMouseMove)
+    // Start the idle timer on mount so stationary mice (e.g. a mouse resting
+    // on top of a wall-mounted display) do not keep the chrome visible forever.
+    startIdleTimer()
+
     return () => {
       window.removeEventListener('mousemove', handleMouseMove)
-      clearHideTimer()
+      clearIdleTimer()
     }
-  }, [edge, triggerZone, clearHideTimer, startHideTimer])
+  }, [edge, triggerZone, clearIdleTimer, startIdleTimer])
 
   return isVisible
 }

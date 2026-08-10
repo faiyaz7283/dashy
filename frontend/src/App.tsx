@@ -20,6 +20,7 @@ import { useApi } from './hooks/useApi'
 import { useEdgeProximity } from './hooks/useEdgeProximity'
 import { useViewportWidth } from './hooks/useViewportWidth'
 import { useUiScale } from './hooks/useUiScale'
+import { useIdleCursor } from './hooks/useIdleCursor'
 import { getWeather, getFamilyMembers, waitForBackend } from './services/api'
 import { colors, spacing, layout } from './theme/tokens'
 import { getWeekDays, isSameDay } from './utils/dateFormat'
@@ -60,6 +61,9 @@ export function App() {
 
   // Uniform UI scale for wide/high-resolution monitors (1 on 1080p-class displays)
   const uiScale = useUiScale()
+
+  // Hide the mouse cursor after a short idle period (kiosk / wall-mounted display)
+  useIdleCursor({ idleMs: 2000 })
 
   // Persist view and date changes
   useEffect(() => {

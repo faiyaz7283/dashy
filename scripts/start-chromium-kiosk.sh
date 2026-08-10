@@ -18,12 +18,6 @@ for i in {1..60}; do
     sleep 2
 done
 
-# Hide the mouse cursor after a short idle period (kiosk / wall-mounted display)
-# unclutter-xfixes uses the X11-XFixes extension and works reliably under
-# LightDM/Openbox on the Pi. --start-hidden keeps the cursor hidden on boot
-# until the mouse is actually moved.
-unclutter-xfixes --timeout 2 --jitter 1 --start-hidden --ignore-scrolling &
-
 # Start Chromium
 exec chromium --noerrdialogs --disable-infobars --kiosk --incognito \
     --disable-features=TranslateUI --disable-session-crashed-bubble \

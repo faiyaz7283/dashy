@@ -314,7 +314,7 @@ The model:
 - **Boot medium:** NVMe SSD (WD Blue SN500 500 GB) via Realtek RTL9210 USB 3.0 bridge
 - **Rollback medium:** Original 64 GB microSD card (untouched; can be reinserted to boot)
 - **Display:** 1360×768 HDMI TV (Hisense), NOT touchscreen
-- **Kiosk mode:** Chromium auto-start on boot, full-screen, mouse cursor auto-hides after 2 s of idle
+- **Kiosk mode:** Chromium auto-start on boot, full-screen, mouse cursor auto-hides after 2 s of idle (handled by the frontend so it works on X11 and Wayland)
 
 ### Rotating the Display (Portrait Mode)
 
@@ -392,7 +392,7 @@ To make the SD card bootable again permanently, restore the bootloader EEPROM to
 
 **Behavior:**
 - Header shows when mouse is within 60px of the top edge; sidebar within 60px of the left edge; status bar within 60px of the bottom edge
-- Each hides 3 seconds after the mouse leaves its trigger zone
+- Each hides 3 seconds after the mouse leaves its trigger zone, or after 3 seconds of inactivity even inside the trigger zone (so a stationary mouse on a wall-mounted display does not keep the chrome visible)
 - Content reflows fluidly as each area shows/hides (in-flow layout, no overlays)
 - Implemented via the generalized `useEdgeProximity({ edge })` hook (replaced `useAutoHideHeader`)
 - Sidebar reappears at its last known size state (full/collapsed) — tracked by `useSidebar`; drag handle still switches sizes
@@ -521,13 +521,12 @@ certutil -d sql:/home/rpi4_main/.pki/nssdb -A -t 'C,,' -n 'mkcert' -i /tmp/rootC
 - **Auto-start:** Wrapper script (`scripts/start-chromium-kiosk.sh`) with retry logic
 - **Configuration:** Version-controlled in `scripts/chromium-kiosk.desktop`
 - **Certificate:** mkcert root CA imported into Chromium's NSS database
-- **Idle cursor hiding:** `unclutter-xfixes` hides the mouse pointer after 2 seconds of inactivity (useful for wall-mounted displays with a visible mouse laser)
+- **Idle cursor hiding:** The frontend hides the mouse pointer after 2 seconds of inactivity via `useIdleCursor`, which works on both X11 and Wayland (the Pi kiosk runs labwc/Wayland). This avoids the wired mouse laser leaving a persistent pointer on the wall-mounted display.
 
 The wrapper script ensures reliable startup by:
 1. Waiting for X display to be ready (up to 30 seconds)
 2. Waiting for backend services to be available (up to 120 seconds)
-3. Starting `unclutter-xfixes` to hide the idle cursor
-4. Only then launching Chromium in kiosk mode
+3. Only then launching Chromium in kiosk mode
 
 ### Deployment Command
 

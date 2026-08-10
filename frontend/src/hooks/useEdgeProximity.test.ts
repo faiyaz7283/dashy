@@ -74,7 +74,23 @@ describe('useEdgeProximity', () => {
       moveMouse(500, window.innerHeight - 10) // near bottom edge
       vi.advanceTimersByTime(2000)
     })
-    // Timer was cancelled at 2s in, so still visible after total 4s
+    // Timer was restarted at 2s in, so still visible after total 4s
     expect(result.current).toBe(true)
+  })
+
+  it('hides even when the mouse stays inside the trigger zone without moving', () => {
+    const { result } = renderHook(() =>
+      useEdgeProximity({ edge: 'top', triggerZone: 60, hideDelay: 3000 }),
+    )
+
+    act(() => {
+      moveMouse(500, 10) // near top edge
+    })
+    expect(result.current).toBe(true)
+
+    act(() => {
+      vi.advanceTimersByTime(3000)
+    })
+    expect(result.current).toBe(false)
   })
 })
