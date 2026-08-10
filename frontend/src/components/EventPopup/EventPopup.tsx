@@ -7,6 +7,7 @@
 
 import type { CalendarEvent, FamilyMember } from '../../types'
 import { colors, radii, shadows, spacing, typography, zIndices } from '../../theme/tokens'
+import { RecurringIcon } from '../EventItem'
 
 interface EventPopupProps {
   /** Whether the popup is visible. */
@@ -126,6 +127,9 @@ export function EventPopup({ visible, x, y, dateLabel, events, members }: EventP
               >
                 {event.title}
               </span>
+              {(event.is_recurring_instance || event.recurrence_rule) && (
+                <RecurringIcon size={11} />
+              )}
             </div>
             <div
               style={{
