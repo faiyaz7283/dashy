@@ -142,8 +142,10 @@ export const layout = {
   /** Day view timeline label column width. */
   timelineLabelWidth: 60,
 
-  /** Maximum width of the year view grid (keeps mini-calendars compact on wide screens). */
-  yearGridMaxWidth: 1800,
+  /** Design baseline for scale-to-fit — the app is designed for this canvas
+   * (1080p Pi kiosk) and scaled uniformly to fit the actual viewport. */
+  designWidth: 1920,
+  designHeight: 1080,
 } as const
 
 // ---------------------------------------------------------------------------

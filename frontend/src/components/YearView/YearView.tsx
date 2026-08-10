@@ -9,15 +9,7 @@
  */
 
 import type { CalendarEvent, FamilyMember } from '../../types'
-import {
-  colors,
-  spacing,
-  radii,
-  typography,
-  densityBarColors,
-  shadows,
-  layout,
-} from '../../theme/tokens'
+import { colors, spacing, radii, typography, densityBarColors, shadows } from '../../theme/tokens'
 import { themeConfig } from '../../theme/config'
 import { isSameDay } from '../../utils/dateFormat'
 import { getRelativeDensity } from '../../utils/density'
@@ -136,8 +128,6 @@ export function YearView({
           display: 'grid',
           gridTemplateColumns: `repeat(${themeConfig.calendar.yearGridColumns}, 1fr)`,
           gap: '20px',
-          maxWidth: `${layout.yearGridMaxWidth}px`,
-          margin: '0 auto',
         }}
       >
         {Array.from({ length: 12 }, (_, monthIdx) => {
