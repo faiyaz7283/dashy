@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dashy — Year View Day Indicator Variations</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Inter', 'Segoe UI', sans-serif; background: #f9fafb; color: #1f2937; padding: 40px 24px 96px; }
+  .wrap { max-width: 920px; margin: 0 auto; }
+  h1 { font-size: 20px; font-weight: 700; margin-bottom: 4px; }
+  .subtitle { font-size: 13px; color: #6b7280; margin-bottom: 24px; }
+
+  /* Member legend */
+  .legend { display: flex; gap: 16px; align-items: center; background: white; border: 1px solid #e5e7eb; border-radius: 10px; padding: 10px 16px; margin-bottom: 32px; font-size: 12px; color: #374151; }
+  .legend-chip { display: inline-flex; align-items: center; gap: 6px; }
+  .legend-swatch { width: 12px; height: 12px; border-radius: 4px; }
+
+  /* Variation card */
+  .variation { background: white; border: 1px solid #e5e7eb; border-radius: 12px; padding: 20px 24px; margin-bottom: 20px; }
+  .variation.recommended { border-color: #4f46e5; box-shadow: 0 0 0 1px #4f46e5; }
+  .variation-header { display: flex; align-items: baseline; gap: 10px; margin-bottom: 4px; }
+  .variation-name { font-size: 15px; font-weight: 700; }
+  .variation-tag { font-size: 10px; font-weight: 600; color: #4f46e5; background: #eef2ff; padding: 2px 8px; border-radius: 999px; text-transform: uppercase; letter-spacing: 0.5px; }
+  .variation-desc { font-size: 12px; color: #6b7280; margin-bottom: 16px; }
+
+  /* Mini week row (day cells at real size: 20px) */
+  .week { display: inline-grid; grid-template-columns: repeat(7, 20px); gap: 1px; background: #f9fafb; border: 1px solid #f3f4f6; border-radius: 8px; padding: 8px; }
+  .weekday { text-align: center; font-size: 9px; font-weight: 600; color: #9ca3af; text-transform: uppercase; padding: 2px 0; }
+  .day { width: 20px; height: 20px; position: relative; display: flex; align-items: center; justify-content: center; font-size: 10px; color: #374151; border-radius: 4px; }
+  .day.today { background: #4f46e5; color: white; font-weight: 700; border-radius: 50%; }
+  .day.other { color: #d1d5db; }
+
+  /* Scenario labels under each column */
+  .labels { display: inline-grid; grid-template-columns: repeat(7, 20px); gap: 1px; padding: 0 8px; margin-top: 6px; }
+  .labels span { font-size: 8px; color: #9ca3af; text-align: center; line-height: 1.2; }
+
+  /* Indicator: full-width bar container */
+  .bar { position: absolute; bottom: 0; left: 1px; right: 1px; display: flex; overflow: hidden; }
+  .bar > span { flex: 1; min-width: 0; }
+
+  /* Indicator: centered ticks */
+  .ticks { position: absolute; bottom: 0; left: 0; right: 0; display: flex; justify-content: center; }
+  .ticks > span { flex-shrink: 0; }
+
+  /* Baseline dot (current implementation) */
+  .dot { position: absolute; left: 1px; width: 4px; height: 4px; border-radius: 50%; background: #4f46e5; }
+  .day.today .dot { background: white; }
+
+  .note { font-size: 11px; color: #9ca3af; margin-top: 10px; }
+
+  /* Annotation */
+  .annotation { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: #1f2937; color: white; padding: 10px 20px; border-radius: 8px; font-size: 13px; font-weight: 500; box-shadow: 0 4px 12px rgba(0,0,0,0.15); white-space: nowrap; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Year View — Day Indicator Variations</h1>
+  <div class="subtitle">Day cells rendered at real size (20×20px, 10px numerals). Hover any cell for its event breakdown.</div>
+
+  <div class="legend" id="legend"><strong style="margin-right:4px;">Members:</strong></div>
+
+  <div id="variations"></div>
+</div>
+
+<div class="annotation">Draft — segmented micro-bar options to replace the year-view event dot</div>
+
+<script>
+  const MEMBERS = {
+    faiyaz: { name: 'Faiyaz', color: '#f59e0b' },
+    trisha: { name: 'Trisha', color: '#3b82f6' },
+    arya:   { name: 'Arya',   color: '#8b5cf6' },
+    raya:   { name: 'Raya',   color: '#ec4899' },
+  };
+  const OVERFLOW_GREY = '#d1d5db';
+
+  // One week of scenarios: [events (member keys), modifier]
+  const WEEK = [
+    { events: [], label: 'no events' },
+    { events: ['faiyaz'], label: '1 event' },
+    { events: ['faiyaz', 'trisha'], label: '2 events' },
+    { events: ['faiyaz', 'trisha', 'arya'], label: '3 events' },
+    { events: ['faiyaz', 'trisha', 'arya', 'raya', 'faiyaz'], label: '5 events' },
+    { events: ['trisha', 'raya'], label: 'today', today: true },
+    { events: ['arya'], label: 'other month', other: true },
+  ];
+
+  function cellTitle(events) {
+    if (!events.length) return 'No events';
+    const names = events.map(k => MEMBERS[k].name);
+    return `${events.length} event${events.length > 1 ? 's' : ''}: ${names.join(', ')}`;
+  }
+
+  // Indicator renderers. Each returns inner HTML for the indicator element.
+  const RENDERERS = {
+    // A: all events as equal segments, no cap, flush
+    fullFlush(events) {
+      if (!events.length) return '';
+      const segs = events.map(k => `<span style="background:${MEMBERS[k].color}"></span>`).join('');
+      return `<div class="bar" style="height:2px;">${segs}</div>`;
+    },
+    // B: capped at 3 member segments + grey overflow segment, 1px gaps
+    fullGapped(events) {
+      if (!events.length) return '';
+      const shown = events.slice(0, 4).map(k => MEMBERS[k].color);
+      if (events.length > 4) { shown[3] = OVERFLOW_GREY; }
+      const segs = shown.map(c => `<span style="background:${c};border-radius:1px;"></span>`).join('');
+      return `<div class="bar" style="height:2px;gap:1px;">${segs}</div>`;
+    },
+    // C: fixed-width centered ticks, cap 4 (4th = grey overflow)
+    ticks(events) {
+      if (!events.length) return '';
+      const shown = events.slice(0, 4).map(k => MEMBERS[k].color);
+      if (events.length > 4) { shown[3] = OVERFLOW_GREY; }
+      const segs = shown.map(c => `<span style="background:${c};width:3px;height:2px;border-radius:1px;"></span>`).join('');
+      return `<div class="ticks" style="gap:1px;">${segs}</div>`;
+    },
+    // D: thicker 3px bar, rounded, cap 4 (4th = grey overflow)
+    thick(events) {
+      if (!events.length) return '';
+      const shown = events.slice(0, 4).map(k => MEMBERS[k].color);
+      if (events.length > 4) { shown[3] = OVERFLOW_GREY; }
+      const segs = shown.map(c => `<span style="background:${c}"></span>`).join('');
+      return `<div class="bar" style="height:3px;border-radius:2px;">${segs}</div>`;
+    },
+    // E: current dot (baseline)
+    dot(events) {
+      if (!events.length) return '';
+      return `<span class="dot"></span>`;
+    },
+  };
+
+  const VARIATIONS = [
+    {
+      key: 'fullGapped',
+      name: 'B — Full-width segments, gapped (recommended)',
+      tag: 'recommended',
+      desc: 'Each event = one member-colored segment sharing the cell width. Cap at 3 colors + grey 4th segment for overflow (5+ events). Gaps keep segments distinct.',
+    },
+    {
+      key: 'fullFlush',
+      name: 'A — Full-width segments, flush, uncapped',
+      desc: 'Simplest form: every event gets an equal slice, no cap. Watch the 5-event column — segments shrink to ~3.5px and get muddy. Capped version (B) handles overflow better.',
+    },
+    {
+      key: 'ticks',
+      name: 'C — Centered fixed-width ticks',
+      desc: 'Each event = a fixed 3×2px tick, centered under the numeral. Most dot-like and tidy, but max ~4 fit; reads less like a "bar".',
+    },
+    {
+      key: 'thick',
+      name: 'D — Thicker 3px bar, rounded',
+      desc: 'Same as B but 3px tall with rounded ends. More visible from a distance (kiosk viewing), slightly heavier against the 10px numerals.',
+    },
+    {
+      key: 'dot',
+      name: 'E — Current dot (baseline)',
+      desc: 'What ships today: single indigo dot, no member colors, no count. Included for comparison.',
+    },
+  ];
+
+  function renderVariation(v) {
+    const weekdayRow = ['M','T','W','T','F','S','S'].map(d => `<span class="weekday">${d}</span>`).join('');
+    const cells = WEEK.map(s => {
+      const cls = ['day', s.today ? 'today' : '', s.other ? 'other' : ''].join(' ');
+      const indicator = s.other ? '' : RENDERERS[v.key](s.events);
+      return `<div class="${cls}" title="${cellTitle(s.events)}">${indicator}<span>${s.events.length ? '' : ''}</span></div>`;
+    }).join('');
+    const labels = WEEK.map(s => `<span>${s.label}</span>`).join('');
+    return `
+      <div class="variation ${v.tag === 'recommended' ? 'recommended' : ''}">
+        <div class="variation-header">
+          <span class="variation-name">${v.name}</span>
+          ${v.tag ? `<span class="variation-tag">${v.tag}</span>` : ''}
+        </div>
+        <div class="variation-desc">${v.desc}</div>
+        <div class="week">${weekdayRow}${cells}</div>
+        <div class="labels">${labels}</div>
+        ${v.key !== 'dot' ? '<div class="note">Today cell shown with 2 events (Trisha + Raya). Bar renders over the circle bottom edge — today styling is adjustable.</div>' : ''}
+      </div>`;
+  }
+
+  document.getElementById('legend').innerHTML += Object.values(MEMBERS)
+    .map(m => `<span class="legend-chip"><span class="legend-swatch" style="background:${m.color}"></span>${m.name}</span>`)
+    .join('');
+
+  document.getElementById('variations').innerHTML = VARIATIONS.map(renderVariation).join('');
+</script>
+</body>
+</html>

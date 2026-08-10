@@ -327,7 +327,7 @@ def _deduplicate_events(events: list[CalendarEvent]) -> list[CalendarEvent]:
 
     deduplicated = []
 
-    for event_id, event_group in events_by_id.items():
+    for event_group in events_by_id.values():
         if len(event_group) == 1:
             # No duplicates, use as-is
             deduplicated.append(event_group[0])
@@ -364,7 +364,7 @@ def _deduplicate_events(events: list[CalendarEvent]) -> list[CalendarEvent]:
                 start=base_event.start,
                 end=base_event.end,
                 all_day=base_event.all_day,
-                members=sorted(list(all_members)),
+                members=sorted(all_members),
                 description=description,
                 location=location,
                 organizer=organizer,

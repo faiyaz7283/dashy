@@ -2,23 +2,19 @@
  * MonthView component for displaying a full month calendar grid.
  *
  * Shows a traditional month grid with weekly density column on the left,
- * inline event lists with member avatars, event count badges, and hover
- * popups for event details. Clicking a day navigates to day view.
+ * inline event strips (EventItem), event count badges, and hover popups for
+ * event details. Clicking an event strip opens the event modal; clicking a
+ * day cell navigates to day view.
  */
 
-import { useState, useCallback } from 'react'
 import type { CalendarEvent, FamilyMember } from '../../types'
-import {
-  colors,
-  spacing,
-  radii,
-  typography,
-  densityBarColors,
-  memberColors,
-} from '../../theme/tokens'
+import { colors, spacing, radii, typography, densityBarColors } from '../../theme/tokens'
 import { isSameDay } from '../../utils/dateFormat'
 import { getRelativeDensity } from '../../utils/density'
+import { EventItem } from '../EventItem'
 import { EventPopup } from '../EventPopup'
+import { EventModal } from '../EventModal'
+import { useEventInteraction } from '../../hooks/useEventInteraction'
 
 interface MonthViewProps {
   /** The current month to display. */
@@ -82,12 +78,15 @@ function getEventsForDate(events: CalendarEvent[], date: Date): CalendarEvent[] 
  * @returns The month view UI.
  */
 export function MonthView({ currentDate, events, members, onDayClick }: MonthViewProps) {
-  const [popupState, setPopupState] = useState<{
-    visible: boolean
-    x: number
-    y: number
-    date: Date | null
-  }>({ visible: false, x: 0, y: 0, date: null })
+  const {
+    popupState,
+    selectedEvent,
+    handleDayMouseEnter,
+    handleMouseMove,
+    handleMouseLeave,
+    openEvent,
+    closeEvent,
+  } = useEventInteraction(events)
 
   const year = currentDate.getFullYear()
   const month = currentDate.getMonth()
@@ -105,35 +104,10 @@ export function MonthView({ currentDate, events, members, onDayClick }: MonthVie
     week.reduce((sum, date) => sum + getEventsForDate(events, date).length, 0),
   )
 
-  const handleMouseEnter = useCallback(
-    (e: React.MouseEvent, date: Date) => {
-      const dayEvents = getEventsForDate(events, date)
-      // Use functional update to ensure we always have the latest state
-      setPopupState(() => {
-        if (dayEvents.length > 0) {
-          return { visible: true, x: e.clientX, y: e.clientY, date }
-        }
-        return { visible: false, x: 0, y: 0, date: null }
-      })
-    },
-    [events],
-  )
-
-  const handleMouseMove = useCallback((e: React.MouseEvent) => {
-    setPopupState((prev) => {
-      if (!prev.visible) return prev
-      return { ...prev, x: e.clientX, y: e.clientY }
-    })
-  }, [])
-
-  const handleGridMouseLeave = useCallback(() => {
-    setPopupState(() => ({ visible: false, x: 0, y: 0, date: null }))
-  }, [])
-
   const weekdayHeaders = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
 
   return (
-    <div onMouseLeave={handleGridMouseLeave} style={{ display: 'flex', gap: `${spacing.sm}px` }}>
+    <div onMouseLeave={handleMouseLeave} style={{ display: 'flex', gap: `${spacing.sm}px` }}>
       {/* Weekly density column */}
       <div
         style={{
@@ -208,7 +182,7 @@ export function MonthView({ currentDate, events, members, onDayClick }: MonthVie
               <div
                 key={idx}
                 onClick={() => onDayClick(date)}
-                onMouseEnter={(e) => handleMouseEnter(e, date)}
+                onMouseEnter={(e) => handleDayMouseEnter(e, date)}
                 onMouseMove={handleMouseMove}
                 style={{
                   minHeight: '120px',
@@ -281,54 +255,15 @@ export function MonthView({ currentDate, events, members, onDayClick }: MonthVie
                       marginTop: '4px',
                     }}
                   >
-                    {dayEvents.slice(0, 3).map((event) => {
-                      const eventMembers = members.filter((m) => event.members.includes(m.key))
-                      const primaryMember = eventMembers[0]
-                      const mc = primaryMember ? memberColors[primaryMember.key] : null
-
-                      return (
-                        <div
-                          key={event.id}
-                          style={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '4px',
-                            fontSize: '10px',
-                            padding: '2px 6px',
-                            borderRadius: '4px',
-                            borderLeft: `2px solid ${mc ? mc.avatar : colors.border}`,
-                            background: mc ? mc.bg : colors.bgHover,
-                            color: mc ? mc.text : colors.textMuted,
-                            whiteSpace: 'nowrap',
-                            overflow: 'hidden',
-                            textOverflow: 'ellipsis',
-                          }}
-                        >
-                          {primaryMember && (
-                            <span
-                              style={{
-                                width: '12px',
-                                height: '12px',
-                                borderRadius: '50%',
-                                fontSize: '7px',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                color: colors.white,
-                                fontWeight: 600,
-                                backgroundColor: primaryMember.color,
-                                flexShrink: 0,
-                              }}
-                            >
-                              {primaryMember.initial}
-                            </span>
-                          )}
-                          <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                            {event.title}
-                          </span>
-                        </div>
-                      )
-                    })}
+                    {dayEvents.slice(0, 3).map((event) => (
+                      <EventItem
+                        key={event.id}
+                        event={event}
+                        members={members}
+                        variant="strip"
+                        onClick={openEvent}
+                      />
+                    ))}
                     {dayEvents.length > 3 && (
                       <div
                         style={{ fontSize: '10px', color: colors.textFaint, paddingLeft: '6px' }}
@@ -360,6 +295,14 @@ export function MonthView({ currentDate, events, members, onDayClick }: MonthVie
           members={members}
         />
       )}
+
+      {/* Event detail modal */}
+      <EventModal
+        visible={selectedEvent !== null}
+        event={selectedEvent}
+        members={members}
+        onClose={closeEvent}
+      />
     </div>
   )
 }

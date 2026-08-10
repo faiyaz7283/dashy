@@ -6,7 +6,6 @@ from unittest.mock import patch
 from app.models import Attendee, CalendarEvent
 from app.services.calendar_service import (
     _deduplicate_events,
-    _fetch_recurring_rules,
     _parse_iso_date,
     _parse_recurring_info,
     get_calendar_events,
@@ -389,8 +388,8 @@ class TestRecurringEventHandling:
 
     def test_parse_event_skips_cancelled(self):
         """Test that cancelled events are skipped."""
-        from app.services.calendar_service import _parse_event
         from app.config import FamilyMemberConfig
+        from app.services.calendar_service import _parse_event
 
         gcal_event = {
             "id": "cancelled_123",

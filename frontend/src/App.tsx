@@ -18,6 +18,7 @@ import { useSidebar } from './hooks/useSidebar'
 import { useCalendarEvents } from './hooks/useCalendarEvents'
 import { useApi } from './hooks/useApi'
 import { useAutoHideHeader } from './hooks/useAutoHideHeader'
+import { useScaleToFit } from './hooks/useScaleToFit'
 import { getWeather, getFamilyMembers, waitForBackend } from './services/api'
 import { colors, spacing, layout } from './theme/tokens'
 import { getWeekDays, isSameDay } from './utils/dateFormat'
@@ -46,6 +47,9 @@ export function App() {
 
   // Auto-hide header when mouse is away from top of screen
   const headerVisible = useAutoHideHeader({ triggerZone: 60, hideDelay: 3000 })
+
+  // Uniform scale factor: design canvas (1920×1080) scaled to fit the viewport
+  const scale = useScaleToFit()
 
   // Persist view and date changes
   useEffect(() => {
@@ -302,81 +306,102 @@ export function App() {
   return (
     <div
       style={{
-        display: 'flex',
-        flexDirection: 'column',
+        width: '100vw',
         height: '100vh',
         background: colors.bg,
+        overflow: 'hidden',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
         fontFamily: "'Inter', system-ui, sans-serif",
       }}
     >
-      {/* Side navigation arrows */}
-      <SideNav
-        onPrevious={navigatePrevious}
-        onNext={navigateNext}
-        previousTitle={`Previous ${currentView}`}
-        nextTitle={`Next ${currentView}`}
-        sidebarWidth={sidebarWidth}
-      />
+      {/* Fixed 1920×1080 design canvas, uniformly scaled to fit the viewport */}
+      <div
+        style={{
+          width: `${layout.designWidth}px`,
+          height: `${layout.designHeight}px`,
+          transform: `scale(${scale})`,
+          transformOrigin: 'center center',
+          flexShrink: 0,
+          display: 'flex',
+          flexDirection: 'column',
+          background: colors.bg,
+        }}
+      >
+        {/* Side navigation arrows */}
+        <SideNav
+          onPrevious={navigatePrevious}
+          onNext={navigateNext}
+          previousTitle={`Previous ${currentView}`}
+          nextTitle={`Next ${currentView}`}
+          sidebarWidth={sidebarWidth}
+        />
 
-      {/* Unified sticky area with auto-hide */}
-      <StickyArea
-        header={
-          <Header
-            weather={weather.current}
-            sidebarState={sidebarState}
-            onOpenSidebar={openSidebar}
-            currentDate={currentDate}
-          >
-            <FamilyPills members={familyMembers} events={events} />
-            <DensityBadge density={densityInfo.density} label={densityInfo.label} />
-            <div
-              style={{ width: '1px', height: '24px', background: colors.border, margin: '0 4px' }}
-            />
-            <ViewSwitcher activeView={currentView} onViewChange={setCurrentView} />
-            <div
-              style={{ width: '1px', height: '24px', background: colors.border, margin: '0 4px' }}
-            />
-            <button
-              onClick={navigateToday}
-              style={{
-                padding: '6px 16px',
-                fontSize: '13px',
-                fontWeight: 600,
-                color: isViewingToday ? colors.primary : colors.textMuted,
-                background: isViewingToday ? colors.primaryLight : colors.white,
-                border: isViewingToday ? 'none' : `1px solid ${colors.border}`,
-                borderRadius: '8px',
-                cursor: 'pointer',
-                transition: 'all 0.15s',
-              }}
-            >
-              Today
-            </button>
-            <div
-              style={{ width: '1px', height: '24px', background: colors.border, margin: '0 4px' }}
-            />
-            <DateDisplay
+        {/* Unified sticky area with auto-hide */}
+        <StickyArea
+          header={
+            <Header
+              weather={weather.current}
+              sidebarState={sidebarState}
+              onOpenSidebar={openSidebar}
               currentDate={currentDate}
-              currentView={currentView}
-              onDateChange={setCurrentDate}
-            />
-          </Header>
-        }
-        visible={headerVisible}
-      />
+            >
+              <FamilyPills members={familyMembers} events={events} />
+              <DensityBadge density={densityInfo.density} label={densityInfo.label} />
+              <div
+                style={{ width: '1px', height: '24px', background: colors.border, margin: '0 4px' }}
+              />
+              <ViewSwitcher activeView={currentView} onViewChange={setCurrentView} />
+              <div
+                style={{ width: '1px', height: '24px', background: colors.border, margin: '0 4px' }}
+              />
+              <button
+                onClick={navigateToday}
+                style={{
+                  padding: '6px 16px',
+                  fontSize: '13px',
+                  fontWeight: 600,
+                  color: isViewingToday ? colors.primary : colors.textMuted,
+                  background: isViewingToday ? colors.primaryLight : colors.white,
+                  border: isViewingToday ? 'none' : `1px solid ${colors.border}`,
+                  borderRadius: '8px',
+                  cursor: 'pointer',
+                  transition: 'all 0.15s',
+                }}
+              >
+                Today
+              </button>
+              <div
+                style={{ width: '1px', height: '24px', background: colors.border, margin: '0 4px' }}
+              />
+              <DateDisplay
+                currentDate={currentDate}
+                currentView={currentView}
+                onDateChange={setCurrentDate}
+              />
+            </Header>
+          }
+          visible={headerVisible}
+        />
 
-      {/* Main content area */}
-      <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
-        <Sidebar state={sidebarState} onChange={setSidebarState} onRefreshCalendar={forceRefresh} />
-        <main style={{ flex: 1, overflowY: 'auto', padding: `${spacing.xl}px` }}>
-          {renderView()}
-        </main>
+        {/* Main content area */}
+        <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
+          <Sidebar
+            state={sidebarState}
+            onChange={setSidebarState}
+            onRefreshCalendar={forceRefresh}
+          />
+          <main style={{ flex: 1, overflowY: 'auto', padding: `${spacing.xl}px` }}>
+            {renderView()}
+          </main>
+        </div>
+
+        <StatusBar
+          calendarLastRefresh={calendarLastRefresh}
+          weatherLastRefresh={weatherLastRefresh}
+        />
       </div>
-
-      <StatusBar
-        calendarLastRefresh={calendarLastRefresh}
-        weatherLastRefresh={weatherLastRefresh}
-      />
     </div>
   )
 }

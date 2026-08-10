@@ -1,9 +1,12 @@
 import type { CalendarEvent, FamilyMember } from '../../types'
 import { DayCard } from '../DayCard'
+import { EventPopup } from '../EventPopup'
+import { EventModal } from '../EventModal'
 import { spacing } from '../../theme/tokens'
 import { themeConfig } from '../../theme/config'
 import { getWeekDays, isSameDay } from '../../utils/dateFormat'
 import { getRelativeDensity } from '../../utils/density'
+import { useEventInteraction } from '../../hooks/useEventInteraction'
 
 interface WeekGridProps {
   events: CalendarEvent[]
@@ -23,6 +26,16 @@ function getEventsForDay(events: CalendarEvent[], date: Date): CalendarEvent[] {
 }
 
 export function WeekGrid({ events, members, orientation, currentDate, onDayClick }: WeekGridProps) {
+  const {
+    popupState,
+    selectedEvent,
+    handleDayMouseEnter,
+    handleMouseMove,
+    handleMouseLeave,
+    openEvent,
+    closeEvent,
+  } = useEventInteraction(events)
+
   const today = new Date()
   const weekDays = getWeekDays(currentDate)
   const nextWeekStart = new Date(weekDays[6])
@@ -39,31 +52,62 @@ export function WeekGrid({ events, members, orientation, currentDate, onDayClick
   const dayCounts = weekDays.map((date) => getEventsForDay(events, date).length)
 
   return (
-    <div
-      style={{
-        display: 'grid',
-        gridTemplateColumns: `repeat(${cols}, 1fr)`,
-        gap: `${spacing.lg}px`,
-      }}
-    >
-      {weekDays.map((date, idx) => (
+    <div onMouseLeave={handleMouseLeave}>
+      <div
+        style={{
+          display: 'grid',
+          gridTemplateColumns: `repeat(${cols}, 1fr)`,
+          gap: `${spacing.lg}px`,
+        }}
+      >
+        {weekDays.map((date, idx) => (
+          <DayCard
+            key={date.toISOString()}
+            date={date}
+            events={getEventsForDay(events, date)}
+            members={members}
+            isToday={isSameDay(date, today)}
+            density={getRelativeDensity(dayCounts[idx], dayCounts)}
+            onClick={onDayClick ? () => onDayClick(date) : undefined}
+            onEventClick={openEvent}
+            onEventMouseEnter={handleDayMouseEnter}
+            onEventMouseMove={handleMouseMove}
+            onEventMouseLeave={handleMouseLeave}
+          />
+        ))}
         <DayCard
-          key={date.toISOString()}
-          date={date}
-          events={getEventsForDay(events, date)}
+          date={nextWeekStart}
+          nextWeekEnd={nextWeekEnd}
+          events={[]}
           members={members}
-          isToday={isSameDay(date, today)}
-          density={getRelativeDensity(dayCounts[idx], dayCounts)}
-          onClick={onDayClick ? () => onDayClick(date) : undefined}
+          isToday={false}
+          isNextWeek
         />
-      ))}
-      <DayCard
-        date={nextWeekStart}
-        nextWeekEnd={nextWeekEnd}
-        events={[]}
+      </div>
+
+      {/* Event popup - key forces full re-render when date changes */}
+      {popupState.date && (
+        <EventPopup
+          key={popupState.date.toISOString()}
+          visible={popupState.visible}
+          x={popupState.x}
+          y={popupState.y}
+          dateLabel={popupState.date.toLocaleDateString('en-US', {
+            weekday: 'short',
+            month: 'short',
+            day: 'numeric',
+          })}
+          events={getEventsForDay(events, popupState.date)}
+          members={members}
+        />
+      )}
+
+      {/* Event detail modal */}
+      <EventModal
+        visible={selectedEvent !== null}
+        event={selectedEvent}
         members={members}
-        isToday={false}
-        isNextWeek
+        onClose={closeEvent}
       />
     </div>
   )

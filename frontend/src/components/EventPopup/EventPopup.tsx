@@ -6,7 +6,9 @@
  */
 
 import type { CalendarEvent, FamilyMember } from '../../types'
+import { createPortal } from 'react-dom'
 import { colors, radii, shadows, spacing, typography, zIndices } from '../../theme/tokens'
+import { RecurringIcon, MapPinIcon } from '../EventItem'
 
 interface EventPopupProps {
   /** Whether the popup is visible. */
@@ -45,7 +47,9 @@ export function EventPopup({ visible, x, y, dateLabel, events, members }: EventP
   left = Math.max(offset, Math.min(left, vw - popupWidth - offset))
   top = Math.max(offset, Math.min(top, vh - popupEstHeight - offset))
 
-  return (
+  // Rendered via portal: escapes the app's scale-to-fit transform so fixed
+  // positioning and cursor coordinates stay in viewport space.
+  return createPortal(
     <div
       style={{
         position: 'fixed',
@@ -126,6 +130,9 @@ export function EventPopup({ visible, x, y, dateLabel, events, members }: EventP
               >
                 {event.title}
               </span>
+              {(event.is_recurring_instance || event.recurrence_rule) && (
+                <RecurringIcon size={11} />
+              )}
             </div>
             <div
               style={{
@@ -137,8 +144,18 @@ export function EventPopup({ visible, x, y, dateLabel, events, members }: EventP
               {event.all_day ? 'All day' : `${startTime} – ${endTime}`}
             </div>
             {event.location && (
-              <div style={{ fontSize: '11px', color: colors.textFaint, marginBottom: '4px' }}>
-                📍 {event.location}
+              <div
+                style={{
+                  fontSize: '11px',
+                  color: colors.textFaint,
+                  marginBottom: '4px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                }}
+              >
+                <MapPinIcon size={11} />
+                {event.location}
               </div>
             )}
             {eventMembers.length > 1 && (
@@ -169,6 +186,7 @@ export function EventPopup({ visible, x, y, dateLabel, events, members }: EventP
           </div>
         )
       })}
-    </div>
+    </div>,
+    document.body,
   )
 }
