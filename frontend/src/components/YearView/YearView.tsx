@@ -120,14 +120,17 @@ export function YearView({
   })
 
   return (
-    <div>
-      {/* Year grid: 4 columns × 3 rows */}
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+      {/* Year grid: 4 columns × 3 rows, stretched to fill available height */}
       <div
         onMouseLeave={handleMouseLeave}
         style={{
           display: 'grid',
           gridTemplateColumns: `repeat(${themeConfig.calendar.yearGridColumns}, 1fr)`,
+          gridTemplateRows: 'repeat(3, minmax(0, 1fr))',
           gap: '20px',
+          flex: 1,
+          minHeight: 0,
         }}
       >
         {Array.from({ length: 12 }, (_, monthIdx) => {
@@ -171,6 +174,8 @@ export function YearView({
                 cursor: 'pointer',
                 transition: 'box-shadow 0.15s, transform 0.1s',
                 boxShadow: isSelectedMonth ? `0 0 0 1px ${colors.primary}` : 'none',
+                display: 'flex',
+                flexDirection: 'column',
               }}
               onMouseEnter={(e) => {
                 e.currentTarget.style.boxShadow = shadows.cardHover
@@ -259,6 +264,7 @@ export function YearView({
                     flex: 1,
                     display: 'grid',
                     gridTemplateColumns: 'repeat(7, 1fr)',
+                    gridTemplateRows: `auto repeat(${weeks.length}, minmax(0, 1fr))`,
                     justifyItems: 'center',
                     gap: '1px',
                   }}
@@ -320,25 +326,33 @@ export function YearView({
                           display: 'flex',
                           alignItems: 'center',
                           justifyContent: 'center',
-                          ...(isToday
-                            ? {
-                                background: colors.primary,
-                                color: colors.white,
-                                fontWeight: 700,
-                                width: '20px',
-                                height: '20px',
-                                borderRadius: '50%',
-                              }
-                            : {
-                                width: '20px',
-                                height: '20px',
-                                borderRadius: '4px',
-                              }),
+                          width: '20px',
+                          height: '100%',
+                          borderRadius: '4px',
                         }}
                       >
                         {/* Event indicator — segmented micro-bar */}
                         {hasEvents && <DayIndicator events={dayEvents} members={members} />}
-                        <span>{dayData.day}</span>
+                        <span
+                          style={
+                            isToday
+                              ? {
+                                  background: colors.primary,
+                                  color: colors.white,
+                                  fontWeight: 700,
+                                  width: '20px',
+                                  height: '20px',
+                                  borderRadius: '50%',
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  flexShrink: 0,
+                                }
+                              : undefined
+                          }
+                        >
+                          {dayData.day}
+                        </span>
                       </div>
                     )
                   })}
