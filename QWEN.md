@@ -17,7 +17,8 @@
 - **Views:** Day, Week, Month, Year with navigation and auto-refresh
 - **Header:** Auto-collapsing (hides after 3s, shows on mouse near top)
 - **Backend:** Enhanced with event deduplication, attendees, recurring events, full event details
-- **Frontend:** Event component refactor planned — see `frontend/src/docs/event-architecture-analysis.md`
+- **Frontend:** Unified event architecture — `EventItem` (card/strip/block) + `useEventInteraction` across all views; see `frontend/src/docs/event-architecture-analysis.md`
+- **Event interactions:** Uniform across views — hover event = popup, click event = modal, click day = drill down (year view is navigation-only)
 
 ---
 
@@ -71,9 +72,10 @@ dashy/
 │   │   │   ├── SideNav/          # Previous/Next navigation arrows
 │   │   │   ├── WeekGrid/         # Week view (7 day cards)
 │   │   │   ├── DayCard/          # Individual day card component
-│   │   │   ├── EventCard/        # Event card for week/day views
+│   │   │   ├── EventItem/        # Core event rendering (card/strip/block variants)
 │   │   │   ├── EventPopup/       # Hover popup with event details
-│   │   │   ├── AllDaySection/    # All-day events (day view)
+│   │   │   ├── EventModal/       # Event detail modal (all views)
+│   │   │   ├── DayIndicator/     # Year view segmented event micro-bar
 │   │   │   ├── DayView/          # Day view with hourly timeline
 │   │   │   ├── MonthView/        # Month grid view
 │   │   │   ├── YearView/         # Year view with mini calendars
@@ -86,11 +88,12 @@ dashy/
 │   │   │   ├── useSidebar.ts        # Sidebar state management
 │   │   │   ├── useApi.ts            # Generic API fetch hook
 │   │   │   ├── useCalendarEvents.ts # Calendar events with caching
+│   │   │   ├── useEventInteraction.ts # Unified event popup/modal state
 │   │   │   └── useAutoHideHeader.ts # Auto-hide header on mouse proximity
 │   │   ├── services/      # API service layer (api.ts with retry + cache)
 │   │   ├── types/         # TypeScript type definitions
 │   │   ├── theme/         # Design tokens (colors, spacing, typography)
-│   │   ├── utils/         # Date formatting, density calculations
+│   │   ├── utils/         # Date formatting, density, recurrence utils
 │   │   ├── test/          # Test setup
 │   │   ├── App.tsx
 │   │   └── main.tsx
