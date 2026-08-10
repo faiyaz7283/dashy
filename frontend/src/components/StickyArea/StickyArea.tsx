@@ -32,7 +32,9 @@ export function StickyArea({ header, allDaySection, visible = true }: StickyArea
         top: 0,
         zIndex: zIndices.stickyArea,
         background: colors.white,
-        borderBottom: `1px solid ${colors.border}`,
+        // Border only when visible — a collapsed (0-height) area must not
+        // leave a stray 1px line behind.
+        borderBottom: visible ? `1px solid ${colors.border}` : 'none',
         flexShrink: 0,
         maxHeight: visible ? '500px' : '0',
         overflow: 'hidden',

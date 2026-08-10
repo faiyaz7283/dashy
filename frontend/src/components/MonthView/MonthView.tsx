@@ -107,7 +107,10 @@ export function MonthView({ currentDate, events, members, onDayClick }: MonthVie
   const weekdayHeaders = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
 
   return (
-    <div onMouseLeave={handleMouseLeave} style={{ display: 'flex', gap: `${spacing.sm}px` }}>
+    <div
+      onMouseLeave={handleMouseLeave}
+      style={{ display: 'flex', gap: `${spacing.sm}px`, height: '100%' }}
+    >
       {/* Weekly density column */}
       <div
         style={{
@@ -125,7 +128,6 @@ export function MonthView({ currentDate, events, members, onDayClick }: MonthVie
               key={idx}
               style={{
                 flex: 1,
-                minHeight: '120px',
                 borderRadius: `${radii.sm}px`,
                 background: densityBarColors[density],
               }}
@@ -142,6 +144,8 @@ export function MonthView({ currentDate, events, members, onDayClick }: MonthVie
           borderRadius: `${radii['2xl']}px`,
           border: `1px solid ${colors.border}`,
           overflow: 'hidden',
+          display: 'flex',
+          flexDirection: 'column',
         }}
       >
         {/* Weekday headers */}
@@ -171,7 +175,14 @@ export function MonthView({ currentDate, events, members, onDayClick }: MonthVie
         </div>
 
         {/* Date cells */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)' }}>
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(7, 1fr)',
+            gridTemplateRows: 'repeat(6, minmax(0, 1fr))',
+            flex: 1,
+          }}
+        >
           {gridDates.map((date, idx) => {
             const isCurrentMonth = date.getMonth() === month
             const isToday = isSameDay(date, today)
@@ -185,13 +196,13 @@ export function MonthView({ currentDate, events, members, onDayClick }: MonthVie
                 onMouseEnter={(e) => handleDayMouseEnter(e, date)}
                 onMouseMove={handleMouseMove}
                 style={{
-                  minHeight: '120px',
                   padding: `${spacing.sm}px`,
                   borderRight: idx % 7 !== 6 ? `1px solid ${colors.borderLight}` : 'none',
                   borderBottom: idx < 35 ? `1px solid ${colors.borderLight}` : 'none',
                   cursor: 'pointer',
                   transition: 'background 0.15s',
                   position: 'relative',
+                  overflow: 'hidden',
                   background: isToday
                     ? colors.primaryLight
                     : isHovered

@@ -52,12 +52,13 @@ export function WeekGrid({ events, members, orientation, currentDate, onDayClick
   const dayCounts = weekDays.map((date) => getEventsForDay(events, date).length)
 
   return (
-    <div onMouseLeave={handleMouseLeave}>
+    <div onMouseLeave={handleMouseLeave} style={{ height: '100%' }}>
       <div
         style={{
           display: 'grid',
           gridTemplateColumns: `repeat(${cols}, 1fr)`,
           gap: `${spacing.lg}px`,
+          height: '100%',
         }}
       >
         {weekDays.map((date, idx) => (

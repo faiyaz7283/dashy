@@ -19,7 +19,7 @@
 - **Backend:** Enhanced with event deduplication, attendees, recurring events, full event details
 - **Frontend:** Unified event architecture — `EventItem` (card/strip/block) + `useEventInteraction` across all views; see `frontend/src/docs/event-architecture-analysis.md`
 - **Event interactions:** Uniform across views — hover event = popup, click event = modal, click day = drill down (year view is navigation-only)
-- **Scaling:** Scale-to-fit — fixed 1920×1080 design canvas uniformly scaled to the viewport (`useScaleToFit`); pixel-perfect on the 1080p Pi, scales up/down on any other monitor
+- **Layout:** Fluid full-viewport — all views fill available width AND height (week/month/year grids stretch); fixed px typography stays constant on every display (no transform scaling — it breaks sticky/fixed positioning and shrinks text on lower-resolution screens)
 
 ---
 
@@ -90,7 +90,6 @@ dashy/
 │   │   │   ├── useApi.ts            # Generic API fetch hook
 │   │   │   ├── useCalendarEvents.ts # Calendar events with caching
 │   │   │   ├── useEventInteraction.ts # Unified event popup/modal state
-│   │   │   ├── useScaleToFit.ts   # Uniform scale factor for the 1920×1080 design canvas
 │   │   │   └── useAutoHideHeader.ts # Auto-hide header on mouse proximity
 │   │   ├── services/      # API service layer (api.ts with retry + cache)
 │   │   ├── types/         # TypeScript type definitions
