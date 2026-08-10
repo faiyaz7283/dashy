@@ -263,7 +263,7 @@ export function YearView({
                         key={weekIdx}
                         style={{
                           flex: 1,
-                          minHeight: '18px',
+                          minHeight: 0,
                           borderRadius: '2px',
                           background: densityBarColors[weekDensity],
                         }}
@@ -335,6 +335,7 @@ export function YearView({
                           color: dayData.otherMonth ? colors.textDisabled : colors.textSecondary,
                           padding: '0',
                           position: 'relative',
+                          overflow: 'hidden',
                           cursor: dayData.otherMonth ? 'default' : 'pointer',
                           display: 'flex',
                           alignItems: 'center',

@@ -197,6 +197,7 @@ export function MonthView({ currentDate, events, members, onDayClick }: MonthVie
                 onMouseMove={handleMouseMove}
                 style={{
                   padding: `${spacing.sm}px`,
+                  minHeight: 0,
                   borderRight: idx % 7 !== 6 ? `1px solid ${colors.borderLight}` : 'none',
                   borderBottom: idx < 35 ? `1px solid ${colors.borderLight}` : 'none',
                   cursor: 'pointer',

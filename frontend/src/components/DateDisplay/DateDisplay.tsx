@@ -7,9 +7,11 @@
  */
 
 import { useState, useCallback, useRef, useEffect } from 'react'
+import { createPortal } from 'react-dom'
 import type { CalendarView } from '../../types'
 import { colors, spacing, radii, layout, shadows, zIndices } from '../../theme/tokens'
 import { getWeekDays, isSameDay } from '../../utils/dateFormat'
+import { useUiScale } from '../../hooks/useUiScale'
 
 interface DateDisplayProps {
   /** The current date to display. */
@@ -18,6 +20,8 @@ interface DateDisplayProps {
   currentView: CalendarView
   /** Callback when a date is selected. */
   onDateChange: (date: Date) => void
+  /** Compact mode (narrow viewports): shrink to content width. */
+  compact?: boolean
 }
 
 const monthNames = [
@@ -115,21 +119,34 @@ function getCalendarDays(
  * @param props - Component props.
  * @returns The date display with picker UI.
  */
-export function DateDisplay({ currentDate, currentView, onDateChange }: DateDisplayProps) {
+export function DateDisplay({
+  currentDate,
+  currentView,
+  onDateChange,
+  compact = false,
+}: DateDisplayProps) {
   const [isOpen, setIsOpen] = useState(false)
   const [pickerMonth, setPickerMonth] = useState({
     year: currentDate.getFullYear(),
     month: currentDate.getMonth(),
   })
+  // Viewport rect of the trigger button, captured when the picker opens —
+  // the picker portals to document.body and anchors to these coordinates.
+  const [anchorRect, setAnchorRect] = useState<DOMRect | null>(null)
   const containerRef = useRef<HTMLDivElement>(null)
+  const pickerRef = useRef<HTMLDivElement>(null)
+  const scale = useUiScale()
   const today = new Date()
 
-  // Close picker on outside click
+  // Close picker on outside click (checks both the trigger and the
+  // portaled picker, which is no longer a DOM descendant of the trigger)
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
-      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
-        setIsOpen(false)
+      const target = e.target as Node
+      if (containerRef.current?.contains(target) || pickerRef.current?.contains(target)) {
+        return
       }
+      setIsOpen(false)
     }
     if (isOpen) {
       document.addEventListener('mousedown', handleClickOutside)
@@ -143,7 +160,12 @@ export function DateDisplay({ currentDate, currentView, onDateChange }: DateDisp
   }, [currentDate])
 
   const handleToggle = useCallback(() => {
-    setIsOpen((prev) => !prev)
+    setIsOpen((prev) => {
+      if (!prev && containerRef.current) {
+        setAnchorRect(containerRef.current.getBoundingClientRect())
+      }
+      return !prev
+    })
   }, [])
 
   const handlePrevMonth = useCallback(() => {
@@ -214,7 +236,7 @@ export function DateDisplay({ currentDate, currentView, onDateChange }: DateDisp
           borderRadius: `${radii.lg}px`,
           cursor: 'pointer',
           transition: 'all 0.15s',
-          width: `${layout.dateDisplayWidth}px`,
+          width: compact ? 'auto' : `${layout.dateDisplayWidth}px`,
         }}
         onMouseEnter={(e) => {
           e.currentTarget.style.borderColor = colors.borderDark
@@ -260,279 +282,314 @@ export function DateDisplay({ currentDate, currentView, onDateChange }: DateDisp
         </svg>
       </button>
 
-      {isOpen && (
-        <div
-          style={{
-            position: 'absolute',
-            top: '100%',
-            right: 0,
-            marginTop: '8px',
-            background: colors.white,
-            border: `1px solid ${colors.border}`,
-            borderRadius: `${radii.xl}px`,
-            boxShadow: shadows.popup,
-            padding: `${spacing.lg}px`,
-            zIndex: zIndices.popup,
-            minWidth: '280px',
-          }}
-        >
-          {/* Header with navigation */}
+      {isOpen &&
+        anchorRect &&
+        // Portaled to body: escapes StickyArea's overflow clipping and the
+        // root zoom; the inner card applies the UI scale for consistency.
+        createPortal(
           <div
+            ref={pickerRef}
             style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              marginBottom: '12px',
+              position: 'fixed',
+              top: `${anchorRect.bottom + 8}px`,
+              right: `${window.innerWidth - anchorRect.right}px`,
+              zIndex: zIndices.popup,
             }}
           >
-            <div style={{ display: 'flex', alignItems: 'center', gap: '2px' }}>
-              <button
-                onClick={handlePrevYear}
-                title="Previous year"
-                style={{
-                  width: '28px',
-                  height: '28px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  borderRadius: '6px',
-                  border: 'none',
-                  background: 'transparent',
-                  cursor: 'pointer',
-                  color: colors.textFaint,
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.background = colors.bgHover
-                  e.currentTarget.style.color = colors.textMuted
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.background = 'transparent'
-                  e.currentTarget.style.color = colors.textFaint
-                }}
-              >
-                <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M11 19l-7-7 7-7M18 19l-7-7 7-7"
-                  />
-                </svg>
-              </button>
-              <button
-                onClick={handlePrevMonth}
-                title="Previous month"
-                style={{
-                  width: '28px',
-                  height: '28px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  borderRadius: '6px',
-                  border: 'none',
-                  background: 'transparent',
-                  cursor: 'pointer',
-                  color: colors.textMuted,
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.background = colors.bgHover
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.background = 'transparent'
-                }}
-              >
-                <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M15 19l-7-7 7-7"
-                  />
-                </svg>
-              </button>
-            </div>
-            <span style={{ fontSize: '14px', fontWeight: 600, color: colors.textPrimary }}>
-              {monthNames[pickerMonth.month]} {pickerMonth.year}
-            </span>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '2px' }}>
-              <button
-                onClick={handleNextMonth}
-                title="Next month"
-                style={{
-                  width: '28px',
-                  height: '28px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  borderRadius: '6px',
-                  border: 'none',
-                  background: 'transparent',
-                  cursor: 'pointer',
-                  color: colors.textMuted,
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.background = colors.bgHover
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.background = 'transparent'
-                }}
-              >
-                <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M9 5l7 7-7 7"
-                  />
-                </svg>
-              </button>
-              <button
-                onClick={handleNextYear}
-                title="Next year"
-                style={{
-                  width: '28px',
-                  height: '28px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  borderRadius: '6px',
-                  border: 'none',
-                  background: 'transparent',
-                  cursor: 'pointer',
-                  color: colors.textFaint,
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.background = colors.bgHover
-                  e.currentTarget.style.color = colors.textMuted
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.background = 'transparent'
-                  e.currentTarget.style.color = colors.textFaint
-                }}
-              >
-                <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M13 5l7 7-7 7M6 5l7 7-7 7"
-                  />
-                </svg>
-              </button>
-            </div>
-          </div>
-
-          {/* Weekday headers */}
-          <div
-            style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(7, 1fr)',
-              gap: '2px',
-              marginBottom: '4px',
-            }}
-          >
-            {['Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa', 'Su'].map((d) => (
+            <div
+              style={{
+                background: colors.white,
+                border: `1px solid ${colors.border}`,
+                borderRadius: `${radii.xl}px`,
+                boxShadow: shadows.popup,
+                padding: `${spacing.lg}px`,
+                minWidth: '280px',
+                zoom: scale,
+              }}
+            >
+              {/* Header with navigation */}
               <div
-                key={d}
                 style={{
-                  textAlign: 'center',
-                  fontSize: '11px',
-                  fontWeight: 500,
-                  color: colors.textFaint,
-                  padding: '4px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  marginBottom: '12px',
                 }}
               >
-                {d}
-              </div>
-            ))}
-          </div>
-
-          {/* Day grid */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '2px' }}>
-            {days.map((dayData, idx) => {
-              const isSelected = isDateSelected(dayData.date)
-              const isToday = isDateToday(dayData.date)
-              const inWeek = isInSelectedWeek(dayData.date)
-              const isPast = dayData.date < today && !isToday
-              const isFuture = dayData.date > today && !isToday
-
-              let background: string = 'transparent'
-              let textColor: string = dayData.otherMonth
-                ? colors.textDisabled
-                : colors.textSecondary
-              let fontWeight = 400
-              let borderRadius = '6px'
-
-              if (inWeek && currentView === 'week') {
-                borderRadius = getWeekBorderRadius(dayData.date)
-                if (isToday) {
-                  background = colors.primary
-                  textColor = colors.white
-                  fontWeight = 600
-                } else if (isPast) {
-                  background = colors.bgHover
-                  textColor = colors.textMuted
-                } else if (isFuture) {
-                  background = '#dbeafe'
-                  textColor = '#1e40af'
-                }
-              }
-
-              if (isSelected) {
-                if (inWeek && currentView === 'week') {
-                  // Selected date in week view gets a border
-                  fontWeight = 700
-                } else if (isToday) {
-                  background = colors.primary
-                  textColor = colors.white
-                  fontWeight = 600
-                } else {
-                  background = colors.primaryLight
-                  textColor = colors.primary
-                  fontWeight = 600
-                }
-              }
-
-              return (
-                <button
-                  key={idx}
-                  onClick={() => handleDayClick(dayData.date)}
-                  style={{
-                    width: '32px',
-                    height: '32px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    fontSize: '13px',
-                    borderRadius,
-                    cursor: 'pointer',
-                    color: textColor,
-                    background,
-                    border:
-                      isSelected && inWeek && currentView === 'week'
-                        ? `2px solid ${colors.primary}`
-                        : 'none',
-                    fontWeight,
-                    transition: 'all 0.1s',
-                  }}
-                  onMouseEnter={(e) => {
-                    if (!isSelected && !dayData.otherMonth) {
+                <div style={{ display: 'flex', alignItems: 'center', gap: '2px' }}>
+                  <button
+                    onClick={handlePrevYear}
+                    title="Previous year"
+                    style={{
+                      width: '28px',
+                      height: '28px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      borderRadius: '6px',
+                      border: 'none',
+                      background: 'transparent',
+                      cursor: 'pointer',
+                      color: colors.textFaint,
+                    }}
+                    onMouseEnter={(e) => {
                       e.currentTarget.style.background = colors.bgHover
-                    }
-                  }}
-                  onMouseLeave={(e) => {
-                    if (!isSelected) {
+                      e.currentTarget.style.color = colors.textMuted
+                    }}
+                    onMouseLeave={(e) => {
                       e.currentTarget.style.background = 'transparent'
+                      e.currentTarget.style.color = colors.textFaint
+                    }}
+                  >
+                    <svg
+                      width="14"
+                      height="14"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M11 19l-7-7 7-7M18 19l-7-7 7-7"
+                      />
+                    </svg>
+                  </button>
+                  <button
+                    onClick={handlePrevMonth}
+                    title="Previous month"
+                    style={{
+                      width: '28px',
+                      height: '28px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      borderRadius: '6px',
+                      border: 'none',
+                      background: 'transparent',
+                      cursor: 'pointer',
+                      color: colors.textMuted,
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.background = colors.bgHover
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.background = 'transparent'
+                    }}
+                  >
+                    <svg
+                      width="14"
+                      height="14"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M15 19l-7-7 7-7"
+                      />
+                    </svg>
+                  </button>
+                </div>
+                <span style={{ fontSize: '14px', fontWeight: 600, color: colors.textPrimary }}>
+                  {monthNames[pickerMonth.month]} {pickerMonth.year}
+                </span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '2px' }}>
+                  <button
+                    onClick={handleNextMonth}
+                    title="Next month"
+                    style={{
+                      width: '28px',
+                      height: '28px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      borderRadius: '6px',
+                      border: 'none',
+                      background: 'transparent',
+                      cursor: 'pointer',
+                      color: colors.textMuted,
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.background = colors.bgHover
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.background = 'transparent'
+                    }}
+                  >
+                    <svg
+                      width="14"
+                      height="14"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M9 5l7 7-7 7"
+                      />
+                    </svg>
+                  </button>
+                  <button
+                    onClick={handleNextYear}
+                    title="Next year"
+                    style={{
+                      width: '28px',
+                      height: '28px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      borderRadius: '6px',
+                      border: 'none',
+                      background: 'transparent',
+                      cursor: 'pointer',
+                      color: colors.textFaint,
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.background = colors.bgHover
+                      e.currentTarget.style.color = colors.textMuted
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.background = 'transparent'
+                      e.currentTarget.style.color = colors.textFaint
+                    }}
+                  >
+                    <svg
+                      width="14"
+                      height="14"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M13 5l7 7-7 7M6 5l7 7-7 7"
+                      />
+                    </svg>
+                  </button>
+                </div>
+              </div>
+
+              {/* Weekday headers */}
+              <div
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(7, 1fr)',
+                  gap: '2px',
+                  marginBottom: '4px',
+                }}
+              >
+                {['Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa', 'Su'].map((d) => (
+                  <div
+                    key={d}
+                    style={{
+                      textAlign: 'center',
+                      fontSize: '11px',
+                      fontWeight: 500,
+                      color: colors.textFaint,
+                      padding: '4px',
+                    }}
+                  >
+                    {d}
+                  </div>
+                ))}
+              </div>
+
+              {/* Day grid */}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '2px' }}>
+                {days.map((dayData, idx) => {
+                  const isSelected = isDateSelected(dayData.date)
+                  const isToday = isDateToday(dayData.date)
+                  const inWeek = isInSelectedWeek(dayData.date)
+                  const isPast = dayData.date < today && !isToday
+                  const isFuture = dayData.date > today && !isToday
+
+                  let background: string = 'transparent'
+                  let textColor: string = dayData.otherMonth
+                    ? colors.textDisabled
+                    : colors.textSecondary
+                  let fontWeight = 400
+                  let borderRadius = '6px'
+
+                  if (inWeek && currentView === 'week') {
+                    borderRadius = getWeekBorderRadius(dayData.date)
+                    if (isToday) {
+                      background = colors.primary
+                      textColor = colors.white
+                      fontWeight = 600
+                    } else if (isPast) {
+                      background = colors.bgHover
+                      textColor = colors.textMuted
+                    } else if (isFuture) {
+                      background = '#dbeafe'
+                      textColor = '#1e40af'
                     }
-                  }}
-                >
-                  {dayData.day}
-                </button>
-              )
-            })}
-          </div>
-        </div>
-      )}
+                  }
+
+                  if (isSelected) {
+                    if (inWeek && currentView === 'week') {
+                      // Selected date in week view gets a border
+                      fontWeight = 700
+                    } else if (isToday) {
+                      background = colors.primary
+                      textColor = colors.white
+                      fontWeight = 600
+                    } else {
+                      background = colors.primaryLight
+                      textColor = colors.primary
+                      fontWeight = 600
+                    }
+                  }
+
+                  return (
+                    <button
+                      key={idx}
+                      onClick={() => handleDayClick(dayData.date)}
+                      style={{
+                        width: '32px',
+                        height: '32px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontSize: '13px',
+                        borderRadius,
+                        cursor: 'pointer',
+                        color: textColor,
+                        background,
+                        border:
+                          isSelected && inWeek && currentView === 'week'
+                            ? `2px solid ${colors.primary}`
+                            : 'none',
+                        fontWeight,
+                        transition: 'all 0.1s',
+                      }}
+                      onMouseEnter={(e) => {
+                        if (!isSelected && !dayData.otherMonth) {
+                          e.currentTarget.style.background = colors.bgHover
+                        }
+                      }}
+                      onMouseLeave={(e) => {
+                        if (!isSelected) {
+                          e.currentTarget.style.background = 'transparent'
+                        }
+                      }}
+                    >
+                      {dayData.day}
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
+          </div>,
+          document.body,
+        )}
     </div>
   )
 }

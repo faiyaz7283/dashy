@@ -124,15 +124,9 @@ export function Sidebar({ state, onChange, onRefreshCalendar }: SidebarProps) {
     // If drag distance is below threshold, treat as click (no state change)
     if (dragDistance.current < DRAG_THRESHOLD) return
 
-    // Determine snap state based on width at drag end
-    let newState: SidebarState
-    if (currentWidth > 150) {
-      newState = 'full'
-    } else if (currentWidth > 30) {
-      newState = 'collapsed'
-    } else {
-      newState = 'hidden'
-    }
+    // Snap to the nearest size state — hiding is owned by edge proximity
+    // (useEdgeProximity), so dragging only switches between full/collapsed
+    const newState: SidebarState = currentWidth > 150 ? 'full' : 'collapsed'
 
     onChange(newState)
   }, [onChange])
