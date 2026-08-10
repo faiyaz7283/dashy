@@ -66,7 +66,6 @@ dashy/
 │   │   │   ├── Sidebar/          # Collapsible sidebar with navigation
 │   │   │   ├── FamilyPills/      # Compact inline family member pills
 │   │   │   ├── DensityBadge/     # Event count badge with density coloring
-│   │   │   ├── SubHeader/        # (Deprecated - consolidated into Header)
 │   │   │   ├── StickyArea/       # Auto-collapsing sticky header wrapper
 │   │   │   ├── ViewSwitcher/     # Day/Week/Month/Year view buttons
 │   │   │   ├── SideNav/          # Previous/Next navigation arrows
@@ -313,7 +312,6 @@ Children (Arya, 8 and Raya, 4) are not in v1 calendar scope but the system suppo
 **Changes:**
 - FamilyPills made compact (16px avatars, 11px names) and moved into header row
 - DensityBadge moved into header (between pills and ViewSwitcher)
-- SubHeader component removed from layout (redundant with header date)
 - StickyArea simplified to only header + optional allDaySection
 - Saves ~95px vertical space for calendar content
 
