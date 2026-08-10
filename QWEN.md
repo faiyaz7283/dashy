@@ -7,7 +7,7 @@
 ### Current Status
 
 - **Phase:** Production deployed and working on Raspberry Pi with kiosk mode
-- **Pi:** Raspberry Pi 4 (4GB), Raspberry Pi OS 64-bit (Bookworm/Debian 13), SSH accessible at `rpi4_main@dashy.local` (192.168.1.194)
+- **Pi:** Raspberry Pi 4 (4GB), Raspberry Pi OS 64-bit (Bookworm/Debian 13), SSH accessible at `rpi4_main@dashy.local` (192.168.1.194), booting from NVMe SSD (WD Blue SN500 500 GB via Realtek RTL9210 USB bridge). Original 64 GB microSD preserved as rollback.
 - **Repo:** `git@github.com:faiyaz7283/dashy.git`
 - **Directory:** `/Users/admin/dashy/` (flattened — no nested `dashy/dashy/`)
 - **Local Dev URLs:** https://dashy.local (frontend), https://api.dashy.local (backend)
@@ -305,11 +305,14 @@ The model:
 
 ## Raspberry Pi Details
 
+> **Hardware is current deployment state, not a project dependency.** Dashy is hardware-agnostic in principle. Update this section whenever the Pi, storage, display, or peripherals change.
+
 - **Hostname:** `dashy`
 - **Username:** `rpi4_main`
 - **IP:** 192.168.1.194 (DHCP, may change)
 - **SSH:** Key-based auth (ed25519)
-- **Boot medium:** microSD card (64GB)
+- **Boot medium:** NVMe SSD (WD Blue SN500 500 GB) via Realtek RTL9210 USB 3.0 bridge
+- **Rollback medium:** Original 64 GB microSD card (untouched; can be reinserted to boot)
 - **Display:** 1360×768 HDMI TV (Hisense), NOT touchscreen
 - **Kiosk mode:** Chromium auto-start on boot, full-screen
 
@@ -329,6 +332,55 @@ ssh r4pi "XDG_RUNTIME_DIR=/run/user/1000 WAYLAND_DISPLAY=wayland-0 wlr-randr --o
 - **TV native resolution:** 1360×768 landscape (768×1360 portrait)
 - **Not persistent:** reboots and lightdm restarts (including `make deploy-pi`) reset to landscape. To make portrait permanent, add the rotate command to `scripts/start-chromium-kiosk.sh` before the Chromium launch.
 - **The app adapts automatically** — viewport-based detection (`useOrientation`): portrait grids (year 3×4, week 2×4), compacted header, UI zoom stays 1.0.
+
+---
+
+## Hardware Monitoring & Maintenance
+
+Storage and health checks for the current production Pi. These commands reference the current boot device (`/dev/sda`); update paths if the hardware changes.
+
+### NVMe SSD Health (`smartmontools`)
+
+`smartmontools` is installed on the Pi. Useful commands:
+
+```bash
+# Overall health pass/fail
+ssh r4pi "sudo smartctl -H /dev/sda"
+
+# Key health metrics
+ssh r4pi "sudo smartctl -a /dev/sda | grep -E 'Percentage Used|Available Spare|Temperature|Data Units|Power_On_Hours'"
+
+# Short self-test (runs in background, ~2 min)
+ssh r4pi "sudo smartctl -t short /dev/sda"
+# Then check results:
+ssh r4pi "sudo smartctl -l selftest /dev/sda"
+```
+
+Current baseline (post-migration):
+
+| Metric | Value |
+|---|---|
+| Model | WDC WDS500G2B0C-00PXH0 |
+| Capacity | 500 GB (458 GB usable) |
+| Health | PASSED |
+| Percentage Used | 0% |
+| Available Spare | 100% |
+| Temperature | ~46 °C |
+
+### TRIM Note
+
+TRIM is **not supported** through the current Realtek RTL9210 USB bridge (`fstrim` reports `the discard operation is not supported`). The SSD relies on its own garbage collection. The weekly `fstrim.timer` is disabled to avoid recurring failure logs; it can be re-enabled if the bridge is replaced with one that supports TRIM (e.g., ASMedia ASM2362) or a PCIe M.2 HAT.
+
+### Boot Medium Rollback
+
+The original 64 GB microSD card is preserved unchanged. If the SSD fails or the Pi needs to be reverted:
+
+1. Shut down the Pi
+2. Remove the NVMe SSD / USB adapter
+3. Reinsert the original microSD card
+4. Boot — the system will be exactly as it was before migration
+
+To make the SD card bootable again permanently, restore the bootloader EEPROM to SD-first (`BOOT_ORDER=0xf41`). This is usually unnecessary if the SSD is simply removed.
 
 ---
 
@@ -498,7 +550,8 @@ This intelligent deployment command:
 - **Username:** `rpi4_main`
 - **IP:** 192.168.1.194 (DHCP, may change)
 - **SSH:** Key-based auth (ed25519)
-- **Boot medium:** microSD card (64GB)
+- **Boot medium:** NVMe SSD (WD Blue SN500 500 GB) via Realtek RTL9210 USB 3.0 bridge
+- **Rollback medium:** Original 64 GB microSD card (untouched; can be reinserted to boot)
 - **Display:** 1360×768 HDMI TV (Hisense), NOT touchscreen
 
 ---
