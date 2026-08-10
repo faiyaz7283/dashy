@@ -46,6 +46,12 @@ const monthNames = [
 ]
 
 /**
+ * Mini-calendar density colors and sizing come from the theme tokens. The UI
+ * scales uniformly on large monitors via the root-level zoom (useUiScale), so
+ * this component uses fixed design sizes like every other view.
+ */
+
+/**
  * Returns the days to display in a mini-calendar grid for a month.
  *
  * Includes leading/trailing days from adjacent months to fill complete weeks.
@@ -231,7 +237,7 @@ export function YearView({
               </div>
 
               {/* Mini calendar with density column */}
-              <div style={{ display: 'flex', gap: '4px' }}>
+              <div style={{ display: 'flex', gap: '4px', flex: 1, minHeight: 0 }}>
                 {/* Density column */}
                 <div
                   style={{
@@ -265,7 +271,6 @@ export function YearView({
                     display: 'grid',
                     gridTemplateColumns: 'repeat(7, 1fr)',
                     gridTemplateRows: `auto repeat(${weeks.length}, minmax(0, 1fr))`,
-                    justifyItems: 'center',
                     gap: '1px',
                   }}
                 >
@@ -326,7 +331,6 @@ export function YearView({
                           display: 'flex',
                           alignItems: 'center',
                           justifyContent: 'center',
-                          width: '20px',
                           height: '100%',
                           borderRadius: '4px',
                         }}
@@ -340,8 +344,8 @@ export function YearView({
                                   background: colors.primary,
                                   color: colors.white,
                                   fontWeight: 700,
-                                  width: '20px',
-                                  height: '20px',
+                                  width: '2em',
+                                  height: '2em',
                                   borderRadius: '50%',
                                   display: 'inline-flex',
                                   alignItems: 'center',
