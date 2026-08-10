@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react'
+import { render, screen, fireEvent } from '@testing-library/react'
 import { describe, it, expect, vi } from 'vitest'
 import { MonthView } from './MonthView'
 import type { CalendarEvent, FamilyMember } from '../../types'
@@ -111,6 +111,22 @@ describe('MonthView', () => {
     const dayFifteens = screen.getAllByText('15')
     dayFifteens[0].closest('div')?.click()
     expect(onDayClick).toHaveBeenCalled()
+  })
+
+  it('opens the event modal when an event strip is clicked instead of navigating', () => {
+    const onDayClick = vi.fn()
+    render(
+      <MonthView
+        currentDate={mockDate}
+        events={mockEvents}
+        members={mockMembers}
+        onDayClick={onDayClick}
+      />,
+    )
+    fireEvent.click(screen.getByText('Team Standup'))
+    expect(onDayClick).not.toHaveBeenCalled()
+    // Modal shows the event title in a heading
+    expect(screen.getByRole('heading', { name: 'Team Standup' })).toBeInTheDocument()
   })
 
   it('renders empty month when no events', () => {
