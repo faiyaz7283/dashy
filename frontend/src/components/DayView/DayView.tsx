@@ -317,14 +317,6 @@ export function DayView({ currentDate, events, members }: DayViewProps) {
         event={selectedEvent}
         members={members}
         onClose={closeEvent}
-        onEdit={() => {
-          // TODO: Implement event editing
-          closeEvent()
-        }}
-        onDelete={() => {
-          // TODO: Implement event deletion
-          closeEvent()
-        }}
       />
     </div>
   )

@@ -7,6 +7,7 @@
  */
 
 import type { AttendeeStatus, CalendarEvent, FamilyMember } from '../../types'
+import { createPortal } from 'react-dom'
 import { colors, radii, shadows, spacing, zIndices, densityColors } from '../../theme/tokens'
 import { formatRecurrenceRule } from '../../utils/recurrence'
 
@@ -45,10 +46,6 @@ interface EventModalProps {
   members: FamilyMember[]
   /** Callback to close the modal. */
   onClose: () => void
-  /** Callback to edit the event. */
-  onEdit?: () => void
-  /** Callback to delete the event. */
-  onDelete?: () => void
 }
 
 /**
@@ -57,14 +54,7 @@ interface EventModalProps {
  * @param props - Component props.
  * @returns The event modal UI.
  */
-export function EventModal({
-  visible,
-  event,
-  members,
-  onClose,
-  onEdit,
-  onDelete,
-}: EventModalProps) {
+export function EventModal({ visible, event, members, onClose }: EventModalProps) {
   if (!visible || !event) return null
 
   const eventMembers = members.filter((m) => event.members.includes(m.key))
@@ -90,7 +80,9 @@ export function EventModal({
     hour12: true,
   })
 
-  return (
+  // Rendered via portal: escapes the app's scale-to-fit transform so the
+  // overlay covers the full viewport, not just the scaled canvas.
+  return createPortal(
     <div
       style={{
         position: 'fixed',
@@ -382,42 +374,9 @@ export function EventModal({
           >
             Close
           </button>
-          {onEdit && (
-            <button
-              onClick={onEdit}
-              style={{
-                padding: `${spacing.sm}px ${spacing.lg}px`,
-                borderRadius: `${radii.md}px`,
-                fontSize: '13px',
-                fontWeight: 500,
-                cursor: 'pointer',
-                border: 'none',
-                background: colors.primary,
-                color: colors.white,
-              }}
-            >
-              Edit
-            </button>
-          )}
-          {onDelete && (
-            <button
-              onClick={onDelete}
-              style={{
-                padding: `${spacing.sm}px ${spacing.lg}px`,
-                borderRadius: `${radii.md}px`,
-                fontSize: '13px',
-                fontWeight: 500,
-                cursor: 'pointer',
-                border: 'none',
-                background: colors.dangerBg,
-                color: colors.dangerText,
-              }}
-            >
-              Delete
-            </button>
-          )}
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   )
 }
