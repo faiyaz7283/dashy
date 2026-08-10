@@ -4,6 +4,8 @@ import { spacing, radii, typography, memberColors, colors } from '../../theme/to
 interface FamilyPillsProps {
   members: FamilyMember[]
   events: CalendarEvent[]
+  /** Compact mode (narrow viewports): avatar initial + count only, no names. */
+  compact?: boolean
 }
 
 /**
@@ -15,7 +17,7 @@ interface FamilyPillsProps {
  * @param props - Component props.
  * @returns Inline family member pills sized for the header.
  */
-export function FamilyPills({ members, events }: FamilyPillsProps) {
+export function FamilyPills({ members, events, compact = false }: FamilyPillsProps) {
   return (
     <div
       style={{
@@ -60,19 +62,22 @@ export function FamilyPills({ members, events }: FamilyPillsProps) {
                 color: colors.white,
                 backgroundColor: m.color,
               }}
+              title={compact ? m.name : undefined}
             >
               {m.initial}
             </span>
-            <span
-              style={{
-                fontSize: '11px',
-                fontWeight: typography.pillText.weight,
-                color: memberColor.text,
-                whiteSpace: 'nowrap',
-              }}
-            >
-              {m.name}
-            </span>
+            {!compact && (
+              <span
+                style={{
+                  fontSize: '11px',
+                  fontWeight: typography.pillText.weight,
+                  color: memberColor.text,
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                {m.name}
+              </span>
+            )}
             <span
               style={{
                 fontSize: '10px',

@@ -15,7 +15,7 @@
 - **API Services:** Google Calendar + OpenWeatherMap (fall back to mock when credentials missing)
 - **Kiosk:** Chromium auto-starts on boot, displays dashboard with real calendar data
 - **Views:** Day, Week, Month, Year with navigation and auto-refresh
-- **Header:** Auto-collapsing (hides after 3s, shows on mouse near top)
+- **Header:** Auto-hiding (proximity-based), single row, responsive compaction tiers (initials/shorthand labels, then progressive hiding); no logo/hamburger
 - **Backend:** Enhanced with event deduplication, attendees, recurring events, full event details
 - **Frontend:** Unified event architecture — `EventItem` (card/strip/block) + `useEventInteraction` across all views; see `frontend/src/docs/event-architecture-analysis.md`
 - **Event interactions:** Uniform across views — hover event = popup, click event = modal, click day = drill down (year view is navigation-only)
@@ -91,7 +91,8 @@ dashy/
 │   │   │   ├── useCalendarEvents.ts # Calendar events with caching
 │   │   │   ├── useEventInteraction.ts # Unified event popup/modal state
 │   │   │   ├── useUiScale.ts      # Uniform UI scale-up factor for wide monitors
-│   │   │   └── useAutoHideHeader.ts # Auto-hide header on mouse proximity
+│   │   │   ├── useEdgeProximity.ts # Auto-hide chrome on edge proximity (header/sidebar/statusbar)
+│   │   │   └── useViewportWidth.ts # Viewport width for header compaction tiers
 │   │   ├── services/      # API service layer (api.ts with retry + cache)
 │   │   ├── types/         # TypeScript type definitions
 │   │   ├── theme/         # Design tokens (colors, spacing, typography)
@@ -316,16 +317,25 @@ The model:
 
 ## Known Issues & Resolutions
 
-### Auto-Collapsing Header
+### Auto-Hiding Chrome (Header / Sidebar / Status Bar)
 
-**Feature:** Header automatically hides to maximize calendar viewing space.
+**Feature:** All UI chrome auto-hides to maximize calendar viewing space — macOS-Dock style, driven by mouse proximity to screen edges.
 
 **Behavior:**
-- Header visible when mouse is within 60px of top of screen
-- Collapses after 3 seconds when mouse leaves trigger zone
-- Smooth transition (150ms) using maxHeight animation
-- Content smoothly moves up when header collapses
-- Implemented via `useAutoHideHeader` hook
+- Header shows when mouse is within 60px of the top edge; sidebar within 60px of the left edge; status bar within 60px of the bottom edge
+- Each hides 3 seconds after the mouse leaves its trigger zone
+- Content reflows fluidly as each area shows/hides (in-flow layout, no overlays)
+- Implemented via the generalized `useEdgeProximity({ edge })` hook (replaced `useAutoHideHeader`)
+- Sidebar reappears at its last known size state (full/collapsed) — tracked by `useSidebar`; drag handle still switches sizes
+- The status bar's old manual eye-toggle button was removed (proximity replaced it)
+
+**Header compaction tiers (viewport width, via `useViewportWidth`):**
+- `< 1300px`: compact labels — pills show initial+count only, badge count only, view switcher D/W/M/Y, Today→T, date picker auto-width
+- `< 1000px`: family pills hidden (lowest priority)
+- `< 800px`: clock hidden
+- `< 640px`: weather hidden
+- `< 500px`: header date hidden
+- Logo and hamburger button were removed entirely (proximity replaced the hamburger)
 
 ### Header Consolidation
 

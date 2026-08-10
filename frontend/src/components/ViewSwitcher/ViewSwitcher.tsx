@@ -13,6 +13,8 @@ interface ViewSwitcherProps {
   activeView: CalendarView
   /** Callback when a view is selected. */
   onViewChange: (view: CalendarView) => void
+  /** Compact mode (narrow viewports): shorthand labels D/W/M/Y. */
+  compact?: boolean
 }
 
 /** All available views in display order. */
@@ -26,13 +28,21 @@ const viewLabels: Record<CalendarView, string> = {
   year: 'Year',
 }
 
+/** Shorthand labels for compact mode. */
+const viewLabelsCompact: Record<CalendarView, string> = {
+  day: 'D',
+  week: 'W',
+  month: 'M',
+  year: 'Y',
+}
+
 /**
  * ViewSwitcher component.
  *
  * @param props - Component props.
  * @returns The view switcher UI.
  */
-export function ViewSwitcher({ activeView, onViewChange }: ViewSwitcherProps) {
+export function ViewSwitcher({ activeView, onViewChange, compact = false }: ViewSwitcherProps) {
   return (
     <div
       style={{
@@ -49,9 +59,10 @@ export function ViewSwitcher({ activeView, onViewChange }: ViewSwitcherProps) {
           <button
             key={view}
             onClick={() => onViewChange(view)}
+            title={viewLabels[view]}
             style={{
-              width: `${layout.viewBtnWidth}px`,
-              padding: `${spacing.sm}px 0`,
+              width: compact ? 'auto' : `${layout.viewBtnWidth}px`,
+              padding: compact ? `${spacing.sm}px 10px` : `${spacing.sm}px 0`,
               fontSize: `${isActive ? typography.viewBtnActive.size : typography.viewBtn.size}px`,
               fontWeight: isActive ? typography.viewBtnActive.weight : typography.viewBtn.weight,
               color: isActive ? colors.primary : colors.textMuted,
@@ -64,7 +75,7 @@ export function ViewSwitcher({ activeView, onViewChange }: ViewSwitcherProps) {
               boxShadow: isActive ? shadows.viewBtnActive : 'none',
             }}
           >
-            {viewLabels[view]}
+            {compact ? viewLabelsCompact[view] : viewLabels[view]}
           </button>
         )
       })}

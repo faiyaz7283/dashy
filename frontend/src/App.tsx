@@ -17,7 +17,8 @@ import { useOrientation } from './hooks/useOrientation'
 import { useSidebar } from './hooks/useSidebar'
 import { useCalendarEvents } from './hooks/useCalendarEvents'
 import { useApi } from './hooks/useApi'
-import { useAutoHideHeader } from './hooks/useAutoHideHeader'
+import { useEdgeProximity } from './hooks/useEdgeProximity'
+import { useViewportWidth } from './hooks/useViewportWidth'
 import { useUiScale } from './hooks/useUiScale'
 import { getWeather, getFamilyMembers, waitForBackend } from './services/api'
 import { colors, spacing, layout } from './theme/tokens'
@@ -39,14 +40,23 @@ export function App() {
   const [currentDate, setCurrentDate] = useState<Date>(() => new Date())
 
   const orientation = useOrientation()
-  const {
-    state: sidebarState,
-    setState: setSidebarState,
-    open: openSidebar,
-  } = useSidebar(orientation)
 
-  // Auto-hide header when mouse is away from top of screen
-  const headerVisible = useAutoHideHeader({ triggerZone: 60, hideDelay: 3000 })
+  // Auto-hide chrome when the mouse is away from its screen edge
+  // (macOS-Dock style: header top, sidebar left, status bar bottom)
+  const headerVisible = useEdgeProximity({ edge: 'top', triggerZone: 60, hideDelay: 3000 })
+  const sidebarVisible = useEdgeProximity({ edge: 'left', triggerZone: 60, hideDelay: 3000 })
+  const statusBarVisible = useEdgeProximity({ edge: 'bottom', triggerZone: 60, hideDelay: 3000 })
+
+  const { state: sidebarState, setState: setSidebarState } = useSidebar(orientation, sidebarVisible)
+
+  // Responsive header tiers by viewport width:
+  // compact labels < 1300, then items drop in priority order as it narrows
+  const vw = useViewportWidth()
+  const headerCompact = vw < 1300
+  const showPills = vw >= 1000
+  const showClock = vw >= 800
+  const showWeather = vw >= 640
+  const showDate = vw >= 500
 
   // Uniform UI scale for wide/high-resolution monitors (1 on 1080p-class displays)
   const uiScale = useUiScale()
@@ -207,6 +217,7 @@ export function App() {
         return {
           density,
           label: `${dayEvents.length} event${dayEvents.length !== 1 ? 's' : ''}`,
+          shortLabel: String(dayEvents.length),
         }
       }
       case 'week': {
@@ -221,6 +232,7 @@ export function App() {
         return {
           density,
           label: `${weekEvents.length} events`,
+          shortLabel: String(weekEvents.length),
         }
       }
       case 'month': {
@@ -234,6 +246,7 @@ export function App() {
         return {
           density,
           label: `${monthEvents.length} events`,
+          shortLabel: String(monthEvents.length),
         }
       }
       case 'year': {
@@ -245,6 +258,7 @@ export function App() {
         return {
           density,
           label: `${yearEvents.length} events`,
+          shortLabel: String(yearEvents.length),
         }
       }
     }
@@ -334,22 +348,32 @@ export function App() {
         header={
           <Header
             weather={weather.current}
-            sidebarState={sidebarState}
-            onOpenSidebar={openSidebar}
             currentDate={currentDate}
-            orientation={orientation}
+            showDate={showDate}
+            showClock={showClock}
+            showWeather={showWeather}
           >
-            <FamilyPills members={familyMembers} events={events} />
-            <DensityBadge density={densityInfo.density} label={densityInfo.label} />
+            {showPills && (
+              <FamilyPills members={familyMembers} events={events} compact={headerCompact} />
+            )}
+            <DensityBadge
+              density={densityInfo.density}
+              label={headerCompact ? densityInfo.shortLabel : densityInfo.label}
+            />
             <div
               style={{ width: '1px', height: '24px', background: colors.border, margin: '0 4px' }}
             />
-            <ViewSwitcher activeView={currentView} onViewChange={setCurrentView} />
+            <ViewSwitcher
+              activeView={currentView}
+              onViewChange={setCurrentView}
+              compact={headerCompact}
+            />
             <div
               style={{ width: '1px', height: '24px', background: colors.border, margin: '0 4px' }}
             />
             <button
               onClick={navigateToday}
+              title="Today"
               style={{
                 padding: '6px 16px',
                 fontSize: '13px',
@@ -362,7 +386,7 @@ export function App() {
                 transition: 'all 0.15s',
               }}
             >
-              Today
+              {headerCompact ? 'T' : 'Today'}
             </button>
             <div
               style={{ width: '1px', height: '24px', background: colors.border, margin: '0 4px' }}
@@ -371,6 +395,7 @@ export function App() {
               currentDate={currentDate}
               currentView={currentView}
               onDateChange={setCurrentDate}
+              compact={headerCompact}
             />
           </Header>
         }
@@ -388,6 +413,7 @@ export function App() {
       <StatusBar
         calendarLastRefresh={calendarLastRefresh}
         weatherLastRefresh={weatherLastRefresh}
+        visible={statusBarVisible}
       />
     </div>
   )
