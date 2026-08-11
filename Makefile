@@ -328,7 +328,7 @@ fi; \
 		echo "🚀 Starting all containers..."; \
 		ssh $(PI_HOST) "cd $(PI_DIR) && docker compose -f compose/docker-compose.prod.yml up -d"; \
 		echo "🔄 Restarting Chromium kiosk..."; \
-		ssh $(PI_HOST) "sudo systemctl restart lightdm"; \
+		ssh $(PI_HOST) "pkill -9 chromium; sleep 2; sudo systemctl restart lightdm"; \
 	else \
 		if [ -n "$$FRONTEND_CHANGED" ]; then \
 			echo "🔨 Rebuilding frontend..."; \
@@ -336,7 +336,7 @@ fi; \
 			echo "🚀 Restarting frontend..."; \
 			ssh $(PI_HOST) "cd $(PI_DIR) && docker compose -f compose/docker-compose.prod.yml up -d frontend"; \
 			echo "🔄 Restarting Chromium kiosk..."; \
-			ssh $(PI_HOST) "sudo systemctl restart lightdm"; \
+			ssh $(PI_HOST) "pkill -9 chromium; sleep 2; sudo systemctl restart lightdm"; \
 		fi; \
 		if [ -n "$$BACKEND_CHANGED" ]; then \
 			echo "🔨 Rebuilding backend..."; \
