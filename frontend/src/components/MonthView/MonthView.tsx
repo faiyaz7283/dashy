@@ -7,14 +7,17 @@
  * day cell navigates to day view.
  */
 
-import type { CalendarEvent, FamilyMember } from '../../types'
+import type { CalendarEvent, DailyForecast, FamilyMember } from '../../types'
 import { colors, spacing, radii, typography, densityBarColors } from '../../theme/tokens'
 import { isSameDay } from '../../utils/dateFormat'
 import { getRelativeDensity } from '../../utils/density'
 import { EventItem } from '../EventItem'
 import { EventPopup } from '../EventPopup'
 import { EventModal } from '../EventModal'
+import { WeatherIcon } from '../WeatherWidget/WeatherIcon'
+import { WeatherTooltip } from '../WeatherTooltip'
 import { useEventInteraction } from '../../hooks/useEventInteraction'
+import { useWeatherTooltip } from '../../hooks/useWeatherTooltip'
 
 interface MonthViewProps {
   /** The current month to display. */
@@ -25,6 +28,8 @@ interface MonthViewProps {
   members: FamilyMember[]
   /** Callback when a day is clicked. */
   onDayClick: (date: Date) => void
+  /** Weather forecast data. */
+  weatherForecast?: DailyForecast[]
 }
 
 /**
@@ -72,12 +77,31 @@ function getEventsForDate(events: CalendarEvent[], date: Date): CalendarEvent[] 
 }
 
 /**
+ * Gets weather forecast for a specific date.
+ * Uses UTC date components to match backend's UTC-based date formatting.
+ */
+function getWeatherForDate(
+  forecast: DailyForecast[] | undefined,
+  date: Date,
+): DailyForecast | undefined {
+  if (!forecast) return undefined
+  const dateStr = `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, '0')}-${String(date.getUTCDate()).padStart(2, '0')}`
+  return forecast.find((f) => f.date === dateStr)
+}
+
+/**
  * MonthView component.
  *
  * @param props - Component props.
  * @returns The month view UI.
  */
-export function MonthView({ currentDate, events, members, onDayClick }: MonthViewProps) {
+export function MonthView({
+  currentDate,
+  events,
+  members,
+  onDayClick,
+  weatherForecast,
+}: MonthViewProps) {
   const {
     popupState,
     selectedEvent,
@@ -87,6 +111,8 @@ export function MonthView({ currentDate, events, members, onDayClick }: MonthVie
     openEvent,
     closeEvent,
   } = useEventInteraction(events)
+
+  const { tooltipState, showTooltip, hideTooltip } = useWeatherTooltip()
 
   const year = currentDate.getFullYear()
   const month = currentDate.getMonth()
@@ -187,6 +213,7 @@ export function MonthView({ currentDate, events, members, onDayClick }: MonthVie
             const isCurrentMonth = date.getMonth() === month
             const isToday = isSameDay(date, today)
             const dayEvents = getEventsForDate(events, date)
+            const dayWeather = getWeatherForDate(weatherForecast, date)
             const isHovered = popupState.date && isSameDay(popupState.date, date)
 
             return (
@@ -213,49 +240,89 @@ export function MonthView({ currentDate, events, members, onDayClick }: MonthVie
                         : '#fafafa',
                 }}
               >
-                {/* Date number */}
+                {/* Top row: date number (left), weather (center), event count (right) */}
                 <div
                   style={{
-                    fontSize: `${typography.monthCellDate.size}px`,
-                    fontWeight: typography.monthCellDate.weight,
-                    color: isCurrentMonth ? colors.textSecondary : colors.textDisabled,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
                     marginBottom: '6px',
-                    ...(isToday
-                      ? {
-                          background: colors.primary,
-                          color: colors.white,
-                          width: '28px',
-                          height: '28px',
-                          borderRadius: '50%',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          fontWeight: 700,
-                        }
-                      : {}),
+                    position: 'relative',
                   }}
                 >
-                  {date.getDate()}
-                </div>
-
-                {/* Event count badge */}
-                {dayEvents.length > 0 && (
+                  {/* Left: date number */}
                   <div
                     style={{
-                      position: 'absolute',
-                      top: '8px',
-                      right: '8px',
-                      background: isToday ? colors.primaryLight : colors.bgHover,
-                      color: isToday ? colors.primary : colors.textMuted,
-                      fontSize: '10px',
-                      fontWeight: 600,
-                      padding: '2px 6px',
-                      borderRadius: '999px',
+                      fontSize: `${typography.monthCellDate.size}px`,
+                      fontWeight: typography.monthCellDate.weight,
+                      color: isCurrentMonth ? colors.textSecondary : colors.textDisabled,
+                      ...(isToday
+                        ? {
+                            background: colors.primary,
+                            color: colors.white,
+                            width: '28px',
+                            height: '28px',
+                            borderRadius: '50%',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            fontWeight: 700,
+                          }
+                        : {}),
                     }}
                   >
-                    {dayEvents.length}
+                    {date.getDate()}
                   </div>
-                )}
+
+                  {/* Center: weather - absolutely positioned for true center */}
+                  {dayWeather && isCurrentMonth && (
+                    <div
+                      onMouseEnter={(e) => showTooltip(dayWeather, e.clientX, e.clientY)}
+                      onMouseLeave={hideTooltip}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '3px',
+                        cursor: 'pointer',
+                        padding: '2px 4px',
+                        borderRadius: '4px',
+                        transition: 'background 0.15s',
+                        fontSize: '10px',
+                        position: 'absolute',
+                        left: '50%',
+                        transform: 'translateX(-50%)',
+                      }}
+                      onMouseOver={(e) => {
+                        e.currentTarget.style.background = 'rgba(0,0,0,0.05)'
+                      }}
+                      onMouseOut={(e) => {
+                        e.currentTarget.style.background = 'transparent'
+                      }}
+                    >
+                      <WeatherIcon condition={dayWeather.icon} size="small" />
+                      <span style={{ color: colors.textSecondary, fontWeight: 500 }}>
+                        {Math.round(dayWeather.high)}°
+                      </span>
+                      <span style={{ color: colors.textMuted }}>{Math.round(dayWeather.low)}°</span>
+                    </div>
+                  )}
+
+                  {/* Right: event count badge */}
+                  {dayEvents.length > 0 && (
+                    <div
+                      style={{
+                        background: isToday ? colors.primaryLight : colors.bgHover,
+                        color: isToday ? colors.primary : colors.textMuted,
+                        fontSize: '10px',
+                        fontWeight: 600,
+                        padding: '2px 6px',
+                        borderRadius: '999px',
+                      }}
+                    >
+                      {dayEvents.length}
+                    </div>
+                  )}
+                </div>
 
                 {/* Inline event list */}
                 {dayEvents.length > 0 && (
@@ -314,6 +381,14 @@ export function MonthView({ currentDate, events, members, onDayClick }: MonthVie
         event={selectedEvent}
         members={members}
         onClose={closeEvent}
+      />
+
+      {/* Weather tooltip */}
+      <WeatherTooltip
+        forecast={tooltipState.forecast}
+        visible={tooltipState.visible}
+        x={tooltipState.x}
+        y={tooltipState.y}
       />
     </div>
   )

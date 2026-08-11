@@ -49,17 +49,66 @@ export interface WeatherCurrent {
   icon: string
   humidity: number
   wind_speed: number
+  wind_gust?: number | null
+  wind_deg?: number | null
+  pressure?: number | null
+  dew_point?: number | null
+  uvi?: number | null
+  sunrise?: string | null // HH:MM format
+  sunset?: string | null // HH:MM format
 }
 
-export interface WeatherForecast {
+export interface HourlyForecast {
+  time: string // ISO datetime
+  temperature: number
+  feels_like: number
+  condition: string
+  icon: string
+  humidity: number
+  wind_speed: number
+  pop: number // probability of precipitation (0-1)
+  pressure?: number | null
+  dew_point?: number | null
+  uvi?: number | null
+}
+
+export interface DailyForecast {
   date: string
   high: number
   low: number
   condition: string
   icon: string
+
+  // Rich fields (days 1-7 from One Call API)
+  feels_like_day?: number | null
+  feels_like_night?: number | null
+  temp_morn?: number | null
+  temp_day?: number | null
+  temp_eve?: number | null
+  temp_night?: number | null
+  humidity?: number | null
+  pressure?: number | null
+  dew_point?: number | null
+  wind_speed?: number | null
+  wind_gust?: number | null
+  wind_deg?: number | null
+  uvi?: number | null
+  pop?: number | null // probability of precipitation (0-1)
+  rain?: number | null // mm
+  snow?: number | null // mm
+  clouds?: number | null // percentage
+  sunrise?: string | null // HH:MM format
+  sunset?: string | null // HH:MM format
+  moonrise?: string | null // HH:MM format
+  moonset?: string | null // HH:MM format
+  moon_phase?: number | null // 0-1
+  summary?: string | null
+
+  // Hourly breakdown (days 1-7 only)
+  hourly?: HourlyForecast[]
 }
 
 export interface WeatherResponse {
   current: WeatherCurrent
-  forecast: WeatherForecast[]
+  forecast: DailyForecast[]
 }

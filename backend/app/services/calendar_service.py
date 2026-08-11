@@ -65,9 +65,7 @@ def _get_member_color(member_key: str, family_members: dict) -> str:
     return DEFAULT_GUEST_COLOR
 
 
-def _parse_attendees(
-    gcal_event: dict, family_members: dict
-) -> tuple[list[Attendee], str | None]:
+def _parse_attendees(gcal_event: dict, family_members: dict) -> tuple[list[Attendee], str | None]:
     """
     Extract attendee information from Google Calendar event.
 
@@ -198,10 +196,7 @@ def _fetch_cancelled_instances(
 
         for event in events_result.get("items", []):
             # Cancelled instances have status="cancelled" and recurringEventId
-            if (
-                event.get("status") == "cancelled"
-                and event.get("recurringEventId")
-            ):
+            if event.get("status") == "cancelled" and event.get("recurringEventId"):
                 cancelled_ids.add(event.get("id", ""))
 
     except HttpError as e:
@@ -347,15 +342,11 @@ def _deduplicate_events(events: list[CalendarEvent]) -> list[CalendarEvent]:
                     all_attendees_dict[attendee.email] = attendee
 
             # Find the best description/location (prefer non-null)
-            description = next(
-                (e.description for e in event_group if e.description), None
-            )
+            description = next((e.description for e in event_group if e.description), None)
             location = next((e.location for e in event_group if e.location), None)
 
             # Find organizer (prefer non-null)
-            organizer = next(
-                (e.organizer for e in event_group if e.organizer), None
-            )
+            organizer = next((e.organizer for e in event_group if e.organizer), None)
 
             # Create merged event
             merged_event = CalendarEvent(
@@ -450,9 +441,7 @@ def get_calendar_events(start_date: str | None = None, end_date: str | None = No
                 )
 
                 for event in events_result.get("items", []):
-                    parsed_event = _parse_event(
-                        event, member.key, family_members, recurring_rules
-                    )
+                    parsed_event = _parse_event(event, member.key, family_members, recurring_rules)
                     if parsed_event:  # Skip cancelled events
                         all_events.append(parsed_event)
 

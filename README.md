@@ -16,6 +16,7 @@ A DIY family command center dashboard inspired by [Skylight Calendar](https://my
 - **API Services:** Google Calendar + OpenWeatherMap (falls back to mock data when credentials are missing)
 - **Kiosk:** Chromium auto-starts on boot, displays the dashboard with real calendar data
 - **Views:** Day, Week, Month, Year with navigation and auto-refresh
+- **Weather integration:** Current conditions and forecasts displayed across all views with detailed hover tooltips
 - **Header:** Auto-hiding (proximity-based), single row, responsive compaction tiers; no logo/hamburger
 - **Backend:** Enhanced with event deduplication, attendees, recurring events, full event details
 - **Frontend:** Unified event architecture — `EventItem` (card/strip/block) + `useEventInteraction` across all views; see `frontend/src/docs/event-architecture-analysis.md`
@@ -206,8 +207,11 @@ Children (Arya, 8 and Raya, 4) are not in v1 calendar scope but the system suppo
 
 ### Weather
 
-- **Location:** Levittown, NY 11756 (lat: 40.7259, lon: -73.5143)
+- **Location:** Levittown, NY 11756 (lat: 40.715401, lon: -73.512924)
 - **API:** OpenWeatherMap (free tier, 1000 calls/day)
+- **Unit conversion:** Supports metric (Celsius) and imperial (Fahrenheit) via `?units=` query parameter (default: imperial). Backend always fetches Celsius from OpenWeatherMap and converts based on request.
+- **Integration:** Weather displays across all calendar views (Day, Week, Month) with hover tooltips showing detailed forecasts including hourly temperature charts.
+- **Test coverage:** 8 backend tests for unit conversion, 7 frontend tests for WeatherTooltip component.
 
 ---
 

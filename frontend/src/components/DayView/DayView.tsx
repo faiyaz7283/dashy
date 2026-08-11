@@ -7,14 +7,17 @@
  */
 
 import { useState, useEffect, useRef } from 'react'
-import type { CalendarEvent, FamilyMember } from '../../types'
+import type { CalendarEvent, DailyForecast, FamilyMember } from '../../types'
 import { colors, spacing, radii, typography, layout, zIndices } from '../../theme/tokens'
 import { themeConfig } from '../../theme/config'
 import { isSameDay } from '../../utils/dateFormat'
 import { EventItem } from '../EventItem'
 import { EventPopup } from '../EventPopup'
 import { EventModal } from '../EventModal'
+import { WeatherIcon } from '../WeatherWidget/WeatherIcon'
+import { WeatherTooltip } from '../WeatherTooltip'
 import { useEventInteraction } from '../../hooks/useEventInteraction'
+import { useWeatherTooltip } from '../../hooks/useWeatherTooltip'
 
 interface DayViewProps {
   /** The date to display. */
@@ -23,6 +26,8 @@ interface DayViewProps {
   events: CalendarEvent[]
   /** Family members for resolving member info. */
   members: FamilyMember[]
+  /** Weather forecast data. */
+  weatherForecast?: DailyForecast[]
 }
 
 /**
@@ -37,6 +42,19 @@ function getTimedEvents(events: CalendarEvent[], date: Date): CalendarEvent[] {
  */
 function getEventsForDate(events: CalendarEvent[], date: Date): CalendarEvent[] {
   return events.filter((e) => isSameDay(new Date(e.start), date))
+}
+
+/**
+ * Gets weather forecast for a specific date.
+ * Uses UTC date components to match backend's UTC-based date formatting.
+ */
+function getWeatherForDate(
+  forecast: DailyForecast[] | undefined,
+  date: Date,
+): DailyForecast | undefined {
+  if (!forecast) return undefined
+  const dateStr = `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, '0')}-${String(date.getUTCDate()).padStart(2, '0')}`
+  return forecast.find((f) => f.date === dateStr)
 }
 
 /**
@@ -70,7 +88,7 @@ function getEventHeightPx(event: CalendarEvent): number {
  * @param props - Component props.
  * @returns The day view UI.
  */
-export function DayView({ currentDate, events, members }: DayViewProps) {
+export function DayView({ currentDate, events, members, weatherForecast }: DayViewProps) {
   const {
     popupState,
     selectedEvent,
@@ -80,6 +98,7 @@ export function DayView({ currentDate, events, members }: DayViewProps) {
     openEvent,
     closeEvent,
   } = useEventInteraction(events)
+  const { tooltipState, showTooltip, hideTooltip } = useWeatherTooltip()
   const [currentTimeTop, setCurrentTimeTop] = useState<number>(0)
   const timelineRef = useRef<HTMLDivElement>(null)
 
@@ -87,6 +106,7 @@ export function DayView({ currentDate, events, members }: DayViewProps) {
   const isToday = isSameDay(currentDate, today)
   const allDayEvents = events.filter((e) => isSameDay(new Date(e.start), currentDate) && e.all_day)
   const timedEvents = getTimedEvents(events, currentDate)
+  const dayWeather = getWeatherForDate(weatherForecast, currentDate)
 
   const { timelineStartHour, timelineEndHour, timelineScrollOffset } = themeConfig.calendar
   const hours = Array.from(
@@ -141,48 +161,110 @@ export function DayView({ currentDate, events, members }: DayViewProps) {
           overflowX: 'hidden',
         }}
       >
-        {/* All-day events section - sticky at top of scrollable timeline */}
-        {allDayEvents.length > 0 && (
+        {/* Sticky pinned area: weather + all-day events */}
+        {(dayWeather || allDayEvents.length > 0) && (
           <div
             style={{
-              background: colors.bg,
-              borderTop: `1px solid ${colors.border}`,
-              borderBottom: `1px solid ${colors.border}`,
-              padding: `${spacing.sm}px ${spacing.xl}px`,
               position: 'sticky',
               top: 0,
               zIndex: zIndices.stickyArea + 1,
-              marginBottom: `${spacing.lg}px`,
+              background: colors.bg,
+              marginBottom: `${spacing.md}px`,
             }}
           >
-            <div
-              style={{
-                fontSize: `${typography.allDayLabel.size}px`,
-                fontWeight: typography.allDayLabel.weight,
-                color: colors.textFaint,
-                textTransform: 'uppercase',
-                letterSpacing: '0.5px',
-                marginBottom: '6px',
-              }}
-            >
-              All-day
-            </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-              {allDayEvents.map((event) => (
-                <EventItem
-                  key={event.id}
-                  event={event}
-                  members={members}
-                  variant="card"
-                  size="sm"
-                  showTime={false}
-                  onClick={openEvent}
-                  onMouseEnter={(e) => handleDayMouseEnter(e, currentDate)}
-                  onMouseMove={handleMouseMove}
-                  onMouseLeave={handleMouseLeave}
-                />
-              ))}
-            </div>
+            {/* Weather section - single row */}
+            {dayWeather && (
+              <div
+                style={{
+                  borderBottom:
+                    allDayEvents.length > 0
+                      ? `1px solid ${colors.borderLight}`
+                      : `1px solid ${colors.border}`,
+                  padding: `${spacing.sm}px ${spacing.xl}px`,
+                }}
+              >
+                <div
+                  onMouseEnter={(e) => showTooltip(dayWeather, e.clientX, e.clientY)}
+                  onMouseLeave={hideTooltip}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: spacing.md,
+                    cursor: 'pointer',
+                    padding: `${spacing.xs}px ${spacing.sm}px`,
+                    borderRadius: `${radii.lg}px`,
+                    transition: 'background 0.15s',
+                  }}
+                  onMouseOver={(e) => {
+                    e.currentTarget.style.background = colors.bgHover
+                  }}
+                  onMouseOut={(e) => {
+                    e.currentTarget.style.background = 'transparent'
+                  }}
+                >
+                  <WeatherIcon condition={dayWeather.icon} size="medium" />
+                  <span style={{ fontSize: '18px', fontWeight: 600, color: colors.textPrimary }}>
+                    {Math.round(dayWeather.high)}°
+                  </span>
+                  <span style={{ fontSize: '14px', color: colors.textMuted }}>
+                    {Math.round(dayWeather.low)}°
+                  </span>
+                  <span style={{ fontSize: '13px', color: colors.textSecondary }}>
+                    {dayWeather.condition}
+                  </span>
+                  {dayWeather.humidity != null && (
+                    <span style={{ fontSize: '12px', color: colors.textMuted }}>
+                      💧 {dayWeather.humidity}%
+                    </span>
+                  )}
+                  {dayWeather.wind_speed != null && (
+                    <span style={{ fontSize: '12px', color: colors.textMuted }}>
+                      💨 {Math.round(dayWeather.wind_speed)} mph
+                    </span>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* All-day events section */}
+            {allDayEvents.length > 0 && (
+              <div
+                style={{
+                  padding: `${spacing.sm}px ${spacing.xl}px`,
+                  borderTop: dayWeather ? 'none' : `1px solid ${colors.border}`,
+                  borderBottom: `1px solid ${colors.border}`,
+                }}
+              >
+                <div
+                  style={{
+                    fontSize: `${typography.allDayLabel.size}px`,
+                    fontWeight: typography.allDayLabel.weight,
+                    color: colors.textFaint,
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.5px',
+                    marginBottom: '6px',
+                  }}
+                >
+                  All-day
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                  {allDayEvents.map((event) => (
+                    <EventItem
+                      key={event.id}
+                      event={event}
+                      members={members}
+                      variant="card"
+                      size="sm"
+                      showTime={false}
+                      onClick={openEvent}
+                      onMouseEnter={(e) => handleDayMouseEnter(e, currentDate)}
+                      onMouseMove={handleMouseMove}
+                      onMouseLeave={handleMouseLeave}
+                    />
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         )}
         <div
@@ -317,6 +399,14 @@ export function DayView({ currentDate, events, members }: DayViewProps) {
         event={selectedEvent}
         members={members}
         onClose={closeEvent}
+      />
+
+      {/* Weather tooltip */}
+      <WeatherTooltip
+        forecast={tooltipState.forecast}
+        visible={tooltipState.visible}
+        x={tooltipState.x}
+        y={tooltipState.y}
       />
     </div>
   )

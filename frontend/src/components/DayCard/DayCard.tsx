@@ -1,8 +1,11 @@
-import type { CalendarEvent, FamilyMember } from '../../types'
+import type { CalendarEvent, DailyForecast, FamilyMember } from '../../types'
 import type { DensityLevel } from '../../theme/config'
 import { EventItem } from '../EventItem'
+import { WeatherIcon } from '../WeatherWidget/WeatherIcon'
 import { colors, radii, spacing, typography, densityBarColors } from '../../theme/tokens'
 import { getShortWeekday } from '../../utils/dateFormat'
+import { useWeatherTooltip } from '../../hooks/useWeatherTooltip'
+import { WeatherTooltip } from '../WeatherTooltip'
 
 interface DayCardProps {
   date: Date
@@ -14,6 +17,8 @@ interface DayCardProps {
   nextWeekEnd?: Date
   /** Density level for the density bar indicator. */
   density?: DensityLevel
+  /** Weather forecast for this day. */
+  weatherForecast?: DailyForecast
   /** Callback when the card is clicked. */
   onClick?: () => void
   /** Callback when an event is clicked (opens the event modal). */
@@ -32,6 +37,7 @@ export function DayCard({
   isNextWeek,
   nextWeekEnd,
   density = 'none',
+  weatherForecast,
   onClick,
   onEventClick,
   onEventMouseEnter,
@@ -41,6 +47,7 @@ export function DayCard({
   const dayName = getShortWeekday(date)
   const dayNum = date.getDate()
   const eventCount = events.length
+  const { tooltipState, showTooltip, hideTooltip } = useWeatherTooltip()
 
   // Format date range for next week card
   const formatNextWeekRange = () => {
@@ -81,15 +88,17 @@ export function DayCard({
         e.currentTarget.style.transform = 'none'
       }}
     >
-      {/* Day header: single line with day name, number, and event count badge */}
+      {/* Day header: day name/number on left, weather centered, event count on right */}
       <div
         style={{
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
           marginBottom: `${spacing.md}px`,
+          position: 'relative',
         }}
       >
+        {/* Left: day name and number */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
           {!isNextWeek && (
             <span
@@ -134,7 +143,40 @@ export function DayCard({
             </span>
           )}
         </div>
-        {/* Event count badge */}
+        {/* Center: weather */}
+        {!isNextWeek && weatherForecast && (
+          <div
+            onMouseEnter={(e) => showTooltip(weatherForecast, e.clientX, e.clientY)}
+            onMouseLeave={hideTooltip}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '4px',
+              cursor: 'pointer',
+              padding: '2px 6px',
+              borderRadius: '6px',
+              transition: 'background 0.15s',
+              position: 'absolute',
+              left: '50%',
+              transform: 'translateX(-50%)',
+            }}
+            onMouseOver={(e) => {
+              e.currentTarget.style.background = colors.bgHover
+            }}
+            onMouseOut={(e) => {
+              e.currentTarget.style.background = 'transparent'
+            }}
+          >
+            <WeatherIcon condition={weatherForecast.icon} className="" />
+            <span style={{ fontSize: '12px', fontWeight: 500, color: colors.textSecondary }}>
+              {Math.round(weatherForecast.high)}°
+            </span>
+            <span style={{ fontSize: '11px', color: colors.textMuted }}>
+              {Math.round(weatherForecast.low)}°
+            </span>
+          </div>
+        )}
+        {/* Right: event count badge */}
         {!isNextWeek && (
           <span
             style={{
@@ -178,6 +220,14 @@ export function DayCard({
           />
         ))}
       </div>
+
+      {/* Weather tooltip */}
+      <WeatherTooltip
+        forecast={tooltipState.forecast}
+        visible={tooltipState.visible}
+        x={tooltipState.x}
+        y={tooltipState.y}
+      />
     </div>
   )
 }

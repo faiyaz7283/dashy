@@ -21,8 +21,8 @@ class Settings(BaseSettings):
 
     # OpenWeatherMap
     OPENWEATHERMAP_API_KEY: str
-    OPENWEATHERMAP_LAT: float = 40.7259
-    OPENWEATHERMAP_LON: float = -73.5143
+    OPENWEATHERMAP_LAT: float = 40.715401
+    OPENWEATHERMAP_LON: float = -73.512924
 
     # Family
     FAMILY_MEMBERS: str

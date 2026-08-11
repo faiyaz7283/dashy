@@ -298,7 +298,14 @@ export function App() {
   const renderView = () => {
     switch (currentView) {
       case 'day':
-        return <DayView currentDate={currentDate} events={events} members={familyMembers} />
+        return (
+          <DayView
+            currentDate={currentDate}
+            events={events}
+            members={familyMembers}
+            weatherForecast={weather?.forecast || []}
+          />
+        )
       case 'week':
         return (
           <WeekGrid
@@ -307,6 +314,7 @@ export function App() {
             orientation={orientation}
             currentDate={currentDate}
             onDayClick={handleDayClick}
+            weatherForecast={weather?.forecast || []}
           />
         )
       case 'month':
@@ -316,6 +324,7 @@ export function App() {
             events={events}
             members={familyMembers}
             onDayClick={handleDayClick}
+            weatherForecast={weather?.forecast || []}
           />
         )
       case 'year':

@@ -1,4 +1,4 @@
-import type { CalendarEvent, FamilyMember } from '../../types'
+import type { CalendarEvent, DailyForecast, FamilyMember } from '../../types'
 import { DayCard } from '../DayCard'
 import { EventPopup } from '../EventPopup'
 import { EventModal } from '../EventModal'
@@ -16,6 +16,8 @@ interface WeekGridProps {
   currentDate: Date
   /** Callback when a day card is clicked. */
   onDayClick?: (date: Date) => void
+  /** Weather forecast data for the next 16 days. */
+  weatherForecast?: DailyForecast[]
 }
 
 function getEventsForDay(events: CalendarEvent[], date: Date): CalendarEvent[] {
@@ -25,7 +27,24 @@ function getEventsForDay(events: CalendarEvent[], date: Date): CalendarEvent[] {
   })
 }
 
-export function WeekGrid({ events, members, orientation, currentDate, onDayClick }: WeekGridProps) {
+function getWeatherForDay(
+  forecast: DailyForecast[] | undefined,
+  date: Date,
+): DailyForecast | undefined {
+  if (!forecast) return undefined
+  // Use UTC date components to match backend's UTC-based date formatting
+  const dateStr = `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, '0')}-${String(date.getUTCDate()).padStart(2, '0')}`
+  return forecast.find((f) => f.date === dateStr)
+}
+
+export function WeekGrid({
+  events,
+  members,
+  orientation,
+  currentDate,
+  onDayClick,
+  weatherForecast,
+}: WeekGridProps) {
   const {
     popupState,
     selectedEvent,
@@ -76,6 +95,7 @@ export function WeekGrid({ events, members, orientation, currentDate, onDayClick
             onEventMouseEnter={handleDayMouseEnter}
             onEventMouseMove={handleMouseMove}
             onEventMouseLeave={handleMouseLeave}
+            weatherForecast={getWeatherForDay(weatherForecast, date)}
           />
         ))}
         <DayCard

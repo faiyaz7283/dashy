@@ -1,6 +1,7 @@
 interface WeatherIconProps {
   condition: string
   className?: string
+  size?: 'small' | 'medium' | 'large'
 }
 
 /**
@@ -10,12 +11,21 @@ interface WeatherIconProps {
  *
  * @param {string} condition - Weather condition (sunny, cloudy, rainy, partly-cloudy, snowy)
  * @param {string} [className] - Optional CSS classes for sizing/styling
+ * @param {string} [size] - Icon size: 'small' (16px), 'medium' (20px), 'large' (32px)
  */
-export function WeatherIcon({ condition, className = 'w-5 h-5' }: WeatherIconProps) {
+export function WeatherIcon({ condition, className = 'w-5 h-5', size }: WeatherIconProps) {
+  const sizeMap = {
+    small: { width: 16, height: 16 },
+    medium: { width: 20, height: 20 },
+    large: { width: 32, height: 32 },
+  }
+  const dimensions = size ? sizeMap[size] : null
+  const style = dimensions ? { width: dimensions.width, height: dimensions.height } : undefined
+
   switch (condition) {
     case 'sunny':
       return (
-        <svg className={className} viewBox="0 0 24 24" fill="none" aria-label="Sunny">
+        <svg className={className} style={style} viewBox="0 0 24 24" fill="none" aria-label="Sunny">
           <circle cx="12" cy="12" r="4" fill="#FBBF24" />
           <g stroke="#FBBF24" strokeWidth="2" strokeLinecap="round">
             <line x1="12" y1="2" x2="12" y2="4" />
@@ -32,7 +42,13 @@ export function WeatherIcon({ condition, className = 'w-5 h-5' }: WeatherIconPro
 
     case 'cloudy':
       return (
-        <svg className={className} viewBox="0 0 24 24" fill="none" aria-label="Cloudy">
+        <svg
+          className={className}
+          style={style}
+          viewBox="0 0 24 24"
+          fill="none"
+          aria-label="Cloudy"
+        >
           <path
             d="M6 19a4 4 0 0 1-.88-7.9A5.5 5.5 0 0 1 16.08 8 4.5 4.5 0 0 1 18 17H6z"
             fill="#94A3B8"
@@ -42,7 +58,7 @@ export function WeatherIcon({ condition, className = 'w-5 h-5' }: WeatherIconPro
 
     case 'rainy':
       return (
-        <svg className={className} viewBox="0 0 24 24" fill="none" aria-label="Rainy">
+        <svg className={className} style={style} viewBox="0 0 24 24" fill="none" aria-label="Rainy">
           <path
             d="M6 14a4 4 0 0 1-.88-7.9A5.5 5.5 0 0 1 16.08 3 4.5 4.5 0 0 1 18 12H6z"
             fill="#94A3B8"
@@ -57,7 +73,13 @@ export function WeatherIcon({ condition, className = 'w-5 h-5' }: WeatherIconPro
 
     case 'partly-cloudy':
       return (
-        <svg className={className} viewBox="0 0 24 24" fill="none" aria-label="Partly cloudy">
+        <svg
+          className={className}
+          style={style}
+          viewBox="0 0 24 24"
+          fill="none"
+          aria-label="Partly cloudy"
+        >
           <circle cx="8" cy="8" r="3.5" fill="#FBBF24" />
           <g stroke="#FBBF24" strokeWidth="1.5" strokeLinecap="round">
             <line x1="8" y1="1.5" x2="8" y2="3" />
@@ -75,7 +97,7 @@ export function WeatherIcon({ condition, className = 'w-5 h-5' }: WeatherIconPro
 
     case 'snowy':
       return (
-        <svg className={className} viewBox="0 0 24 24" fill="none" aria-label="Snowy">
+        <svg className={className} style={style} viewBox="0 0 24 24" fill="none" aria-label="Snowy">
           <path
             d="M6 14a4 4 0 0 1-.88-7.9A5.5 5.5 0 0 1 16.08 3 4.5 4.5 0 0 1 18 12H6z"
             fill="#94A3B8"
@@ -92,7 +114,13 @@ export function WeatherIcon({ condition, className = 'w-5 h-5' }: WeatherIconPro
 
     default:
       return (
-        <svg className={className} viewBox="0 0 24 24" fill="none" aria-label="Unknown weather">
+        <svg
+          className={className}
+          style={style}
+          viewBox="0 0 24 24"
+          fill="none"
+          aria-label="Unknown weather"
+        >
           <circle cx="12" cy="12" r="4" fill="#CBD5E1" />
         </svg>
       )

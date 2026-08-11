@@ -345,9 +345,7 @@ class TestRecurringEventHandling:
         }
         recurring_rules = {}
 
-        recurring_id, is_instance, rule = _parse_recurring_info(
-            gcal_event, recurring_rules
-        )
+        recurring_id, is_instance, rule = _parse_recurring_info(gcal_event, recurring_rules)
 
         assert recurring_id is None
         assert is_instance is False
@@ -359,13 +357,9 @@ class TestRecurringEventHandling:
             "id": "instance_456",
             "recurringEventId": "master_event_123",
         }
-        recurring_rules = {
-            "master_event_123": "RRULE:FREQ=DAILY;BYDAY=MO,TU,WE,TH,FR"
-        }
+        recurring_rules = {"master_event_123": "RRULE:FREQ=DAILY;BYDAY=MO,TU,WE,TH,FR"}
 
-        recurring_id, is_instance, rule = _parse_recurring_info(
-            gcal_event, recurring_rules
-        )
+        recurring_id, is_instance, rule = _parse_recurring_info(gcal_event, recurring_rules)
 
         assert recurring_id == "master_event_123"
         assert is_instance is True
@@ -378,9 +372,7 @@ class TestRecurringEventHandling:
         }
         recurring_rules = {}
 
-        recurring_id, is_instance, rule = _parse_recurring_info(
-            gcal_event, recurring_rules
-        )
+        recurring_id, is_instance, rule = _parse_recurring_info(gcal_event, recurring_rules)
 
         assert recurring_id is None
         assert is_instance is False
