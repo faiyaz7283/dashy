@@ -369,10 +369,16 @@ def _build_response(
     forecast: list[DailyForecast] = []
     seen_dates: set[str] = set()
 
+    # Get today's date in local timezone to filter out past days
+    local_tz = timezone(timedelta(seconds=tz_offset))
+    now_ts = int(datetime.now(local_tz).timestamp())
+    today_date = _ts_to_date(now_ts, tz_offset)
+
     if daily_data:
         for day in daily_data:
             date = _ts_to_date(day["dt"], tz_offset)
-            if date in seen_dates:
+            # Skip past dates and duplicates
+            if date < today_date or date in seen_dates:
                 continue
             seen_dates.add(date)
 
