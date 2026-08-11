@@ -14,6 +14,7 @@ const mockGetCalendar = api.getCalendar as ReturnType<typeof vi.fn>
 describe('useCalendarEvents', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    vi.useRealTimers()
   })
 
   const mockEvents = [
@@ -110,9 +111,14 @@ describe('useCalendarEvents', () => {
     // Change to week view - should trigger new fetch with different range
     rerender({ view: 'week' as CalendarView })
 
-    // Verify it was called with week range (may take a moment)
-    await new Promise((resolve) => setTimeout(resolve, 100))
-    expect(mockGetCalendar).toHaveBeenCalledWith('2026-08-10', '2026-08-16', expect.any(Object))
+    // View changes should still use the cache to avoid redundant API calls
+    await waitFor(() => {
+      expect(mockGetCalendar).toHaveBeenLastCalledWith(
+        '2026-08-10',
+        '2026-08-16',
+        expect.objectContaining({ bypassCache: false }),
+      )
+    })
   })
 
   it('refetches when date changes', async () => {
@@ -161,5 +167,33 @@ describe('useCalendarEvents', () => {
 
     // Verify refetch function exists
     expect(typeof result.current.refetch).toBe('function')
+  })
+
+  it('forceRefresh bypasses cache and does not toggle loading', async () => {
+    mockGetCalendar.mockResolvedValue(mockResponse)
+
+    const { result } = renderHook(() => useCalendarEvents('week', new Date('2026-08-12')))
+
+    await waitFor(() => expect(result.current.loading).toBe(false))
+    const callsBeforeForceRefresh = mockGetCalendar.mock.calls.length
+    const firstLastRefresh = result.current.lastRefresh
+
+    act(() => {
+      result.current.forceRefresh()
+    })
+
+    await waitFor(() =>
+      expect(mockGetCalendar.mock.calls.length).toBeGreaterThan(callsBeforeForceRefresh),
+    )
+
+    // forceRefresh (used by auto-refresh and the sidebar button) must bypass
+    // the cache so the status bar's "refreshing…" state doesn't get stuck.
+    expect(mockGetCalendar).toHaveBeenCalledWith(
+      '2026-08-10',
+      '2026-08-16',
+      expect.objectContaining({ bypassCache: true }),
+    )
+    expect(result.current.lastRefresh).toBeGreaterThanOrEqual(firstLastRefresh!)
+    expect(result.current.loading).toBe(false)
   })
 })

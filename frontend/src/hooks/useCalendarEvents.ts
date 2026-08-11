@@ -101,8 +101,12 @@ export function useCalendarEvents(
   }, [])
 
   const fetchData = useCallback(
-    async (bypassCache = false) => {
-      setLoading(true)
+    async (options: { bypassCache?: boolean; silent?: boolean } = {}) => {
+      const { bypassCache = false, silent = false } = options
+
+      if (!silent) {
+        setLoading(true)
+      }
       setError(null)
 
       try {
@@ -111,8 +115,9 @@ export function useCalendarEvents(
 
         if (isMountedRef.current) {
           setEvents(data.events)
-          // Only update lastRefresh when we actually fetch from the network
-          if (!cached) {
+          // Update lastRefresh for real network fetches, and always for silent
+          // background refreshes so the status-bar countdown resets correctly.
+          if (!cached || silent) {
             setLastRefresh(Date.now())
           }
         }
@@ -121,7 +126,7 @@ export function useCalendarEvents(
           setError(err instanceof Error ? err.message : 'Unknown error')
         }
       } finally {
-        if (isMountedRef.current) {
+        if (isMountedRef.current && !silent) {
           setLoading(false)
         }
       }
@@ -129,27 +134,30 @@ export function useCalendarEvents(
     [currentView, currentDate],
   )
 
+  // Force a fresh fetch in the background (no loading spinner). Used by the
+  // auto-refresh timer and the manual sidebar refresh button.
   const forceRefresh = useCallback(() => {
-    fetchData(true)
+    fetchData({ bypassCache: true, silent: true })
   }, [fetchData])
 
-  // Fetch when view or date changes
+  // Fetch when view or date changes (uses cache to avoid redundant API calls).
   useEffect(() => {
     fetchData()
   }, [fetchData])
 
-  // Auto-refresh every 2 minutes (matches cache TTL and status bar countdown)
+  // Auto-refresh every 2 minutes: bypass the cache so we actually get fresh
+  // data, but run silently so the UI doesn't flash a loading overlay.
   useEffect(() => {
     const errorRetry = 10_000 // 10 seconds when in error state
     const normalInterval = 120_000 // 2 minutes
     const intervalMs = error ? errorRetry : normalInterval
 
     const interval = setInterval(() => {
-      fetchData()
+      forceRefresh()
     }, intervalMs)
 
     return () => clearInterval(interval)
-  }, [fetchData, error])
+  }, [forceRefresh, error])
 
   return { events, loading, error, lastRefresh, refetch: fetchData, forceRefresh }
 }
