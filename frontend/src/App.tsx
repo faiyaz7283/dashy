@@ -27,15 +27,25 @@ import { getWeekDays, isSameDay } from './utils/dateFormat'
 import { getRelativeDensity, getAbsoluteDensity } from './utils/density'
 
 const VIEW_STORAGE_KEY = 'dashy-calendar-view'
+const VIEW_STORAGE_VERSION_KEY = 'dashy-calendar-view-version'
+const CURRENT_VIEW_STORAGE_VERSION = '2'
 
 export function App() {
   const [backendReady, setBackendReady] = useState(false)
   const [elapsed, setElapsed] = useState(0)
 
-  // View state with localStorage persistence
+  // View state with localStorage persistence.
+  // Bump CURRENT_VIEW_STORAGE_VERSION when the default changes so existing
+  // users automatically pick up the new default on next load.
   const [currentView, setCurrentView] = useState<CalendarView>(() => {
+    const savedVersion = localStorage.getItem(VIEW_STORAGE_VERSION_KEY)
+    if (savedVersion !== CURRENT_VIEW_STORAGE_VERSION) {
+      localStorage.removeItem(VIEW_STORAGE_KEY)
+      localStorage.setItem(VIEW_STORAGE_VERSION_KEY, CURRENT_VIEW_STORAGE_VERSION)
+      return 'month'
+    }
     const saved = localStorage.getItem(VIEW_STORAGE_KEY)
-    return (saved as CalendarView) || 'week'
+    return (saved as CalendarView) || 'month'
   })
 
   const [currentDate, setCurrentDate] = useState<Date>(() => new Date())
