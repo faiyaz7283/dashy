@@ -208,13 +208,19 @@ Children (Arya, 8 and Raya, 4) are not in v1 calendar scope but the system suppo
 ### Weather
 
 - **Location:** Levittown, NY 11756 (lat: 40.715401, lon: -73.512924)
-- **API:** OpenWeatherMap (free tier, 1000 calls/day)
+- **API:** OpenWeatherMap One Call API 4.0 (free tier, 1000 calls/day)
+- **Environment control:** `WEATHER_USE_MOCK` env var — `true` in development (returns mock data to stay within API limits), `false` in production (calls real API). Multiple dev machines share the same mock data structure, ensuring code parity with production.
+- **API architecture:** Modular endpoints with pagination:
+  - `/data/4.0/onecall/current` — current weather
+  - `/data/4.0/onecall/timeline/1h` — hourly forecast (48 hours, paginated, 20 records/page)
+  - `/data/4.0/onecall/timeline/1day` — daily forecast (14 days, paginated, 10 records/page)
+- **Billing:** ~864 calls/day at 10-minute refresh (under 1000 free limit). Each paginated page counts as a separate call.
 - **Unit conversion:** Supports metric (Celsius) and imperial (Fahrenheit) via `?units=` query parameter (default: imperial). Backend always fetches Celsius from OpenWeatherMap and converts based on request.
 - **Integration:** Weather displays across all calendar views (Day, Week, Month) with hover tooltips showing detailed forecasts including hourly temperature charts.
 - **Icons:** All 15 OWM `weather.main` conditions map 1:1 to unique SVG icons (no grouping). Each condition has day/night color variants (darker at night). Clear night shows a moon with stars; other conditions use darker cloud/line colors at night.
 - **Timezone handling:** All timestamps converted using OWM's `timezone_offset` field, ensuring forecast dates align with local time (no past-day dates in the forecast).
 - **Tooltip metrics:** Value-aware SVG icons for temperature (color-coded by feel), humidity (opacity scales), wind (more lines = stronger), UV (color+size by intensity), precipitation (more drops = higher chance), pressure (barometer needle), and 8 moon phases.
-- **Test coverage:** 8 backend tests for unit conversion, 7 frontend tests for WeatherTooltip component.
+- **Test coverage:** 53 backend tests (unit conversion, 4.0 API parsing, timezone handling, mock data validation, endpoint behavior), 11 frontend tests (WeatherTooltip rendering, hourly chart visibility, unified content for all 14 days, day labels).
 
 ---
 
@@ -506,7 +512,8 @@ This intelligent deployment command:
 
 - **File:** `env/.env.dev` (gitignored)
 - **Template:** `env/.env.dev.example` (committed)
-- **Key vars:** `GOOGLE_CALENDAR_ID`, `GOOGLE_SERVICE_ACCOUNT_JSON`, `OPENWEATHERMAP_API_KEY`, `FAMILY_MEMBERS`
+- **Key vars:** `GOOGLE_CALENDAR_ID`, `GOOGLE_SERVICE_ACCOUNT_JSON`, `OPENWEATHERMAP_API_KEY`, `WEATHER_USE_MOCK`, `FAMILY_MEMBERS`
+- **Weather control:** `WEATHER_USE_MOCK=true` in development (all dev machines use mock data), `WEATHER_USE_MOCK=false` in production (Pi only, calls real API to stay within 1000 calls/day limit)
 
 ### MCP Servers
 

@@ -23,6 +23,7 @@ class Settings(BaseSettings):
     OPENWEATHERMAP_API_KEY: str
     OPENWEATHERMAP_LAT: float = 40.715401
     OPENWEATHERMAP_LON: float = -73.512924
+    WEATHER_USE_MOCK: bool = False  # True in dev, False in prod to stay within API limits
 
     # Family
     FAMILY_MEMBERS: str

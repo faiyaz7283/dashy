@@ -597,7 +597,15 @@ function MoonIcon({ phase }: { phase: number }) {
 function TempChart({ hourly }: { hourly: DailyForecast['hourly'] }) {
   if (!hourly || hourly.length === 0) return null
 
-  const temps = hourly.map((h) => h.temperature)
+  // Sample 6 evenly-spaced points from the hourly data
+  const LABEL_COUNT = 6
+  const sampleIndices: number[] = []
+  for (let i = 0; i < LABEL_COUNT; i++) {
+    sampleIndices.push(Math.round((i / (LABEL_COUNT - 1)) * (hourly.length - 1)))
+  }
+  const sampled = sampleIndices.map((i) => hourly[i])
+
+  const temps = sampled.map((h) => h.temperature)
   const minTemp = Math.min(...temps)
   const maxTemp = Math.max(...temps)
   const range = maxTemp - minTemp || 1
@@ -608,8 +616,8 @@ function TempChart({ hourly }: { hourly: DailyForecast['hourly'] }) {
   const chartWidth = width - padding * 2
   const chartHeight = height - 40
 
-  const points = hourly.map((h, i) => {
-    const x = padding + (i / (hourly.length - 1)) * chartWidth
+  const points = sampled.map((h, i) => {
+    const x = padding + (i / (sampled.length - 1)) * chartWidth
     const y = 20 + chartHeight - ((h.temperature - minTemp) / range) * chartHeight
     return { x, y, temp: h.temperature, time: h.time }
   })
@@ -659,12 +667,12 @@ function TempChart({ hourly }: { hourly: DailyForecast['hourly'] }) {
               </g>
             )
           })}
-          {hourly.map((h, i) => {
-            const x = padding + (i / (hourly.length - 1)) * chartWidth
+          {sampled.map((h, i) => {
+            const x = padding + (i / (sampled.length - 1)) * chartWidth
             const time = new Date(h.time)
             const label = time.toLocaleTimeString('en-US', { hour: 'numeric', hour12: true })
             const isFirst = i === 0
-            const isLast = i === hourly.length - 1
+            const isLast = i === sampled.length - 1
             return (
               <text
                 key={i}
@@ -684,7 +692,77 @@ function TempChart({ hourly }: { hourly: DailyForecast['hourly'] }) {
   )
 }
 
-function RichContent({ forecast }: { forecast: DailyForecast }) {
+function DetailItem({
+  label,
+  value,
+  icon,
+}: {
+  label: string
+  value: string
+  icon: React.ReactNode
+}) {
+  return (
+    <div
+      style={{
+        background: colors.bgHover,
+        borderRadius: `${radii.lg}px`,
+        padding: `${spacing.sm}px ${spacing.md}px`,
+        display: 'flex',
+        alignItems: 'center',
+        gap: `${spacing.sm}px`,
+      }}
+    >
+      <div style={{ flexShrink: 0 }}>{icon}</div>
+      <div>
+        <div style={{ fontSize: '10px', color: colors.textFaint }}>{label}</div>
+        <div style={{ fontSize: '12px', fontWeight: 500, color: colors.textPrimary }}>{value}</div>
+      </div>
+    </div>
+  )
+}
+
+function AstroItem({
+  label,
+  value,
+  icon,
+}: {
+  label: string
+  value: string
+  icon: React.ReactNode
+}) {
+  return (
+    <div
+      style={{
+        flex: 1,
+        background: colors.bgHover,
+        borderRadius: `${radii.lg}px`,
+        padding: `${spacing.sm}px ${spacing.md}px`,
+        textAlign: 'center',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        gap: '4px',
+      }}
+    >
+      <div>{icon}</div>
+      <div style={{ fontSize: '10px', color: colors.textFaint }}>{label}</div>
+      <div style={{ fontSize: '12px', fontWeight: 500, color: colors.textPrimary }}>{value}</div>
+    </div>
+  )
+}
+
+function formatTime(time: string): string {
+  if (time.includes(':')) {
+    const [h, m] = time.split(':')
+    const hour = parseInt(h, 10)
+    const ampm = hour >= 12 ? 'PM' : 'AM'
+    const displayHour = hour === 0 ? 12 : hour > 12 ? hour - 12 : hour
+    return `${displayHour}:${m} ${ampm}`
+  }
+  return time
+}
+
+function UnifiedContent({ forecast, hasHourly }: { forecast: DailyForecast; hasHourly: boolean }) {
   const { dayLabel, dateLabel } = formatDate(forecast.date)
 
   return (
@@ -726,45 +804,33 @@ function RichContent({ forecast }: { forecast: DailyForecast }) {
         </div>
       </div>
 
-      {/* Summary */}
-      {forecast.summary && (
-        <div
-          style={{
-            fontSize: '11px',
-            color: colors.textMuted,
-            marginBottom: `${spacing.md}px`,
-            fontStyle: 'italic',
-          }}
-        >
-          {forecast.summary}
-        </div>
+      {/* Hourly temperature chart (only for days 1-2) */}
+      {hasHourly && (
+        <>
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: `${spacing.xs}px`,
+              marginBottom: `${spacing.xs}px`,
+            }}
+          >
+            <ThermometerIcon temp={forecast.high} />
+            <div
+              style={{
+                fontSize: '10px',
+                fontWeight: 600,
+                color: colors.textFaint,
+                textTransform: 'uppercase',
+                letterSpacing: '0.5px',
+              }}
+            >
+              Temperature
+            </div>
+          </div>
+          <TempChart hourly={forecast.hourly} />
+        </>
       )}
-
-      {/* Temperature section heading with icon */}
-      <div
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: `${spacing.xs}px`,
-          marginBottom: `${spacing.xs}px`,
-        }}
-      >
-        <ThermometerIcon temp={forecast.high} />
-        <div
-          style={{
-            fontSize: '10px',
-            fontWeight: 600,
-            color: colors.textFaint,
-            textTransform: 'uppercase',
-            letterSpacing: '0.5px',
-          }}
-        >
-          Temperature
-        </div>
-      </div>
-
-      {/* Temperature chart */}
-      <TempChart hourly={forecast.hourly} />
 
       {/* Detail grid */}
       <div
@@ -845,187 +911,14 @@ function RichContent({ forecast }: { forecast: DailyForecast }) {
   )
 }
 
-function BasicContent({ forecast }: { forecast: DailyForecast }) {
-  const { dayLabel, dateLabel } = formatDate(forecast.date)
-
-  return (
-    <div>
-      {/* Header */}
-      <div
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          marginBottom: `${spacing.sm}px`,
-        }}
-      >
-        <div style={{ display: 'flex', alignItems: 'center', gap: `${spacing.sm}px` }}>
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-            <WeatherIcon condition={forecast.icon} className="" size="medium" />
-          </div>
-          <div>
-            <div
-              style={{
-                fontSize: '22px',
-                fontWeight: 700,
-                color: colors.textPrimary,
-                lineHeight: 1,
-              }}
-            >
-              {Math.round(forecast.high)}°F
-            </div>
-            <div style={{ fontSize: '11px', color: colors.textMuted }}>
-              {forecast.condition.replace('-', ' ')}
-            </div>
-          </div>
-        </div>
-        <div style={{ textAlign: 'right' }}>
-          <div style={{ fontSize: '12px', fontWeight: 600, color: colors.textPrimary }}>
-            {dayLabel}
-          </div>
-          <div style={{ fontSize: '10px', color: colors.textFaint }}>{dateLabel}</div>
-        </div>
-      </div>
-
-      {/* Basic details with icons */}
-      <div style={{ display: 'flex', gap: `${spacing.sm}px` }}>
-        <BasicDetail
-          label="High"
-          value={`${Math.round(forecast.high)}°`}
-          icon={<ThermometerIcon temp={forecast.high} />}
-        />
-        <BasicDetail
-          label="Low"
-          value={`${Math.round(forecast.low)}°`}
-          icon={<ThermometerIcon temp={forecast.low} />}
-        />
-        {forecast.pop != null && (
-          <BasicDetail
-            label="Rain"
-            value={`${Math.round(forecast.pop * 100)}%`}
-            icon={<PrecipIcon pop={forecast.pop} />}
-          />
-        )}
-        {forecast.wind_speed != null && (
-          <BasicDetail
-            label="Wind"
-            value={`${Math.round(forecast.wind_speed)} mph`}
-            icon={<WindIcon speed={forecast.wind_speed} />}
-          />
-        )}
-      </div>
-    </div>
-  )
-}
-
-function DetailItem({
-  label,
-  value,
-  icon,
-}: {
-  label: string
-  value: string
-  icon: React.ReactNode
-}) {
-  return (
-    <div
-      style={{
-        background: colors.bgHover,
-        borderRadius: `${radii.lg}px`,
-        padding: `${spacing.sm}px ${spacing.md}px`,
-        display: 'flex',
-        alignItems: 'center',
-        gap: `${spacing.sm}px`,
-      }}
-    >
-      <div style={{ flexShrink: 0 }}>{icon}</div>
-      <div>
-        <div style={{ fontSize: '10px', color: colors.textFaint }}>{label}</div>
-        <div style={{ fontSize: '12px', fontWeight: 500, color: colors.textPrimary }}>{value}</div>
-      </div>
-    </div>
-  )
-}
-
-function AstroItem({
-  label,
-  value,
-  icon,
-}: {
-  label: string
-  value: string
-  icon: React.ReactNode
-}) {
-  return (
-    <div
-      style={{
-        flex: 1,
-        background: colors.bgHover,
-        borderRadius: `${radii.lg}px`,
-        padding: `${spacing.sm}px ${spacing.md}px`,
-        textAlign: 'center',
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        gap: '4px',
-      }}
-    >
-      <div>{icon}</div>
-      <div style={{ fontSize: '10px', color: colors.textFaint }}>{label}</div>
-      <div style={{ fontSize: '12px', fontWeight: 500, color: colors.textPrimary }}>{value}</div>
-    </div>
-  )
-}
-
-function BasicDetail({
-  label,
-  value,
-  icon,
-}: {
-  label: string
-  value: string
-  icon?: React.ReactNode
-}) {
-  return (
-    <div
-      style={{
-        flex: 1,
-        background: colors.bgHover,
-        borderRadius: `${radii.lg}px`,
-        padding: `${spacing.sm}px`,
-        textAlign: 'center',
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        gap: '2px',
-      }}
-    >
-      {icon && <div style={{ marginBottom: '2px' }}>{icon}</div>}
-      <div style={{ fontSize: '10px', color: colors.textFaint }}>{label}</div>
-      <div style={{ fontSize: '13px', fontWeight: 600, color: colors.textPrimary }}>{value}</div>
-    </div>
-  )
-}
-
-function formatTime(time: string): string {
-  if (time.includes(':')) {
-    const [h, m] = time.split(':')
-    const hour = parseInt(h, 10)
-    const ampm = hour >= 12 ? 'PM' : 'AM'
-    const displayHour = hour === 0 ? 12 : hour > 12 ? hour - 12 : hour
-    return `${displayHour}:${m} ${ampm}`
-  }
-  return time
-}
-
 export function WeatherTooltip({ forecast, visible, x, y }: WeatherTooltipProps) {
   const scale = useUiScale()
 
   if (!visible || !forecast) return null
 
-  const isRich = (forecast.hourly?.length ?? 0) > 0
+  const hasHourly = (forecast.hourly?.length ?? 0) > 0
   const tooltipWidth = 300
-  const tooltipHeight = isRich ? 450 : 180
+  const tooltipHeight = hasHourly ? 450 : 380
   const offset = 12
   const vw = typeof window !== 'undefined' ? window.innerWidth : 1000
   const vh = typeof window !== 'undefined' ? window.innerHeight : 800
@@ -1065,7 +958,7 @@ export function WeatherTooltip({ forecast, visible, x, y }: WeatherTooltipProps)
           zoom: scale,
         }}
       >
-        {isRich ? <RichContent forecast={forecast} /> : <BasicContent forecast={forecast} />}
+        <UnifiedContent forecast={forecast} hasHourly={hasHourly} />
       </div>
     </div>,
     document.body,
