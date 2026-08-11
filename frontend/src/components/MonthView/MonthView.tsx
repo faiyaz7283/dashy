@@ -78,14 +78,14 @@ function getEventsForDate(events: CalendarEvent[], date: Date): CalendarEvent[] 
 
 /**
  * Gets weather forecast for a specific date.
- * Uses UTC date components to match backend's UTC-based date formatting.
+ * Uses local date components to match backend's local timezone date formatting.
  */
 function getWeatherForDate(
   forecast: DailyForecast[] | undefined,
   date: Date,
 ): DailyForecast | undefined {
   if (!forecast) return undefined
-  const dateStr = `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, '0')}-${String(date.getUTCDate()).padStart(2, '0')}`
+  const dateStr = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
   return forecast.find((f) => f.date === dateStr)
 }
 

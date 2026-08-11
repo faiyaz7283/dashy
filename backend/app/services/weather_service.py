@@ -4,7 +4,7 @@ OpenWeatherMap service using One Call API 4.0.
 Fetches current weather and forecast from OpenWeatherMap API 4.0.
 - Current weather: /data/4.0/onecall/current
 - Hourly forecast: /data/4.0/onecall/timeline/1h (anchored at today's midnight, 24 hours)
-- Daily forecast: /data/4.0/onecall/timeline/1day (anchored at today, 14 days)
+- Daily forecast: /data/4.0/onecall/timeline/1day (anchored at today, fetches 15 days, returns 14)
 
 All timeline queries are anchored at "today" in the local timezone (Eastern Time),
 so no historical data is fetched. Pagination is limited to the required window.
@@ -47,7 +47,7 @@ _VALID_CONDITIONS: set[str] = {
 }
 
 # How many records to fetch from each timeline endpoint.
-_MAX_DAILY_RECORDS = 14  # 2 weeks
+_MAX_DAILY_RECORDS = 15  # Fetch 15 to ensure 14 remain after filtering past entries
 _MAX_HOURLY_RECORDS = 48  # 2 full days
 
 
@@ -220,7 +220,7 @@ async def _fetch_daily(
     Fetch daily forecast from One Call API 4.0 with pagination.
 
     Anchored at 'start' timestamp (today's midnight in local timezone).
-    Limited to max_records (14 days = 2 weeks) to avoid fetching historical data.
+    Limited to max_records (15 days) to ensure 14 remain after filtering past entries.
     """
     try:
         all_daily: list[dict] = []
@@ -268,7 +268,7 @@ async def get_weather(units: str = "imperial") -> WeatherResponse:
     API call budget (at 10-minute refresh = 144 calls/day):
     - Current: 1 call
     - Hourly: 24 records ÷ 20/page = 2 pages = 2 calls
-    - Daily: 14 records ÷ 10/page = 2 pages = 2 calls
+    - Daily: 15 records ÷ 10/page = 2 pages = 2 calls (fetches 15, returns 14 after filtering)
     - Total: 5 calls/refresh × 144 = 720 calls/day (under 1000 free limit)
 
     Args:
@@ -425,5 +425,8 @@ def _build_response(
                     hourly=day_hourly,
                 )
             )
+
+    # Ensure exactly 14 days (today + 13 future days)
+    forecast = forecast[:14]
 
     return WeatherResponse(current=current, forecast=forecast)

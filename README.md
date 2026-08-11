@@ -213,8 +213,8 @@ Children (Arya, 8 and Raya, 4) are not in v1 calendar scope but the system suppo
 - **API architecture:** Modular endpoints with pagination:
   - `/data/4.0/onecall/current` — current weather
   - `/data/4.0/onecall/timeline/1h` — hourly forecast (48 hours, paginated, 20 records/page)
-  - `/data/4.0/onecall/timeline/1day` — daily forecast (14 days, paginated, 10 records/page)
-- **Billing:** ~864 calls/day at 10-minute refresh (under 1000 free limit). Each paginated page counts as a separate call.
+  - `/data/4.0/onecall/timeline/1day` — daily forecast (fetches 15 days, returns 14 after filtering past entries, paginated, 10 records/page)
+- **Billing:** ~720 calls/day at 10-minute refresh (under 1000 free limit). Each paginated page counts as a separate call.
 - **Unit conversion:** Supports metric (Celsius) and imperial (Fahrenheit) via `?units=` query parameter (default: imperial). Backend always fetches Celsius from OpenWeatherMap and converts based on request.
 - **Integration:** Weather displays across all calendar views (Day, Week, Month) with hover tooltips showing detailed forecasts including hourly temperature charts.
 - **Icons:** All 15 OWM `weather.main` conditions map 1:1 to unique SVG icons (no grouping). Each condition has day/night color variants (darker at night). Clear night shows a moon with stars; other conditions use darker cloud/line colors at night.

@@ -32,8 +32,8 @@ function getWeatherForDay(
   date: Date,
 ): DailyForecast | undefined {
   if (!forecast) return undefined
-  // Use UTC date components to match backend's UTC-based date formatting
-  const dateStr = `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, '0')}-${String(date.getUTCDate()).padStart(2, '0')}`
+  // Use local date components to match backend's local timezone date formatting
+  const dateStr = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
   return forecast.find((f) => f.date === dateStr)
 }
 
