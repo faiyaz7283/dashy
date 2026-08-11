@@ -5,6 +5,9 @@ WORKDIR /app
 # Install UV
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
 
+# Install venv outside /app so it survives the volume mount (../backend:/app)
+ENV UV_PROJECT_ENVIRONMENT=/.venv
+
 # Copy dependency files
 COPY pyproject.toml uv.lock* ./
 

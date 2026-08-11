@@ -1,13 +1,19 @@
 """
-OpenWeatherMap service.
+OpenWeatherMap service using One Call API 4.0.
 
-Fetches current weather and forecast from OpenWeatherMap API.
-- One Call API 3.0: 7 days of rich data (hourly breakdown, sunrise/sunset, etc.)
-- 16-day forecast API: days 8-16 with basic data (high/low, condition)
-Falls back to mock data when API key is not available.
+Fetches current weather and forecast from OpenWeatherMap API 4.0.
+- Current weather: /data/4.0/onecall/current
+- Hourly forecast: /data/4.0/onecall/timeline/1h (anchored at today's midnight, 24 hours)
+- Daily forecast: /data/4.0/onecall/timeline/1day (anchored at today, 14 days)
+
+All timeline queries are anchored at "today" in the local timezone (Eastern Time),
+so no historical data is fetched. Pagination is limited to the required window.
+
+In development (WEATHER_USE_MOCK=true), returns mock data to stay within API limits.
+In production (WEATHER_USE_MOCK=false), calls the real API.
 """
 
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 
 import httpx
 
@@ -39,6 +45,10 @@ _VALID_CONDITIONS: set[str] = {
     "squall",
     "tornado",
 }
+
+# How many records to fetch from each timeline endpoint.
+_MAX_DAILY_RECORDS = 14  # 2 weeks
+_MAX_HOURLY_RECORDS = 48  # 2 full days
 
 
 def _map_condition(weather_main: str) -> WeatherCondition:
@@ -72,32 +82,39 @@ def _map_icon(icon_code: str) -> str:
 
 def _ts_to_iso(ts: int, tz_offset: int = 0) -> str:
     """Convert Unix timestamp to ISO time string (HH:MM) in local timezone."""
-    from datetime import timedelta, timezone
-
     local_tz = timezone(timedelta(seconds=tz_offset))
     return datetime.fromtimestamp(ts, tz=local_tz).strftime("%H:%M")
 
 
 def _ts_to_datetime(ts: int, tz_offset: int = 0) -> str:
     """Convert Unix timestamp to ISO datetime string in local timezone."""
-    from datetime import timedelta, timezone
-
     local_tz = timezone(timedelta(seconds=tz_offset))
     return datetime.fromtimestamp(ts, tz=local_tz).strftime("%Y-%m-%dT%H:%M:%S")
 
 
 def _ts_to_date(ts: int, tz_offset: int = 0) -> str:
     """Convert Unix timestamp to ISO date string (YYYY-MM-DD) in local timezone."""
-    from datetime import timedelta, timezone
-
     local_tz = timezone(timedelta(seconds=tz_offset))
     return datetime.fromtimestamp(ts, tz=local_tz).strftime("%Y-%m-%d")
 
 
-def _parse_hourly(
-    hourly_data: list[dict], day_date: str, tz_offset: int = 0
+def _get_today_midnight_timestamp(tz_offset: int) -> int:
+    """
+    Get Unix timestamp for today's midnight in the given timezone.
+
+    This ensures "today" is calculated in the local timezone (Eastern Time),
+    not UTC. The tz_offset comes from the OWM API response and accounts for DST.
+    """
+    local_tz = timezone(timedelta(seconds=tz_offset))
+    now = datetime.now(local_tz)
+    today_midnight = now.replace(hour=0, minute=0, second=0, microsecond=0)
+    return int(today_midnight.timestamp())
+
+
+def _parse_hourly_from_data(
+    hourly_data: list[dict], day_date: str, tz_offset: int = 0, units: str = "imperial"
 ) -> list[HourlyForecast]:
-    """Parse hourly data for a specific day from One Call API response."""
+    """Parse hourly data for a specific day from One Call API 4.0 response."""
     result = []
     for h in hourly_data:
         h_date = _ts_to_date(h["dt"], tz_offset)
@@ -107,10 +124,10 @@ def _parse_hourly(
         result.append(
             HourlyForecast(
                 time=_ts_to_datetime(h["dt"], tz_offset),
-                temperature=h["temp"],
-                feels_like=h["feels_like"],
+                temperature=convert_temperature(h["temp"], units),
+                feels_like=convert_temperature(h["feels_like"], units),
                 condition=condition,
-                icon=_map_icon(condition),
+                icon=condition,  # Use condition name, not day/night suffix
                 humidity=h.get("humidity", 0),
                 wind_speed=h.get("wind_speed", 0),
                 pop=h.get("pop", 0),
@@ -122,66 +139,145 @@ def _parse_hourly(
     return result
 
 
-async def _fetch_one_call(
+async def _fetch_current(
     client: httpx.AsyncClient, api_key: str, lat: float, lon: float
 ) -> dict | None:
-    """Fetch One Call API 3.0 data (current + 7 days daily + hourly)."""
+    """Fetch current weather from One Call API 4.0."""
     try:
         response = await client.get(
-            "https://api.openweathermap.org/data/3.0/onecall",
+            "https://api.openweathermap.org/data/4.0/onecall/current",
             params={
                 "lat": lat,
                 "lon": lon,
                 "appid": api_key,
-                "units": "metric",  # Fetch Celsius, convert later
-                "exclude": "minutely,alerts",
+                "units": "metric",
             },
             timeout=10.0,
         )
         response.raise_for_status()
         return response.json()
     except httpx.HTTPError as e:
-        print(f"One Call API error: {e}")
+        print(f"Current weather API error: {e}")
         return None
 
 
-async def _fetch_16day(
-    client: httpx.AsyncClient, api_key: str, lat: float, lon: float
-) -> dict | None:
-    """Fetch 16-day forecast API data (basic daily data)."""
+async def _fetch_hourly(
+    client: httpx.AsyncClient,
+    api_key: str,
+    lat: float,
+    lon: float,
+    start: int | None = None,
+    max_records: int = _MAX_HOURLY_RECORDS,
+) -> list[dict] | None:
+    """
+    Fetch hourly forecast from One Call API 4.0 with pagination.
+
+    Anchored at 'start' timestamp (today's midnight in local timezone).
+    Limited to max_records to avoid fetching historical data.
+    """
     try:
-        response = await client.get(
-            "https://api.openweathermap.org/data/2.5/forecast/daily",
-            params={
-                "lat": lat,
-                "lon": lon,
-                "appid": api_key,
-                "units": "metric",  # Fetch Celsius, convert later
-                "cnt": 16,
-            },
-            timeout=10.0,
-        )
+        all_hourly: list[dict] = []
+        url = "https://api.openweathermap.org/data/4.0/onecall/timeline/1h"
+        params: dict = {
+            "lat": lat,
+            "lon": lon,
+            "appid": api_key,
+            "units": "metric",
+        }
+        if start is not None:
+            params["start"] = start
+
+        # Fetch first page
+        response = await client.get(url, params=params, timeout=10.0)
         response.raise_for_status()
-        return response.json()
+        data = response.json()
+        all_hourly.extend(data.get("data", []))
+
+        # Follow pagination until we have enough records or no more pages
+        while "next" in data and len(all_hourly) < max_records:
+            next_url = data["next"]
+            response = await client.get(next_url, timeout=10.0)
+            response.raise_for_status()
+            data = response.json()
+            all_hourly.extend(data.get("data", []))
+
+        # Trim to max_records
+        return all_hourly[:max_records]
     except httpx.HTTPError as e:
-        print(f"16-day API error: {e}")
+        print(f"Hourly forecast API error: {e}")
+        return None
+
+
+async def _fetch_daily(
+    client: httpx.AsyncClient,
+    api_key: str,
+    lat: float,
+    lon: float,
+    start: int | None = None,
+    max_records: int = _MAX_DAILY_RECORDS,
+) -> list[dict] | None:
+    """
+    Fetch daily forecast from One Call API 4.0 with pagination.
+
+    Anchored at 'start' timestamp (today's midnight in local timezone).
+    Limited to max_records (14 days = 2 weeks) to avoid fetching historical data.
+    """
+    try:
+        all_daily: list[dict] = []
+        url = "https://api.openweathermap.org/data/4.0/onecall/timeline/1day"
+        params: dict = {
+            "lat": lat,
+            "lon": lon,
+            "appid": api_key,
+            "units": "metric",
+        }
+        if start is not None:
+            params["start"] = start
+
+        # Fetch first page
+        response = await client.get(url, params=params, timeout=10.0)
+        response.raise_for_status()
+        data = response.json()
+        all_daily.extend(data.get("data", []))
+
+        # Follow pagination until we have enough records or no more pages
+        while "next" in data and len(all_daily) < max_records:
+            next_url = data["next"]
+            response = await client.get(next_url, timeout=10.0)
+            response.raise_for_status()
+            data = response.json()
+            all_daily.extend(data.get("data", []))
+
+        # Trim to max_records
+        return all_daily[:max_records]
+    except httpx.HTTPError as e:
+        print(f"Daily forecast API error: {e}")
         return None
 
 
 async def get_weather(units: str = "imperial") -> WeatherResponse:
     """
-    Fetch current weather and 16-day forecast from OpenWeatherMap.
+    Fetch current weather and 14-day forecast from OpenWeatherMap API 4.0.
 
-    Uses One Call API 3.0 for days 1-7 (rich data with hourly breakdown)
-    and 16-day forecast API for days 8-16 (basic data).
+    In development (WEATHER_USE_MOCK=true), returns mock data.
+    In production (WEATHER_USE_MOCK=false), calls the real API.
+
+    The timeline is anchored at today's midnight in the local timezone (Eastern Time),
+    so only future data is fetched — no historical data leakage.
+
+    API call budget (at 10-minute refresh = 144 calls/day):
+    - Current: 1 call
+    - Hourly: 24 records ÷ 20/page = 2 pages = 2 calls
+    - Daily: 14 records ÷ 10/page = 2 pages = 2 calls
+    - Total: 5 calls/refresh × 144 = 720 calls/day (under 1000 free limit)
 
     Args:
         units: Temperature units - "metric" for Celsius, "imperial" for Fahrenheit (default)
-
-    Falls back to mock data if:
-    - API key is not configured
-    - Both API requests fail
     """
+    # Check if we should use mock data (development mode)
+    if settings.WEATHER_USE_MOCK:
+        return get_mock_weather(units)
+
     api_key = settings.OPENWEATHERMAP_API_KEY
     if not api_key or api_key == "your-openweathermap-api-key":
         return get_mock_weather(units)
@@ -191,107 +287,104 @@ async def get_weather(units: str = "imperial") -> WeatherResponse:
 
     try:
         async with httpx.AsyncClient() as client:
-            one_call_data, daily_16_data = await _fetch_both_apis(client, api_key, lat, lon)
-
-            if one_call_data is None and daily_16_data is None:
+            # Step 1: Fetch current weather to get timezone_offset
+            current_data = await _fetch_current(client, api_key, lat, lon)
+            if current_data is None:
+                print("Current weather API failed, falling back to mock data")
                 return get_mock_weather(units)
 
-            return _build_response(one_call_data, daily_16_data, units)
+            # Step 2: Calculate start timestamp (today's midnight in local timezone)
+            # The timezone_offset from OWM accounts for DST automatically.
+            tz_offset = current_data.get("timezone_offset", 0)
+            start_ts = _get_today_midnight_timestamp(tz_offset)
+
+            # Step 3: Fetch daily and hourly concurrently with start parameter
+            import asyncio
+
+            daily_task = _fetch_daily(client, api_key, lat, lon, start=start_ts)
+            hourly_task = _fetch_hourly(client, api_key, lat, lon, start=start_ts)
+
+            daily_data, hourly_data = await asyncio.gather(daily_task, hourly_task)
+
+            # If both failed, fall back to mock
+            if daily_data is None and hourly_data is None:
+                print("Daily and hourly API calls failed, falling back to mock data")
+                return get_mock_weather(units)
+
+            return _build_response(current_data, hourly_data, daily_data, tz_offset, units)
 
     except Exception as e:
         print(f"Unexpected error fetching weather: {e}")
         return get_mock_weather(units)
 
 
-async def _fetch_both_apis(
-    client: httpx.AsyncClient, api_key: str, lat: float, lon: float
-) -> tuple[dict | None, dict | None]:
-    """Fetch both APIs concurrently."""
-    import asyncio
-
-    one_call_task = _fetch_one_call(client, api_key, lat, lon)
-    daily_16_task = _fetch_16day(client, api_key, lat, lon)
-    one_call_data, daily_16_data = await asyncio.gather(one_call_task, daily_16_task)
-    return one_call_data, daily_16_data
-
-
 def _build_response(
-    one_call_data: dict | None, daily_16_data: dict | None, units: str = "imperial"
+    current_data: dict,
+    hourly_data: list[dict] | None,
+    daily_data: list[dict] | None,
+    tz_offset: int,
+    units: str = "imperial",
 ) -> WeatherResponse:
-    """Build WeatherResponse from API data, converting temperatures to requested units."""
-    # Extract timezone offset from One Call API (seconds from UTC)
-    tz_offset = 0
-    if one_call_data:
-        tz_offset = one_call_data.get("timezone_offset", 0)
-
-    # Current conditions from One Call
-    if one_call_data:
-        current_data = one_call_data["current"]
-        current_condition = _map_condition(current_data["weather"][0]["main"])
-        icon_suffix = _map_icon(current_data["weather"][0]["icon"])
+    """Build WeatherResponse from One Call API 4.0 data."""
+    # Build current weather
+    if "data" in current_data and len(current_data["data"]) > 0:
+        current_record = current_data["data"][0]
+        current_condition = _map_condition(current_record["weather"][0]["main"])
 
         # Calculate is_night based on sunrise/sunset times
         is_night = False
-        if "sunrise" in current_data and "sunset" in current_data:
-            from datetime import timedelta, timezone
-
+        if "sunrise" in current_record and "sunset" in current_record:
             local_tz = timezone(timedelta(seconds=tz_offset))
             now = datetime.now(local_tz)
-            sunrise_ts = current_data["sunrise"]  # Unix timestamp
-            sunset_ts = current_data["sunset"]  # Unix timestamp
+            sunrise_ts = current_record["sunrise"]
+            sunset_ts = current_record["sunset"]
             now_ts = now.timestamp()
             is_night = now_ts < sunrise_ts or now_ts > sunset_ts
 
         current = WeatherCurrent(
-            temperature=convert_temperature(current_data["temp"], units),
-            feels_like=convert_temperature(current_data["feels_like"], units),
+            temperature=convert_temperature(current_record.get("temp"), units),
+            feels_like=convert_temperature(current_record.get("feels_like"), units),
             condition=current_condition,
-            icon=icon_suffix,
+            icon=current_condition,  # Use condition name, not day/night suffix
             is_night=is_night,
-            humidity=current_data.get("humidity", 0),
-            wind_speed=current_data.get("wind_speed", 0),
-            wind_gust=current_data.get("wind_gust"),
-            wind_deg=current_data.get("wind_deg"),
-            pressure=current_data.get("pressure"),
-            dew_point=convert_temperature(current_data.get("dew_point"), units),
-            uvi=current_data.get("uvi"),
-            sunrise=_ts_to_iso(current_data["sunrise"], tz_offset)
-            if "sunrise" in current_data
+            humidity=current_record.get("humidity", 0),
+            wind_speed=current_record.get("wind_speed", 0),
+            wind_gust=current_record.get("wind_gust"),
+            wind_deg=current_record.get("wind_deg"),
+            pressure=current_record.get("pressure"),
+            dew_point=convert_temperature(current_record.get("dew_point"), units),
+            uvi=current_record.get("uvi"),
+            sunrise=_ts_to_iso(current_record["sunrise"], tz_offset)
+            if "sunrise" in current_record
             else None,
-            sunset=_ts_to_iso(current_data["sunset"], tz_offset)
-            if "sunset" in current_data
+            sunset=_ts_to_iso(current_record["sunset"], tz_offset)
+            if "sunset" in current_record
             else None,
         )
     else:
-        # Fallback: use first item from 16-day data
-        first_day = daily_16_data["list"][0]
-        first_condition = _map_condition(first_day["weather"][0]["main"])
-        icon_suffix = _map_icon(first_day["weather"][0]["icon"])
-        current = WeatherCurrent(
-            temperature=convert_temperature(first_day["temp"]["day"], units),
-            feels_like=convert_temperature(first_day["temp"]["day"], units),
-            condition=first_condition,
-            icon=icon_suffix,
-            is_night=icon_suffix == "n",
-            humidity=first_day.get("humidity", 0),
-            wind_speed=first_day.get("speed", 0),
-        )
+        # Should not reach here since we already checked current_data, but fallback
+        return get_mock_weather(units)
 
-    # Build daily forecast: days 1-7 from One Call, days 8-16 from 16-day API
+    # Build daily forecast
     forecast: list[DailyForecast] = []
     seen_dates: set[str] = set()
 
-    # Days 1-7 from One Call (rich data with hourly breakdown)
-    if one_call_data and "daily" in one_call_data:
-        hourly_data = one_call_data.get("hourly", [])
-        for day in one_call_data["daily"]:
+    if daily_data:
+        for day in daily_data:
             date = _ts_to_date(day["dt"], tz_offset)
+            if date in seen_dates:
+                continue
             seen_dates.add(date)
+
             temp = day.get("temp", {})
             feels = day.get("feels_like", {})
-            wind = day
             weather = day["weather"][0] if day.get("weather") else {}
             day_condition = _map_condition(weather.get("main", "clouds"))
+
+            # Get hourly data for this day
+            day_hourly = []
+            if hourly_data:
+                day_hourly = _parse_hourly_from_data(hourly_data, date, tz_offset, units)
 
             forecast.append(
                 DailyForecast(
@@ -299,7 +392,7 @@ def _build_response(
                     high=convert_temperature(temp.get("max", 0), units),
                     low=convert_temperature(temp.get("min", 0), units),
                     condition=day_condition,
-                    icon=_map_icon(day_condition),
+                    icon=day_condition,  # Use condition name, not day/night suffix
                     feels_like_day=convert_temperature(feels.get("day"), units),
                     feels_like_night=convert_temperature(feels.get("night"), units),
                     temp_morn=convert_temperature(temp.get("morn"), units),
@@ -309,9 +402,9 @@ def _build_response(
                     humidity=day.get("humidity"),
                     pressure=day.get("pressure"),
                     dew_point=convert_temperature(day.get("dew_point"), units),
-                    wind_speed=wind.get("wind_speed"),
-                    wind_gust=wind.get("wind_gust"),
-                    wind_deg=wind.get("wind_deg"),
+                    wind_speed=day.get("wind_speed"),
+                    wind_gust=day.get("wind_gust"),
+                    wind_deg=day.get("wind_deg"),
                     uvi=day.get("uvi"),
                     pop=day.get("pop"),
                     rain=day.get("rain"),
@@ -322,47 +415,8 @@ def _build_response(
                     moonrise=_ts_to_iso(day["moonrise"], tz_offset) if "moonrise" in day else None,
                     moonset=_ts_to_iso(day["moonset"], tz_offset) if "moonset" in day else None,
                     moon_phase=day.get("moon_phase"),
-                    summary=day.get("summary"),
-                    hourly=[
-                        HourlyForecast(
-                            time=h["time"],
-                            temperature=convert_temperature(h["temperature"], units),
-                            feels_like=convert_temperature(h["feels_like"], units),
-                            condition=h["condition"],
-                            icon=h["icon"],
-                            humidity=h["humidity"],
-                            wind_speed=h["wind_speed"],
-                            pop=h["pop"],
-                            pressure=h["pressure"],
-                            dew_point=convert_temperature(h["dew_point"], units),
-                            uvi=h["uvi"],
-                        )
-                        for h in _parse_hourly(hourly_data, date, tz_offset)
-                    ],
-                )
-            )
-
-    # Days 8-16 from 16-day forecast API (basic data)
-    if daily_16_data and "list" in daily_16_data:
-        for day in daily_16_data["list"]:
-            date = _ts_to_date(day["dt"], tz_offset)
-            if date in seen_dates:
-                continue
-            seen_dates.add(date)
-            temp = day.get("temp", {})
-            weather = day["weather"][0] if day.get("weather") else {}
-            day_condition = _map_condition(weather.get("main", "clouds"))
-
-            forecast.append(
-                DailyForecast(
-                    date=date,
-                    high=convert_temperature(temp.get("max", 0), units),
-                    low=convert_temperature(temp.get("min", 0), units),
-                    condition=day_condition,
-                    icon=_map_icon(day_condition),
-                    humidity=day.get("humidity"),
-                    wind_speed=day.get("speed"),
-                    pop=None,  # 16-day API doesn't provide pop directly
+                    summary=None,  # daily.summary removed in 4.0
+                    hourly=day_hourly,
                 )
             )
 

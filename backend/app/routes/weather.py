@@ -14,7 +14,7 @@ async def get_weather_endpoint(
     ),
 ):
     """
-    Get current weather and 7-day forecast.
+    Get current weather and 16-day forecast.
 
     Fetches from OpenWeatherMap API. Falls back to mock data
     when API key is not configured.

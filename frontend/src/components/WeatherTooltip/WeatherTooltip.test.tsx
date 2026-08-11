@@ -176,4 +176,105 @@ describe('WeatherTooltip', () => {
     expect(screen.getByText('Moon')).toBeInTheDocument()
     expect(screen.getByText('Waning Crescent')).toBeInTheDocument()
   })
+
+  it('shows hourly temperature chart when hourly data exists', () => {
+    render(<WeatherTooltip forecast={mockForecast} visible={true} x={100} y={100} />)
+    // "Temperature" heading appears when hasHourly is true
+    expect(screen.getByText('Temperature')).toBeInTheDocument()
+  })
+
+  it('hides hourly temperature chart when no hourly data', () => {
+    const basicForecast: DailyForecast = {
+      date: '2026-08-11',
+      high: 78,
+      low: 66,
+      condition: 'clear',
+      icon: 'clear',
+    }
+    render(<WeatherTooltip forecast={basicForecast} visible={true} x={100} y={100} />)
+    // No hourly chart section should be rendered (check for "Temperature" heading)
+    expect(screen.queryByText('Temperature')).not.toBeInTheDocument()
+  })
+
+  it('renders all rich metrics for any day (unified content)', () => {
+    // A day 10 forecast with no hourly data should still show all rich metrics
+    const day10Forecast: DailyForecast = {
+      date: '2026-08-21',
+      high: 82,
+      low: 70,
+      condition: 'rain',
+      icon: 'rain',
+      feels_like_day: 84,
+      feels_like_night: 68,
+      temp_morn: 68,
+      temp_day: 80,
+      temp_eve: 76,
+      temp_night: 70,
+      humidity: 72,
+      pressure: 1012,
+      dew_point: 68.0,
+      wind_speed: 12,
+      wind_gust: 18.0,
+      wind_deg: 200,
+      uvi: 4.0,
+      pop: 0.65,
+      rain: 3.2,
+      snow: 0.0,
+      clouds: 70,
+      sunrise: '06:15',
+      sunset: '19:45',
+      moonrise: '21:00',
+      moonset: '09:00',
+      moon_phase: 0.5,
+      hourly: [],
+    }
+    render(<WeatherTooltip forecast={day10Forecast} visible={true} x={100} y={100} />)
+    // All rich metrics present
+    expect(screen.getByText('Feels Like')).toBeInTheDocument()
+    expect(screen.getByText('84°F')).toBeInTheDocument()
+    expect(screen.getByText('Humidity')).toBeInTheDocument()
+    expect(screen.getByText('72%')).toBeInTheDocument()
+    expect(screen.getByText('Wind')).toBeInTheDocument()
+    expect(screen.getByText('UV Index')).toBeInTheDocument()
+    expect(screen.getByText('Precipitation')).toBeInTheDocument()
+    expect(screen.getByText(/65%/)).toBeInTheDocument()
+    expect(screen.getByText('Pressure')).toBeInTheDocument()
+    expect(screen.getByText('Sunrise')).toBeInTheDocument()
+    expect(screen.getByText('Sunset')).toBeInTheDocument()
+    expect(screen.getByText('Moon')).toBeInTheDocument()
+    expect(screen.getByText('Full Moon')).toBeInTheDocument()
+    // No hourly chart heading for day 10 (no hourly data)
+    expect(screen.queryByText('Temperature')).not.toBeInTheDocument()
+  })
+
+  it('renders correct day labels (Today, Tomorrow, weekday)', () => {
+    const today = new Date()
+    const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`
+    const tomorrow = new Date(today)
+    tomorrow.setDate(tomorrow.getDate() + 1)
+    const tomorrowStr = `${tomorrow.getFullYear()}-${String(tomorrow.getMonth() + 1).padStart(2, '0')}-${String(tomorrow.getDate()).padStart(2, '0')}`
+
+    const todayForecast: DailyForecast = {
+      date: todayStr,
+      high: 78,
+      low: 66,
+      condition: 'clear',
+      icon: 'clear',
+    }
+    const { unmount } = render(
+      <WeatherTooltip forecast={todayForecast} visible={true} x={100} y={100} />,
+    )
+    expect(screen.getByText('Today')).toBeInTheDocument()
+    unmount()
+
+    const tomorrowForecast: DailyForecast = {
+      date: tomorrowStr,
+      high: 80,
+      low: 68,
+      condition: 'clouds',
+      icon: 'clouds',
+    }
+    render(<WeatherTooltip forecast={tomorrowForecast} visible={true} x={100} y={100} />)
+    expect(screen.getByText('Tomorrow')).toBeInTheDocument()
+  })
 })

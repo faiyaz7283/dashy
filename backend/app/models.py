@@ -73,7 +73,7 @@ class WeatherCurrent(BaseModel):
     wind_speed: float
     wind_gust: float | None = None
     wind_deg: int | None = None
-    pressure: int | None = None
+    pressure: float | None = None  # API returns float (e.g., 1010.87)
     dew_point: float | None = None
     uvi: float | None = None
     sunrise: str | None = None  # ISO time
@@ -91,7 +91,7 @@ class HourlyForecast(BaseModel):
     humidity: int
     wind_speed: float
     pop: float  # probability of precipitation (0-1)
-    pressure: int | None = None
+    pressure: float | None = None  # API returns float
     dew_point: float | None = None
     uvi: float | None = None
 
@@ -113,7 +113,7 @@ class DailyForecast(BaseModel):
     temp_eve: float | None = None
     temp_night: float | None = None
     humidity: int | None = None
-    pressure: int | None = None
+    pressure: float | None = None  # API returns float
     dew_point: float | None = None
     wind_speed: float | None = None
     wind_gust: float | None = None

@@ -3,10 +3,7 @@ from datetime import datetime, timedelta
 from app.models import (
     Attendee,
     CalendarEvent,
-    DailyForecast,
     FamilyMember,
-    HourlyForecast,
-    WeatherCurrent,
     WeatherResponse,
     WeekCalendar,
 )
@@ -431,364 +428,188 @@ def get_mock_week_calendar(
     )
 
 
-def get_mock_weather(units: str = "imperial") -> WeatherResponse:
-    """Generate mock weather data with rich details for days 1-7 and basic for days 8-16."""
-    # Start from today (no past days in forecast)
-    today = datetime.now().date()
+def _get_mock_api_responses() -> tuple[dict, list[dict], list[dict]]:
+    """
+    Generate mock API response dicts that match One Call API 4.0 structure exactly.
 
-    def fahrenheit_to_celsius(fahrenheit: float) -> float:
-        """Convert Fahrenheit to Celsius."""
-        return (fahrenheit - 32) * 5 / 9
-
-    def convert_mock_temp(value: float | None, units: str) -> float | None:
-        """Convert mock temperature (stored as Fahrenheit) to requested units."""
-        if value is None:
-            return None
-        if units == "metric":
-            return fahrenheit_to_celsius(value)
-        return value  # imperial, return as-is
-
-    # Calculate is_night based on Eastern time (EDT = UTC-4)
+    Returns:
+        (current_data, hourly_data, daily_data) - raw dicts matching 4.0 API responses
+    """
     from datetime import timezone as tz
 
-    eastern_tz = tz(timedelta(hours=-4))  # EDT
-    now_eastern = datetime.now(eastern_tz)
-    current_hour = now_eastern.hour
-    current_minute = now_eastern.minute
-    current_minutes = current_hour * 60 + current_minute
+    # Eastern Time offset (EDT = UTC-4, EST = UTC-5)
+    # For simplicity, use EDT (-4 hours = -14400 seconds)
+    tz_offset = -14400
+    eastern_tz = tz(timedelta(seconds=tz_offset))
+    now = datetime.now(eastern_tz)
+    today = now.date()
 
-    # Mock sunrise: 06:12, sunset: 19:48 (Eastern time)
-    sunrise_minutes = 6 * 60 + 12  # 06:12
-    sunset_minutes = 19 * 60 + 48  # 19:48
-    is_night = current_minutes < sunrise_minutes or current_minutes > sunset_minutes
+    # Mock sunrise/sunset times (Eastern)
+    sunrise_time = now.replace(hour=6, minute=12, second=0, microsecond=0)
+    sunset_time = now.replace(hour=19, minute=48, second=0, microsecond=0)
+    sunrise_ts = int(sunrise_time.timestamp())
+    sunset_ts = int(sunset_time.timestamp())
 
-    # Determine icon suffix based on is_night
-    icon_suffix = "n" if is_night else "d"
+    # Current conditions (in Celsius, as OWM returns metric by default)
+    current_temp_c = 25.5  # ~78°F
+    current_data = {
+        "lat": 40.715401,
+        "lon": -73.512924,
+        "timezone": "America/New_York",
+        "timezone_offset": tz_offset,
+        "data": [
+            {
+                "dt": int(now.timestamp()),
+                "sunrise": sunrise_ts,
+                "sunset": sunset_ts,
+                "temp": current_temp_c,
+                "feels_like": 26.7,  # ~80°F
+                "pressure": 1015.0,
+                "humidity": 55,
+                "dew_point": 16.7,  # ~62°F
+                "uvi": 6.5,
+                "clouds": 10,
+                "visibility": 10000,
+                "wind_speed": 3.8,  # ~8.5 mph
+                "wind_deg": 225,
+                "wind_gust": 5.4,  # ~12 mph
+                "weather": [
+                    {
+                        "id": 800,
+                        "main": "Clear",
+                        "description": "clear sky",
+                        "icon": "01d",
+                    }
+                ],
+                "alerts": [],
+            }
+        ],
+    }
 
-    # Current conditions (mock values in Fahrenheit, convert if needed)
-    current = WeatherCurrent(
-        temperature=convert_mock_temp(78, units),
-        feels_like=convert_mock_temp(80, units),
-        condition="clear",
-        icon=icon_suffix,
-        is_night=is_night,
-        humidity=55,
-        wind_speed=8.5,
-        wind_gust=12.0,
-        wind_deg=225,
-        pressure=1015,
-        dew_point=convert_mock_temp(62.0, units),
-        uvi=6.5,
-        sunrise="06:12",
-        sunset="19:48",
-    )
+    # Hourly data (48 hours starting from today's midnight)
+    hourly_data_list = []
+    today_midnight = now.replace(hour=0, minute=0, second=0, microsecond=0)
+    for i in range(48):
+        hour_time = today_midnight + timedelta(hours=i)
+        hour_ts = int(hour_time.timestamp())
+        # Simulate temperature curve: cooler at night, warmer during day
+        hour_of_day = hour_time.hour
+        if 0 <= hour_of_day < 6:
+            temp_c = 18.3  # ~65°F
+        elif 6 <= hour_of_day < 12:
+            temp_c = 18.3 + (hour_of_day - 6) * 1.5  # warming up
+        elif 12 <= hour_of_day < 18:
+            temp_c = 25.5  # ~78°F peak
+        else:
+            temp_c = 25.5 - (hour_of_day - 18) * 1.2  # cooling down
 
-    # Rich forecast data for days 1-7
-    rich_days = [
-        {
-            "condition": "clear",
-            "icon": "clear",
-            "high": 81,
-            "low": 69,
-            "temp_morn": 65,
-            "temp_day": 78,
-            "temp_eve": 74,
-            "temp_night": 68,
-            "feels_like_day": 83,
-            "feels_like_night": 66,
-            "humidity": 55,
-            "pressure": 1015,
-            "dew_point": 62.0,
-            "wind_speed": 8.5,
-            "wind_gust": 12.0,
-            "wind_deg": 225,
-            "uvi": 6.5,
-            "pop": 0.05,
-            "rain": 0.0,
-            "snow": 0.0,
-            "clouds": 10,
-            "sunrise": "06:12",
-            "sunset": "19:48",
-            "moonrise": "20:15",
-            "moonset": "07:30",
-            "moon_phase": 0.75,
-            "summary": "Clear skies throughout the day",
-        },
-        {
-            "condition": "clouds",
-            "icon": "clouds",
-            "high": 78,
-            "low": 66,
-            "temp_morn": 63,
-            "temp_day": 75,
-            "temp_eve": 72,
-            "temp_night": 65,
-            "feels_like_day": 77,
-            "feels_like_night": 63,
-            "humidity": 60,
-            "pressure": 1013,
-            "dew_point": 63.0,
-            "wind_speed": 10.2,
-            "wind_gust": 15.0,
-            "wind_deg": 240,
-            "uvi": 5.0,
-            "pop": 0.15,
-            "rain": 0.0,
-            "snow": 0.0,
-            "clouds": 40,
-            "sunrise": "06:13",
-            "sunset": "19:47",
-            "moonrise": "20:45",
-            "moonset": "08:35",
-            "moon_phase": 0.8,
-            "summary": "Partly cloudy with mild temperatures",
-        },
-        {
-            "condition": "drizzle",
-            "icon": "drizzle",
-            "high": 75,
-            "low": 63,
-            "temp_morn": 61,
-            "temp_day": 72,
-            "temp_eve": 69,
-            "temp_night": 62,
-            "feels_like_day": 73,
-            "feels_like_night": 60,
-            "humidity": 65,
-            "pressure": 1010,
-            "dew_point": 64.0,
-            "wind_speed": 12.0,
-            "wind_gust": 18.0,
-            "wind_deg": 250,
-            "uvi": 3.5,
-            "pop": 0.30,
-            "rain": 0.5,
-            "snow": 0.0,
-            "clouds": 70,
-            "sunrise": "06:14",
-            "sunset": "19:46",
-            "moonrise": "21:20",
-            "moonset": "09:40",
-            "moon_phase": 0.85,
-            "summary": "Light drizzle with overcast skies",
-        },
-        {
-            "condition": "rain",
-            "icon": "rain",
-            "high": 68,
-            "low": 58,
-            "temp_morn": 56,
-            "temp_day": 65,
-            "temp_eve": 62,
-            "temp_night": 57,
-            "feels_like_day": 65,
-            "feels_like_night": 55,
-            "humidity": 78,
-            "pressure": 1008,
-            "dew_point": 61.0,
-            "wind_speed": 12.0,
-            "wind_gust": 20.0,
-            "wind_deg": 45,
-            "uvi": 2.0,
-            "pop": 0.80,
-            "rain": 5.0,
-            "snow": 0.0,
-            "clouds": 90,
-            "sunrise": "06:15",
-            "sunset": "19:45",
-            "moonrise": "22:00",
-            "moonset": "10:45",
-            "moon_phase": 0.9,
-            "summary": "Rain likely throughout the day",
-        },
-        {
-            "condition": "thunderstorm",
-            "icon": "thunderstorm",
-            "high": 65,
-            "low": 55,
-            "temp_morn": 53,
-            "temp_day": 62,
-            "temp_eve": 59,
-            "temp_night": 54,
-            "feels_like_day": 61,
-            "feels_like_night": 52,
-            "humidity": 82,
-            "pressure": 1006,
-            "dew_point": 60.0,
-            "wind_speed": 14.5,
-            "wind_gust": 22.0,
-            "wind_deg": 50,
-            "uvi": 1.5,
-            "pop": 0.85,
-            "rain": 8.0,
-            "snow": 0.0,
-            "clouds": 95,
-            "sunrise": "06:16",
-            "sunset": "19:44",
-            "moonrise": "22:45",
-            "moonset": "11:50",
-            "moon_phase": 0.95,
-            "summary": "Thunderstorms expected with heavy rain",
-        },
-        {
-            "condition": "clouds",
-            "icon": "clouds",
-            "high": 72,
-            "low": 60,
-            "temp_morn": 58,
-            "temp_day": 70,
-            "temp_eve": 67,
-            "temp_night": 59,
-            "feels_like_day": 70,
-            "feels_like_night": 57,
-            "humidity": 62,
-            "pressure": 1012,
-            "dew_point": 59.0,
-            "wind_speed": 9.0,
-            "wind_gust": 14.0,
-            "wind_deg": 270,
-            "uvi": 4.5,
-            "pop": 0.20,
-            "rain": 0.2,
-            "snow": 0.0,
-            "clouds": 45,
-            "sunrise": "06:17",
-            "sunset": "19:43",
-            "moonrise": "23:35",
-            "moonset": "12:55",
-            "moon_phase": 0.0,
-            "summary": "Clearing skies after morning showers",
-        },
-        {
-            "condition": "clear",
-            "icon": "clear",
-            "high": 79,
-            "low": 67,
-            "temp_morn": 64,
-            "temp_day": 76,
-            "temp_eve": 73,
-            "temp_night": 66,
-            "feels_like_day": 79,
-            "feels_like_night": 64,
-            "humidity": 52,
-            "pressure": 1018,
-            "dew_point": 60.0,
-            "wind_speed": 7.0,
-            "wind_gust": 10.0,
-            "wind_deg": 315,
-            "uvi": 7.0,
-            "pop": 0.05,
-            "rain": 0.0,
-            "snow": 0.0,
-            "clouds": 15,
-            "sunrise": "06:18",
-            "sunset": "19:42",
-            "moonrise": None,
-            "moonset": "14:00",
-            "moon_phase": 0.1,
-            "summary": "Beautiful clear day",
-        },
-    ]
+        hourly_data_list.append(
+            {
+                "dt": hour_ts,
+                "temp": temp_c,
+                "feels_like": temp_c + 1.1,
+                "pressure": 1015.0,
+                "humidity": 55 + (hour_of_day % 10),
+                "dew_point": 16.7,
+                "uvi": max(0, 6.5 - abs(hour_of_day - 12) * 0.5),
+                "clouds": 10,
+                "visibility": 10000,
+                "wind_speed": 3.8 + (hour_of_day % 5) * 0.2,
+                "wind_deg": 225,
+                "wind_gust": 5.4,
+                "weather": [
+                    {
+                        "id": 800,
+                        "main": "Clear",
+                        "description": "clear sky",
+                        "icon": "01d" if 6 <= hour_of_day < 20 else "01n",
+                    }
+                ],
+                "pop": 0.05,
+                "alerts": [],
+            }
+        )
 
-    # Generate hourly data for each rich day
-    def generate_hourly(day_offset: int, day_data: dict) -> list[HourlyForecast]:
-        """Generate 6 hourly readings (every 3 hours from 6am to 9pm)."""
-        hourly = []
-        base_temp = day_data["temp_morn"]
-        peak_temp = day_data["temp_day"]
-        evening_temp = day_data["temp_eve"]
-
-        temps = [
-            base_temp,
-            base_temp + (peak_temp - base_temp) * 0.3,
-            base_temp + (peak_temp - base_temp) * 0.7,
-            peak_temp,
-            peak_temp - (peak_temp - evening_temp) * 0.4,
-            evening_temp - 3,
-        ]
-        times = ["06:00", "09:00", "12:00", "15:00", "18:00", "21:00"]
-
-        for i, (time_str, temp) in enumerate(zip(times, temps, strict=True)):
-            hour_date = today + timedelta(days=day_offset)
-            hourly.append(
-                HourlyForecast(
-                    time=f"{hour_date.isoformat()}T{time_str}:00",
-                    temperature=round(convert_mock_temp(temp, units), 1),
-                    feels_like=round(convert_mock_temp(temp - 2, units), 1),
-                    condition=day_data["condition"],
-                    icon=day_data["icon"],
-                    humidity=day_data["humidity"] + (i * 2),
-                    wind_speed=day_data["wind_speed"] + (i * 0.5),
-                    pop=day_data["pop"],
-                    pressure=day_data["pressure"],
-                    dew_point=convert_mock_temp(day_data["dew_point"], units),
-                    uvi=max(0, day_data["uvi"] - (i * 0.8)),
-                )
-            )
-        return hourly
-
-    forecast = []
-
-    # Days 1-7: Rich data with hourly breakdown
-    for i, day_data in enumerate(rich_days):
+    # Daily data (14 days starting from today)
+    daily_data_list = []
+    conditions = ["Clear", "Clouds", "Drizzle", "Rain", "Thunderstorm", "Clouds", "Clear"]
+    for i in range(14):
         day_date = today + timedelta(days=i)
-        forecast.append(
-            DailyForecast(
-                date=day_date.isoformat(),
-                high=convert_mock_temp(day_data["high"], units),
-                low=convert_mock_temp(day_data["low"], units),
-                condition=day_data["condition"],
-                icon=day_data["icon"],
-                feels_like_day=convert_mock_temp(day_data["feels_like_day"], units),
-                feels_like_night=convert_mock_temp(day_data["feels_like_night"], units),
-                temp_morn=convert_mock_temp(day_data["temp_morn"], units),
-                temp_day=convert_mock_temp(day_data["temp_day"], units),
-                temp_eve=convert_mock_temp(day_data["temp_eve"], units),
-                temp_night=convert_mock_temp(day_data["temp_night"], units),
-                humidity=day_data["humidity"],
-                pressure=day_data["pressure"],
-                dew_point=convert_mock_temp(day_data["dew_point"], units),
-                wind_speed=day_data["wind_speed"],
-                wind_gust=day_data["wind_gust"],
-                wind_deg=day_data["wind_deg"],
-                uvi=day_data["uvi"],
-                pop=day_data["pop"],
-                rain=day_data["rain"],
-                snow=day_data["snow"],
-                clouds=day_data["clouds"],
-                sunrise=day_data["sunrise"],
-                sunset=day_data["sunset"],
-                moonrise=day_data["moonrise"],
-                moonset=day_data["moonset"],
-                moon_phase=day_data["moon_phase"],
-                summary=day_data["summary"],
-                hourly=generate_hourly(i, day_data),
-            )
+        # Use Eastern-aware datetimes so timestamps align with hourly data
+        day_midnight = datetime.combine(day_date, datetime.min.time(), tzinfo=eastern_tz)
+        day_ts = int(day_midnight.timestamp())
+
+        day_sunrise = datetime.combine(
+            day_date, datetime.min.time().replace(hour=6, minute=12), tzinfo=eastern_tz
+        )
+        day_sunset = datetime.combine(
+            day_date, datetime.min.time().replace(hour=19, minute=48), tzinfo=eastern_tz
+        )
+        day_sunrise_ts = int(day_sunrise.timestamp())
+        day_sunset_ts = int(day_sunset.timestamp())
+
+        # Simulate temperature variation
+        base_temp = 25.5 - (i % 3) * 1.5
+        day_condition = conditions[i % len(conditions)]
+        icon_code = "01d" if day_condition == "Clear" else "02d"
+
+        daily_data_list.append(
+            {
+                "dt": day_ts,
+                "sunrise": day_sunrise_ts,
+                "sunset": day_sunset_ts,
+                "moonrise": day_sunrise_ts + 3600,
+                "moonset": day_sunset_ts - 3600,
+                "moon_phase": 0.75,
+                "temp": {
+                    "day": base_temp,
+                    "min": base_temp - 5.6,  # ~10°F lower
+                    "max": base_temp + 2.8,  # ~5°F higher
+                    "night": base_temp - 4.4,
+                    "eve": base_temp - 1.1,
+                    "morn": base_temp - 3.3,
+                },
+                "feels_like": {
+                    "day": base_temp + 1.1,
+                    "night": base_temp - 5.0,
+                    "eve": base_temp - 0.6,
+                    "morn": base_temp - 2.8,
+                },
+                "pressure": 1015.0,
+                "humidity": 55 + (i % 10),
+                "dew_point": 16.7,
+                "wind_speed": 3.8 + (i % 5) * 0.3,
+                "wind_deg": 225,
+                "wind_gust": 5.4,
+                "weather": [
+                    {
+                        "id": 800 if day_condition == "Clear" else 802,
+                        "main": day_condition,
+                        "description": day_condition.lower(),
+                        "icon": icon_code,
+                    }
+                ],
+                "clouds": 10 + (i % 20),
+                "pop": 0.05 + (i % 10) * 0.02,
+                "uvi": 6.5 - (i % 3) * 0.5,
+                "alerts": [],
+            }
         )
 
-    # Days 8-16: Basic data only
-    basic_days = [
-        {"condition": "clear", "icon": "clear", "high": 82, "low": 70},
-        {"condition": "clouds", "icon": "clouds", "high": 77, "low": 65},
-        {"condition": "mist", "icon": "mist", "high": 73, "low": 61},
-        {"condition": "clear", "icon": "clear", "high": 79, "low": 67},
-        {"condition": "clouds", "icon": "clouds", "high": 76, "low": 64},
-        {"condition": "clear", "icon": "clear", "high": 80, "low": 68},
-        {"condition": "haze", "icon": "haze", "high": 74, "low": 62},
-        {"condition": "clouds", "icon": "clouds", "high": 78, "low": 66},
-        {"condition": "clear", "icon": "clear", "high": 81, "low": 69},
-    ]
+    return current_data, hourly_data_list, daily_data_list
 
-    for i, day_data in enumerate(basic_days):
-        day_date = today + timedelta(days=7 + i)
-        forecast.append(
-            DailyForecast(
-                date=day_date.isoformat(),
-                high=convert_mock_temp(day_data["high"], units),
-                low=convert_mock_temp(day_data["low"], units),
-                condition=day_data["condition"],
-                icon=day_data["icon"],
-            )
-        )
 
-    return WeatherResponse(current=current, forecast=forecast)
+def get_mock_weather(units: str = "imperial") -> WeatherResponse:
+    """
+    Generate mock weather data by creating 4.0-shaped API response dicts,
+    then parsing them through the same _build_response() function as real data.
+    """
+    from app.services.weather_service import _build_response
+
+    current_data, hourly_data, daily_data = _get_mock_api_responses()
+
+    # Extract timezone_offset from mock current data
+    tz_offset = current_data.get("timezone_offset", 0)
+
+    # Parse through the same function as real API data
+    return _build_response(current_data, hourly_data, daily_data, tz_offset, units)
