@@ -7,8 +7,8 @@ const mockForecast: DailyForecast = {
   date: '2026-08-11',
   high: 78,
   low: 66,
-  condition: 'partly-cloudy',
-  icon: '02d',
+  condition: 'clouds',
+  icon: 'clouds',
   humidity: 60,
   wind_speed: 10,
   feels_like_day: 77,
@@ -31,14 +31,14 @@ const mockForecast: DailyForecast = {
   moonrise: '20:45',
   moonset: '08:35',
   moon_phase: 0.8,
-  summary: 'Partly cloudy with mild temperatures',
+  summary: 'Cloudy with mild temperatures',
   hourly: [
     {
       time: '2026-08-11T06:00:00',
       temperature: 63,
       feels_like: 61,
-      condition: 'partly-cloudy',
-      icon: '02d',
+      condition: 'clouds',
+      icon: 'clouds',
       humidity: 60,
       wind_speed: 10,
       pop: 0.15,
@@ -50,8 +50,8 @@ const mockForecast: DailyForecast = {
       time: '2026-08-11T09:00:00',
       temperature: 67,
       feels_like: 65,
-      condition: 'partly-cloudy',
-      icon: '02d',
+      condition: 'clouds',
+      icon: 'clouds',
       humidity: 62,
       wind_speed: 10.5,
       pop: 0.15,
@@ -63,8 +63,8 @@ const mockForecast: DailyForecast = {
       time: '2026-08-11T12:00:00',
       temperature: 71,
       feels_like: 69,
-      condition: 'partly-cloudy',
-      icon: '02d',
+      condition: 'clouds',
+      icon: 'clouds',
       humidity: 64,
       wind_speed: 11,
       pop: 0.15,
@@ -76,8 +76,8 @@ const mockForecast: DailyForecast = {
       time: '2026-08-11T15:00:00',
       temperature: 74,
       feels_like: 72,
-      condition: 'partly-cloudy',
-      icon: '02d',
+      condition: 'clouds',
+      icon: 'clouds',
       humidity: 66,
       wind_speed: 11.5,
       pop: 0.15,
@@ -89,8 +89,8 @@ const mockForecast: DailyForecast = {
       time: '2026-08-11T18:00:00',
       temperature: 72,
       feels_like: 70,
-      condition: 'partly-cloudy',
-      icon: '02d',
+      condition: 'clouds',
+      icon: 'clouds',
       humidity: 68,
       wind_speed: 12,
       pop: 0.15,
@@ -102,8 +102,8 @@ const mockForecast: DailyForecast = {
       time: '2026-08-11T21:00:00',
       temperature: 69,
       feels_like: 67,
-      condition: 'partly-cloudy',
-      icon: '02d',
+      condition: 'clouds',
+      icon: 'clouds',
       humidity: 70,
       wind_speed: 12.5,
       pop: 0.15,
@@ -132,8 +132,8 @@ describe('WeatherTooltip', () => {
       date: '2026-08-11',
       high: 78,
       low: 66,
-      condition: 'sunny',
-      icon: '01d',
+      condition: 'clear',
+      icon: 'clear',
     }
 
     render(<WeatherTooltip forecast={basicForecast} visible={true} x={100} y={100} />)
@@ -148,6 +148,7 @@ describe('WeatherTooltip', () => {
     expect(screen.getByText('78°F')).toBeInTheDocument()
     expect(screen.getByText('Today')).toBeInTheDocument()
     expect(screen.getByText('Aug 11')).toBeInTheDocument()
+    // "Temperature" appears once as section heading (removed duplicate from chart)
     expect(screen.getByText('Temperature')).toBeInTheDocument()
   })
 

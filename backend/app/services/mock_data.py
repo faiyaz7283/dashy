@@ -433,8 +433,8 @@ def get_mock_week_calendar(
 
 def get_mock_weather(units: str = "imperial") -> WeatherResponse:
     """Generate mock weather data with rich details for days 1-7 and basic for days 8-16."""
-    # Start from yesterday to handle timezone edge cases (backend UTC vs frontend local time)
-    today = datetime.now().date() - timedelta(days=1)
+    # Start from today (no past days in forecast)
+    today = datetime.now().date()
 
     def fahrenheit_to_celsius(fahrenheit: float) -> float:
         """Convert Fahrenheit to Celsius."""
@@ -448,12 +448,30 @@ def get_mock_weather(units: str = "imperial") -> WeatherResponse:
             return fahrenheit_to_celsius(value)
         return value  # imperial, return as-is
 
+    # Calculate is_night based on Eastern time (EDT = UTC-4)
+    from datetime import timezone as tz
+
+    eastern_tz = tz(timedelta(hours=-4))  # EDT
+    now_eastern = datetime.now(eastern_tz)
+    current_hour = now_eastern.hour
+    current_minute = now_eastern.minute
+    current_minutes = current_hour * 60 + current_minute
+
+    # Mock sunrise: 06:12, sunset: 19:48 (Eastern time)
+    sunrise_minutes = 6 * 60 + 12  # 06:12
+    sunset_minutes = 19 * 60 + 48  # 19:48
+    is_night = current_minutes < sunrise_minutes or current_minutes > sunset_minutes
+
+    # Determine icon suffix based on is_night
+    icon_suffix = "n" if is_night else "d"
+
     # Current conditions (mock values in Fahrenheit, convert if needed)
     current = WeatherCurrent(
         temperature=convert_mock_temp(78, units),
         feels_like=convert_mock_temp(80, units),
-        condition="sunny",
-        icon="01d",
+        condition="clear",
+        icon=icon_suffix,
+        is_night=is_night,
         humidity=55,
         wind_speed=8.5,
         wind_gust=12.0,
@@ -468,8 +486,8 @@ def get_mock_weather(units: str = "imperial") -> WeatherResponse:
     # Rich forecast data for days 1-7
     rich_days = [
         {
-            "condition": "sunny",
-            "icon": "01d",
+            "condition": "clear",
+            "icon": "clear",
             "high": 81,
             "low": 69,
             "temp_morn": 65,
@@ -497,8 +515,8 @@ def get_mock_weather(units: str = "imperial") -> WeatherResponse:
             "summary": "Clear skies throughout the day",
         },
         {
-            "condition": "partly-cloudy",
-            "icon": "02d",
+            "condition": "clouds",
+            "icon": "clouds",
             "high": 78,
             "low": 66,
             "temp_morn": 63,
@@ -526,8 +544,8 @@ def get_mock_weather(units: str = "imperial") -> WeatherResponse:
             "summary": "Partly cloudy with mild temperatures",
         },
         {
-            "condition": "cloudy",
-            "icon": "03d",
+            "condition": "drizzle",
+            "icon": "drizzle",
             "high": 75,
             "low": 63,
             "temp_morn": 61,
@@ -552,11 +570,11 @@ def get_mock_weather(units: str = "imperial") -> WeatherResponse:
             "moonrise": "21:20",
             "moonset": "09:40",
             "moon_phase": 0.85,
-            "summary": "Overcast with a chance of light rain",
+            "summary": "Light drizzle with overcast skies",
         },
         {
-            "condition": "rainy",
-            "icon": "10d",
+            "condition": "rain",
+            "icon": "rain",
             "high": 68,
             "low": 58,
             "temp_morn": 56,
@@ -584,8 +602,8 @@ def get_mock_weather(units: str = "imperial") -> WeatherResponse:
             "summary": "Rain likely throughout the day",
         },
         {
-            "condition": "rainy",
-            "icon": "10d",
+            "condition": "thunderstorm",
+            "icon": "thunderstorm",
             "high": 65,
             "low": 55,
             "temp_morn": 53,
@@ -610,11 +628,11 @@ def get_mock_weather(units: str = "imperial") -> WeatherResponse:
             "moonrise": "22:45",
             "moonset": "11:50",
             "moon_phase": 0.95,
-            "summary": "Heavy rain expected",
+            "summary": "Thunderstorms expected with heavy rain",
         },
         {
-            "condition": "partly-cloudy",
-            "icon": "02d",
+            "condition": "clouds",
+            "icon": "clouds",
             "high": 72,
             "low": 60,
             "temp_morn": 58,
@@ -642,8 +660,8 @@ def get_mock_weather(units: str = "imperial") -> WeatherResponse:
             "summary": "Clearing skies after morning showers",
         },
         {
-            "condition": "sunny",
-            "icon": "01d",
+            "condition": "clear",
+            "icon": "clear",
             "high": 79,
             "low": 67,
             "temp_morn": 64,
@@ -668,7 +686,7 @@ def get_mock_weather(units: str = "imperial") -> WeatherResponse:
             "moonrise": None,
             "moonset": "14:00",
             "moon_phase": 0.1,
-            "summary": "Beautiful sunny day",
+            "summary": "Beautiful clear day",
         },
     ]
 
@@ -750,15 +768,15 @@ def get_mock_weather(units: str = "imperial") -> WeatherResponse:
 
     # Days 8-16: Basic data only
     basic_days = [
-        {"condition": "sunny", "icon": "01d", "high": 82, "low": 70},
-        {"condition": "partly-cloudy", "icon": "02d", "high": 77, "low": 65},
-        {"condition": "cloudy", "icon": "03d", "high": 73, "low": 61},
-        {"condition": "sunny", "icon": "01d", "high": 79, "low": 67},
-        {"condition": "partly-cloudy", "icon": "02d", "high": 76, "low": 64},
-        {"condition": "sunny", "icon": "01d", "high": 80, "low": 68},
-        {"condition": "cloudy", "icon": "03d", "high": 74, "low": 62},
-        {"condition": "partly-cloudy", "icon": "02d", "high": 78, "low": 66},
-        {"condition": "sunny", "icon": "01d", "high": 81, "low": 69},
+        {"condition": "clear", "icon": "clear", "high": 82, "low": 70},
+        {"condition": "clouds", "icon": "clouds", "high": 77, "low": 65},
+        {"condition": "mist", "icon": "mist", "high": 73, "low": 61},
+        {"condition": "clear", "icon": "clear", "high": 79, "low": 67},
+        {"condition": "clouds", "icon": "clouds", "high": 76, "low": 64},
+        {"condition": "clear", "icon": "clear", "high": 80, "low": 68},
+        {"condition": "haze", "icon": "haze", "high": 74, "low": 62},
+        {"condition": "clouds", "icon": "clouds", "high": 78, "low": 66},
+        {"condition": "clear", "icon": "clear", "high": 81, "low": 69},
     ]
 
     for i, day_data in enumerate(basic_days):

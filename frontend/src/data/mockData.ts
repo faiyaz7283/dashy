@@ -165,6 +165,7 @@ export const mockEvents: CalendarEvent[] = [
 
 export const mockWeather = {
   temperature: 78,
-  condition: 'sunny' as const,
-  icon: 'sun',
+  condition: 'clear' as const,
+  icon: 'd',
+  is_night: false,
 }

@@ -16,7 +16,7 @@ A DIY family command center dashboard inspired by [Skylight Calendar](https://my
 - **API Services:** Google Calendar + OpenWeatherMap (falls back to mock data when credentials are missing)
 - **Kiosk:** Chromium auto-starts on boot, displays the dashboard with real calendar data
 - **Views:** Day, Week, Month, Year with navigation and auto-refresh
-- **Weather integration:** Current conditions and forecasts displayed across all views with detailed hover tooltips
+- **Weather integration:** Current conditions and forecasts displayed across all views with 1:1 OWM condition icons (15 unique SVG icons with day/night variants), detailed hover tooltips with value-aware metric icons
 - **Header:** Auto-hiding (proximity-based), single row, responsive compaction tiers; no logo/hamburger
 - **Backend:** Enhanced with event deduplication, attendees, recurring events, full event details
 - **Frontend:** Unified event architecture — `EventItem` (card/strip/block) + `useEventInteraction` across all views; see `frontend/src/docs/event-architecture-analysis.md`
@@ -211,6 +211,9 @@ Children (Arya, 8 and Raya, 4) are not in v1 calendar scope but the system suppo
 - **API:** OpenWeatherMap (free tier, 1000 calls/day)
 - **Unit conversion:** Supports metric (Celsius) and imperial (Fahrenheit) via `?units=` query parameter (default: imperial). Backend always fetches Celsius from OpenWeatherMap and converts based on request.
 - **Integration:** Weather displays across all calendar views (Day, Week, Month) with hover tooltips showing detailed forecasts including hourly temperature charts.
+- **Icons:** All 15 OWM `weather.main` conditions map 1:1 to unique SVG icons (no grouping). Each condition has day/night color variants (darker at night). Clear night shows a moon with stars; other conditions use darker cloud/line colors at night.
+- **Timezone handling:** All timestamps converted using OWM's `timezone_offset` field, ensuring forecast dates align with local time (no past-day dates in the forecast).
+- **Tooltip metrics:** Value-aware SVG icons for temperature (color-coded by feel), humidity (opacity scales), wind (more lines = stronger), UV (color+size by intensity), precipitation (more drops = higher chance), pressure (barometer needle), and 8 moon phases.
 - **Test coverage:** 8 backend tests for unit conversion, 7 frontend tests for WeatherTooltip component.
 
 ---
@@ -415,11 +418,13 @@ After Pi reboot, Chromium showed a blank grey screen instead of the dashboard.
 2. **Version-controlled configuration** — autostart config tracked in git, deployed automatically.
 3. **Retry logic** — script retries service checks before launching Chromium.
 
-### Weather Icon Not Displaying on Pi
+### Weather Icon Redesign
 
-Weather widget showed a rectangle instead of an emoji on Pi's Chromium.
-
-**Solution:** SVG-based icons (`WeatherIcon.tsx`) replaced emoji with SVG icons for consistent rendering across all browsers/devices.
+All 15 OWM `weather.main` conditions now have unique SVG icons with day/night color variants. The old emoji-based approach was replaced with a complete icon system:
+- 1:1 mapping (no grouping) — each OWM condition gets its own icon
+- Day/night variants — darker colors at night, moon with stars for clear nights
+- Value-aware metric icons in tooltips (temperature, humidity, wind, UV, etc.)
+- Timezone-aware date conversion using OWM's `timezone_offset`
 
 ### Docker Build Cache Issue with VITE_API_URL
 

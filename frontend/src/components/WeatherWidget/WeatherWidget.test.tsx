@@ -6,8 +6,9 @@ import type { WeatherCurrent } from '../../types'
 const mockWeather: WeatherCurrent = {
   temperature: 78,
   feels_like: 80,
-  condition: 'sunny',
-  icon: 'sunny',
+  condition: 'clear',
+  icon: 'd',
+  is_night: false,
   humidity: 55,
   wind_speed: 8.5,
 }
@@ -18,26 +19,26 @@ describe('WeatherWidget', () => {
     expect(screen.getByText('78°')).toBeInTheDocument()
   })
 
-  it('renders sunny icon', () => {
+  it('renders clear icon', () => {
     render(<WeatherWidget weather={mockWeather} />)
-    expect(screen.getByLabelText('Sunny')).toBeInTheDocument()
+    expect(screen.getByLabelText('Clear')).toBeInTheDocument()
   })
 
-  it('renders cloudy icon', () => {
-    const cloudyWeather = { ...mockWeather, icon: 'cloudy' }
+  it('renders clouds icon', () => {
+    const cloudyWeather = { ...mockWeather, condition: 'clouds' as const }
     render(<WeatherWidget weather={cloudyWeather} />)
-    expect(screen.getByLabelText('Cloudy')).toBeInTheDocument()
+    expect(screen.getByLabelText('Clouds')).toBeInTheDocument()
   })
 
-  it('renders rainy icon', () => {
-    const rainyWeather = { ...mockWeather, icon: 'rainy' }
+  it('renders rain icon', () => {
+    const rainyWeather = { ...mockWeather, condition: 'rain' as const }
     render(<WeatherWidget weather={rainyWeather} />)
-    expect(screen.getByLabelText('Rainy')).toBeInTheDocument()
+    expect(screen.getByLabelText('Rain')).toBeInTheDocument()
   })
 
-  it('renders partly cloudy icon', () => {
-    const partlyCloudyWeather = { ...mockWeather, icon: 'partly-cloudy' }
-    render(<WeatherWidget weather={partlyCloudyWeather} />)
-    expect(screen.getByLabelText('Partly cloudy')).toBeInTheDocument()
+  it('renders snow icon', () => {
+    const snowyWeather = { ...mockWeather, condition: 'snow' as const }
+    render(<WeatherWidget weather={snowyWeather} />)
+    expect(screen.getByLabelText('Snow')).toBeInTheDocument()
   })
 })

@@ -167,7 +167,7 @@ export function DayCard({
               e.currentTarget.style.background = 'transparent'
             }}
           >
-            <WeatherIcon condition={weatherForecast.icon} className="" />
+            <WeatherIcon condition={weatherForecast.condition} size="small" />
             <span style={{ fontSize: '12px', fontWeight: 500, color: colors.textSecondary }}>
               {Math.round(weatherForecast.high)}°
             </span>

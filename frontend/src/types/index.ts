@@ -42,11 +42,30 @@ export interface WeekCalendar {
   events: CalendarEvent[]
 }
 
+/** All 15 distinct OpenWeatherMap weather.main values — 1:1 mapping, no grouping. */
+export type WeatherCondition =
+  | 'clear'
+  | 'clouds'
+  | 'rain'
+  | 'drizzle'
+  | 'thunderstorm'
+  | 'snow'
+  | 'mist'
+  | 'smoke'
+  | 'haze'
+  | 'dust'
+  | 'fog'
+  | 'sand'
+  | 'ash'
+  | 'squall'
+  | 'tornado'
+
 export interface WeatherCurrent {
   temperature: number
   feels_like: number
-  condition: string
-  icon: string
+  condition: WeatherCondition
+  icon: string // 'd' for day, 'n' for night
+  is_night: boolean
   humidity: number
   wind_speed: number
   wind_gust?: number | null
@@ -62,8 +81,8 @@ export interface HourlyForecast {
   time: string // ISO datetime
   temperature: number
   feels_like: number
-  condition: string
-  icon: string
+  condition: WeatherCondition
+  icon: WeatherCondition
   humidity: number
   wind_speed: number
   pop: number // probability of precipitation (0-1)
@@ -76,8 +95,8 @@ export interface DailyForecast {
   date: string
   high: number
   low: number
-  condition: string
-  icon: string
+  condition: WeatherCondition
+  icon: WeatherCondition
 
   // Rich fields (days 1-7 from One Call API)
   feels_like_day?: number | null

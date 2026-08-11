@@ -43,11 +43,32 @@ class WeekCalendar(BaseModel):
     events: list[CalendarEvent]
 
 
+# All 15 distinct OpenWeatherMap weather.main values — 1:1 mapping, no grouping.
+WeatherCondition = Literal[
+    "clear",
+    "clouds",
+    "rain",
+    "drizzle",
+    "thunderstorm",
+    "snow",
+    "mist",
+    "smoke",
+    "haze",
+    "dust",
+    "fog",
+    "sand",
+    "ash",
+    "squall",
+    "tornado",
+]
+
+
 class WeatherCurrent(BaseModel):
     temperature: float
     feels_like: float
-    condition: Literal["sunny", "cloudy", "rainy", "partly-cloudy", "snowy"]
+    condition: WeatherCondition
     icon: str
+    is_night: bool = False
     humidity: int
     wind_speed: float
     wind_gust: float | None = None
@@ -65,7 +86,7 @@ class HourlyForecast(BaseModel):
     time: str  # ISO datetime
     temperature: float
     feels_like: float
-    condition: Literal["sunny", "cloudy", "rainy", "partly-cloudy", "snowy"]
+    condition: WeatherCondition
     icon: str
     humidity: int
     wind_speed: float
@@ -81,7 +102,7 @@ class DailyForecast(BaseModel):
     date: str
     high: float
     low: float
-    condition: Literal["sunny", "cloudy", "rainy", "partly-cloudy", "snowy"]
+    condition: WeatherCondition
     icon: str
 
     # Rich fields (days 1-7 from One Call API)
