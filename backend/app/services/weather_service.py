@@ -256,7 +256,7 @@ async def _fetch_daily(
                 dt = record.get("dt", 0)
                 date_str = datetime.fromtimestamp(dt, tz=tz.utc).strftime("%Y-%m-%d")
                 sample_dates.append(f"record[{i}]={date_str}")
-            print(f"[Weather Debug] API returned {len(all_daily)} daily records. First 5: {', '.join(sample_dates)}")
+            print(f"[Weather Debug] API returned {len(all_daily)} daily records. First 5: {', '.join(sample_dates)}", flush=True)
 
         # Trim to max_records
         return all_daily[:max_records]
@@ -386,14 +386,14 @@ def _build_response(
 
     if daily_data:
         # DEBUG: Log what we're about to filter
-        print(f"[Weather Debug] Filtering daily data. Today's date (local): {today_date}, Total records from API: {len(daily_data)}")
+        print(f"[Weather Debug] Filtering daily data. Today's date (local): {today_date}, Total records from API: {len(daily_data)}", flush=True)
         filtered_count = 0
         for day in daily_data:
             date = _ts_to_date(day["dt"], tz_offset)
             # Skip past dates and duplicates
             if date < today_date or date in seen_dates:
                 filtered_count += 1
-                print(f"[Weather Debug] Filtering out date: {date} (reason: {'past' if date < today_date else 'duplicate'})")
+                print(f"[Weather Debug] Filtering out date: {date} (reason: {'past' if date < today_date else 'duplicate'})", flush=True)
                 continue
             seen_dates.add(date)
 
@@ -442,7 +442,7 @@ def _build_response(
             )
 
     # DEBUG: Log final count after filtering
-    print(f"[Weather Debug] After filtering: {len(forecast)} days remain (filtered out {filtered_count if daily_data else 0})")
+    print(f"[Weather Debug] After filtering: {len(forecast)} days remain (filtered out {filtered_count if daily_data else 0})", flush=True)
 
     # Ensure exactly 19 days (today + 18 future days)
     forecast = forecast[:19]
