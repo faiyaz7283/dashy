@@ -4,7 +4,7 @@ OpenWeatherMap service using One Call API 4.0.
 Fetches current weather and forecast from OpenWeatherMap API 4.0.
 - Current weather: /data/4.0/onecall/current
 - Hourly forecast: /data/4.0/onecall/timeline/1h (anchored at today's midnight, 24 hours)
-- Daily forecast: /data/4.0/onecall/timeline/1day (anchored at today, fetches 15 days, returns 14)
+- Daily forecast: /data/4.0/onecall/timeline/1day (anchored at today, fetches 20 days, returns 19)
 
 All timeline queries are anchored at "today" in the local timezone (Eastern Time),
 so no historical data is fetched. Pagination is limited to the required window.
@@ -47,7 +47,7 @@ _VALID_CONDITIONS: set[str] = {
 }
 
 # How many records to fetch from each timeline endpoint.
-_MAX_DAILY_RECORDS = 15  # Fetch 15 to ensure 14 remain after filtering past entries
+_MAX_DAILY_RECORDS = 20  # Fetch 20 to ensure 19 remain after filtering past entries
 _MAX_HOURLY_RECORDS = 48  # 2 full days
 
 
@@ -220,7 +220,7 @@ async def _fetch_daily(
     Fetch daily forecast from One Call API 4.0 with pagination.
 
     Anchored at 'start' timestamp (today's midnight in local timezone).
-    Limited to max_records (15 days) to ensure 14 remain after filtering past entries.
+    Limited to max_records (20 days) to ensure 19 remain after filtering past entries.
     """
     try:
         all_daily: list[dict] = []
@@ -248,6 +248,16 @@ async def _fetch_daily(
             data = response.json()
             all_daily.extend(data.get("data", []))
 
+        # DEBUG: Log first few dates from API to check if buffer is needed
+        if all_daily:
+            from datetime import datetime, timezone as tz
+            sample_dates = []
+            for i, record in enumerate(all_daily[:5]):
+                dt = record.get("dt", 0)
+                date_str = datetime.fromtimestamp(dt, tz=tz.utc).strftime("%Y-%m-%d")
+                sample_dates.append(f"record[{i}]={date_str}")
+            print(f"[Weather Debug] API returned {len(all_daily)} daily records. First 5: {', '.join(sample_dates)}")
+
         # Trim to max_records
         return all_daily[:max_records]
     except httpx.HTTPError as e:
@@ -257,7 +267,7 @@ async def _fetch_daily(
 
 async def get_weather(units: str = "imperial") -> WeatherResponse:
     """
-    Fetch current weather and 14-day forecast from OpenWeatherMap API 4.0.
+    Fetch current weather and 19-day forecast from OpenWeatherMap API 4.0.
 
     In development (WEATHER_USE_MOCK=true), returns mock data.
     In production (WEATHER_USE_MOCK=false), calls the real API.
@@ -268,7 +278,7 @@ async def get_weather(units: str = "imperial") -> WeatherResponse:
     API call budget (at 10-minute refresh = 144 calls/day):
     - Current: 1 call
     - Hourly: 24 records ÷ 20/page = 2 pages = 2 calls
-    - Daily: 15 records ÷ 10/page = 2 pages = 2 calls (fetches 15, returns 14 after filtering)
+    - Daily: 20 records ÷ 10/page = 2 pages = 2 calls (fetches 20, returns 19 after filtering)
     - Total: 5 calls/refresh × 144 = 720 calls/day (under 1000 free limit)
 
     Args:
@@ -375,10 +385,15 @@ def _build_response(
     today_date = _ts_to_date(now_ts, tz_offset)
 
     if daily_data:
+        # DEBUG: Log what we're about to filter
+        print(f"[Weather Debug] Filtering daily data. Today's date (local): {today_date}, Total records from API: {len(daily_data)}")
+        filtered_count = 0
         for day in daily_data:
             date = _ts_to_date(day["dt"], tz_offset)
             # Skip past dates and duplicates
             if date < today_date or date in seen_dates:
+                filtered_count += 1
+                print(f"[Weather Debug] Filtering out date: {date} (reason: {'past' if date < today_date else 'duplicate'})")
                 continue
             seen_dates.add(date)
 
@@ -426,7 +441,10 @@ def _build_response(
                 )
             )
 
-    # Ensure exactly 14 days (today + 13 future days)
-    forecast = forecast[:14]
+    # DEBUG: Log final count after filtering
+    print(f"[Weather Debug] After filtering: {len(forecast)} days remain (filtered out {filtered_count if daily_data else 0})")
+
+    # Ensure exactly 19 days (today + 18 future days)
+    forecast = forecast[:19]
 
     return WeatherResponse(current=current, forecast=forecast)
