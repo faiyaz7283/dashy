@@ -248,16 +248,6 @@ async def _fetch_daily(
             data = response.json()
             all_daily.extend(data.get("data", []))
 
-        # DEBUG: Log first few dates from API to check if buffer is needed
-        if all_daily:
-            from datetime import datetime, timezone as tz
-            sample_dates = []
-            for i, record in enumerate(all_daily[:5]):
-                dt = record.get("dt", 0)
-                date_str = datetime.fromtimestamp(dt, tz=tz.utc).strftime("%Y-%m-%d")
-                sample_dates.append(f"record[{i}]={date_str}")
-            print(f"[Weather Debug] API returned {len(all_daily)} daily records. First 5: {', '.join(sample_dates)}", flush=True)
-
         # Trim to max_records
         return all_daily[:max_records]
     except httpx.HTTPError as e:
@@ -284,7 +274,6 @@ async def get_weather(units: str = "imperial") -> WeatherResponse:
     Args:
         units: Temperature units - "metric" for Celsius, "imperial" for Fahrenheit (default)
     """
-    print(f"[Weather Debug] get_weather called with units={units}, WEATHER_USE_MOCK={settings.WEATHER_USE_MOCK}", flush=True)
     # Check if we should use mock data (development mode)
     if settings.WEATHER_USE_MOCK:
         return get_mock_weather(units)
@@ -386,15 +375,10 @@ def _build_response(
     today_date = _ts_to_date(now_ts, tz_offset)
 
     if daily_data:
-        # DEBUG: Log what we're about to filter
-        print(f"[Weather Debug] Filtering daily data. Today's date (local): {today_date}, Total records from API: {len(daily_data)}", flush=True)
-        filtered_count = 0
         for day in daily_data:
             date = _ts_to_date(day["dt"], tz_offset)
             # Skip past dates and duplicates
             if date < today_date or date in seen_dates:
-                filtered_count += 1
-                print(f"[Weather Debug] Filtering out date: {date} (reason: {'past' if date < today_date else 'duplicate'})", flush=True)
                 continue
             seen_dates.add(date)
 
@@ -441,9 +425,6 @@ def _build_response(
                     hourly=day_hourly,
                 )
             )
-
-    # DEBUG: Log final count after filtering
-    print(f"[Weather Debug] After filtering: {len(forecast)} days remain (filtered out {filtered_count if daily_data else 0})", flush=True)
 
     # Ensure exactly 19 days (today + 18 future days)
     forecast = forecast[:19]

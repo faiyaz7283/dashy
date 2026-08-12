@@ -3,8 +3,14 @@ import { describe, it, expect } from 'vitest'
 import { WeatherTooltip } from './WeatherTooltip'
 import type { DailyForecast } from '../../types'
 
+// Helper to get today's date in YYYY-MM-DD format
+const getTodayStr = () => {
+  const today = new Date()
+  return `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`
+}
+
 const mockForecast: DailyForecast = {
-  date: '2026-08-11',
+  date: getTodayStr(),
   high: 78,
   low: 66,
   condition: 'clouds',
@@ -34,7 +40,7 @@ const mockForecast: DailyForecast = {
   summary: 'Cloudy with mild temperatures',
   hourly: [
     {
-      time: '2026-08-11T06:00:00',
+      time: `${getTodayStr()}T06:00:00`,
       temperature: 63,
       feels_like: 61,
       condition: 'clouds',
@@ -47,7 +53,7 @@ const mockForecast: DailyForecast = {
       uvi: 5.0,
     },
     {
-      time: '2026-08-11T09:00:00',
+      time: `${getTodayStr()}T09:00:00`,
       temperature: 67,
       feels_like: 65,
       condition: 'clouds',
@@ -60,7 +66,7 @@ const mockForecast: DailyForecast = {
       uvi: 4.2,
     },
     {
-      time: '2026-08-11T12:00:00',
+      time: `${getTodayStr()}T12:00:00`,
       temperature: 71,
       feels_like: 69,
       condition: 'clouds',
@@ -73,7 +79,7 @@ const mockForecast: DailyForecast = {
       uvi: 3.4,
     },
     {
-      time: '2026-08-11T15:00:00',
+      time: `${getTodayStr()}T15:00:00`,
       temperature: 74,
       feels_like: 72,
       condition: 'clouds',
@@ -86,7 +92,7 @@ const mockForecast: DailyForecast = {
       uvi: 2.6,
     },
     {
-      time: '2026-08-11T18:00:00',
+      time: `${getTodayStr()}T18:00:00`,
       temperature: 72,
       feels_like: 70,
       condition: 'clouds',
@@ -99,7 +105,7 @@ const mockForecast: DailyForecast = {
       uvi: 1.8,
     },
     {
-      time: '2026-08-11T21:00:00',
+      time: `${getTodayStr()}T21:00:00`,
       temperature: 69,
       feels_like: 67,
       condition: 'clouds',
@@ -128,8 +134,10 @@ describe('WeatherTooltip', () => {
   })
 
   it('renders basic content when forecast has no hourly data', () => {
+    const today = new Date()
+    const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`
     const basicForecast: DailyForecast = {
-      date: '2026-08-11',
+      date: todayStr,
       high: 78,
       low: 66,
       condition: 'clear',
@@ -147,7 +155,10 @@ describe('WeatherTooltip', () => {
 
     expect(screen.getByText('78°F')).toBeInTheDocument()
     expect(screen.getByText('Today')).toBeInTheDocument()
-    expect(screen.getByText('Aug 11')).toBeInTheDocument()
+    // Date should match today's date (dynamic)
+    const today = new Date()
+    const expectedDate = today.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+    expect(screen.getByText(expectedDate)).toBeInTheDocument()
     // "Temperature" appears once as section heading (removed duplicate from chart)
     expect(screen.getByText('Temperature')).toBeInTheDocument()
   })
@@ -185,7 +196,7 @@ describe('WeatherTooltip', () => {
 
   it('hides hourly temperature chart when no hourly data', () => {
     const basicForecast: DailyForecast = {
-      date: '2026-08-11',
+      date: getTodayStr(),
       high: 78,
       low: 66,
       condition: 'clear',
