@@ -284,6 +284,7 @@ async def get_weather(units: str = "imperial") -> WeatherResponse:
     Args:
         units: Temperature units - "metric" for Celsius, "imperial" for Fahrenheit (default)
     """
+    print(f"[Weather Debug] get_weather called with units={units}, WEATHER_USE_MOCK={settings.WEATHER_USE_MOCK}", flush=True)
     # Check if we should use mock data (development mode)
     if settings.WEATHER_USE_MOCK:
         return get_mock_weather(units)
