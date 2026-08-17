@@ -4,7 +4,12 @@
       "Bash(git checkout *)",
       "Bash(gh *)",
       "Bash(ssh *)",
-      "Bash(git branch *)"
+      "Bash(git branch *)",
+      "mcp__context7__resolve-library-id",
+      "mcp__context7__query-docs",
+      "WebFetch(openweathermap.org)",
+      "Agent(Explore)",
+      "send_message"
     ]
   },
   "$version": 4

@@ -241,9 +241,9 @@ class TestBuildResponse:
             ],
         }
 
-        # 14 days of daily data
+        # 19 days of daily data
         daily = []
-        for i in range(14):
+        for i in range(19):
             day = today_midnight + timedelta(days=i)
             daily.append(
                 {
@@ -306,13 +306,13 @@ class TestBuildResponse:
 
         return current, hourly, daily, tz_offset
 
-    def test_returns_14_days_forecast(self, sample_4_0_data):
+    def test_returns_19_days_forecast(self, sample_4_0_data):
         current, hourly, daily, tz_offset = sample_4_0_data
         response = _build_response(current, hourly, daily, tz_offset)
-        assert len(response.forecast) == 14
+        assert len(response.forecast) == 19
 
     def test_all_days_have_rich_fields(self, sample_4_0_data):
-        """Every day in the 14-day forecast has rich 4.0 fields."""
+        """Every day in the 19-day forecast has rich 4.0 fields."""
         current, hourly, daily, tz_offset = sample_4_0_data
         response = _build_response(current, hourly, daily, tz_offset)
         for day in response.forecast:
@@ -395,11 +395,11 @@ class TestGetWeatherMock:
         """In test env (WEATHER_USE_MOCK=true), get_weather returns mock data."""
         response = await get_weather()
         assert response.current is not None
-        assert len(response.forecast) == 14
+        assert len(response.forecast) == 19
 
     @pytest.mark.asyncio
     async def test_mock_data_has_rich_fields(self):
-        """Mock data matches 4.0 structure — all 14 days have rich fields."""
+        """Mock data matches 4.0 structure — all 19 days have rich fields."""
         response = await get_weather()
         for day in response.forecast:
             assert day.feels_like_day is not None
@@ -430,18 +430,18 @@ class TestGetWeatherMock:
         assert 15 < response.current.temperature < 35  # Celsius
 
     @pytest.mark.asyncio
-    async def test_endpoint_returns_14_days(self):
-        """The /api/weather endpoint returns exactly 14 days."""
+    async def test_endpoint_returns_19_days(self):
+        """The /api/weather endpoint returns exactly 19 days."""
         transport = ASGITransport(app=app)
         async with AsyncClient(transport=transport, base_url="http://test") as client:
             response = await client.get("/api/weather")
             assert response.status_code == 200
             data = response.json()
-            assert len(data["forecast"]) == 14
+            assert len(data["forecast"]) == 19
 
     @pytest.mark.asyncio
     async def test_endpoint_all_days_have_rich_fields(self):
-        """All 14 days from the endpoint have rich 4.0 fields."""
+        """All 19 days from the endpoint have rich 4.0 fields."""
         transport = ASGITransport(app=app)
         async with AsyncClient(transport=transport, base_url="http://test") as client:
             response = await client.get("/api/weather")

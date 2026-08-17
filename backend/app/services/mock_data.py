@@ -530,10 +530,10 @@ def _get_mock_api_responses() -> tuple[dict, list[dict], list[dict]]:
             }
         )
 
-    # Daily data (14 days starting from today)
+    # Daily data (19 days starting from today)
     daily_data_list = []
     conditions = ["Clear", "Clouds", "Drizzle", "Rain", "Thunderstorm", "Clouds", "Clear"]
-    for i in range(14):
+    for i in range(19):
         day_date = today + timedelta(days=i)
         # Use Eastern-aware datetimes so timestamps align with hourly data
         day_midnight = datetime.combine(day_date, datetime.min.time(), tzinfo=eastern_tz)

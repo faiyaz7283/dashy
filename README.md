@@ -213,14 +213,14 @@ Children (Arya, 8 and Raya, 4) are not in v1 calendar scope but the system suppo
 - **API architecture:** Modular endpoints with pagination:
   - `/data/4.0/onecall/current` — current weather
   - `/data/4.0/onecall/timeline/1h` — hourly forecast (48 hours, paginated, 20 records/page)
-  - `/data/4.0/onecall/timeline/1day` — daily forecast (fetches 15 days, returns 14 after filtering past entries, paginated, 10 records/page)
+  - `/data/4.0/onecall/timeline/1day` — daily forecast (fetches 20 days, returns 19 after filtering past entries, paginated, 10 records/page)
 - **Billing:** ~720 calls/day at 10-minute refresh (under 1000 free limit). Each paginated page counts as a separate call.
 - **Unit conversion:** Supports metric (Celsius) and imperial (Fahrenheit) via `?units=` query parameter (default: imperial). Backend always fetches Celsius from OpenWeatherMap and converts based on request.
 - **Integration:** Weather displays across all calendar views (Day, Week, Month) with hover tooltips showing detailed forecasts including hourly temperature charts.
 - **Icons:** All 15 OWM `weather.main` conditions map 1:1 to unique SVG icons (no grouping). Each condition has day/night color variants (darker at night). Clear night shows a moon with stars; other conditions use darker cloud/line colors at night.
 - **Timezone handling:** All timestamps converted using OWM's `timezone_offset` field, ensuring forecast dates align with local time (no past-day dates in the forecast).
 - **Tooltip metrics:** Value-aware SVG icons for temperature (color-coded by feel), humidity (opacity scales), wind (more lines = stronger), UV (color+size by intensity), precipitation (more drops = higher chance), pressure (barometer needle), and 8 moon phases.
-- **Test coverage:** 53 backend tests (unit conversion, 4.0 API parsing, timezone handling, mock data validation, endpoint behavior), 11 frontend tests (WeatherTooltip rendering, hourly chart visibility, unified content for all 14 days, day labels).
+- **Test coverage:** 53 backend tests (unit conversion, 4.0 API parsing, timezone handling, mock data validation, endpoint behavior), 11 frontend tests (WeatherTooltip rendering, hourly chart visibility, unified content for all 19 days, day labels).
 
 ---
 
