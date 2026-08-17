@@ -10,6 +10,7 @@ from typing import Any
 import redis.asyncio as redis
 from pydantic import BaseModel
 
+from app.config import settings
 from app.core.logging import get_logger
 
 logger = get_logger(__name__)
@@ -30,13 +31,13 @@ class Cache:
     but don't break the application - requests fall through to the data source.
     """
 
-    def __init__(self, redis_url: str = "redis://localhost:6379"):
+    def __init__(self, redis_url: str | None = None):
         """Initialize cache with Redis connection.
 
         Args:
-            redis_url: Redis connection URL.
+            redis_url: Redis connection URL. Defaults to settings.REDIS_URL.
         """
-        self.redis_url = redis_url
+        self.redis_url = redis_url or settings.REDIS_URL
         self._client: redis.Redis | None = None
         self._stats = CacheStats()
 
