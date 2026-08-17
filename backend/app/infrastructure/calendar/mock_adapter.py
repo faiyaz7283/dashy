@@ -4,7 +4,7 @@ Returns mock calendar data for development and testing.
 """
 
 from app.domain.calendar.models import DateRange
-from app.infrastructure.mock_data import get_mock_week_calendar
+from app.infrastructure.mock_data import get_mock_calendar_events
 
 
 class MockCalendarAdapter:
@@ -26,10 +26,9 @@ class MockCalendarAdapter:
             date_range: Date range to query.
 
         Returns:
-            List of dictionaries containing mock event data.
+            List of dictionaries containing mock event data in Google Calendar API format.
         """
         start_date = date_range.start.strftime("%Y-%m-%d")
         end_date = date_range.end.strftime("%Y-%m-%d")
 
-        week_calendar = get_mock_week_calendar(start_date, end_date)
-        return [event.model_dump() for event in week_calendar.events]
+        return get_mock_calendar_events(start_date, end_date)

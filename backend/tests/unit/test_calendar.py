@@ -8,7 +8,7 @@ from app.domain.calendar.services import (
     parse_iso_date,
     parse_recurring_info,
 )
-from app.infrastructure.mock_data import get_mock_week_calendar
+from app.infrastructure.mock_data import get_mock_calendar_events
 
 
 class TestParseIsoDate:
@@ -30,61 +30,64 @@ class TestParseIsoDate:
         assert result == datetime(2026, 8, 15, 14, 30, 0)
 
 
-class TestMockWeekCalendar:
+class TestMockCalendarEvents:
     """Tests for mock calendar generation with date ranges."""
 
     def test_default_range(self):
         """Test mock calendar with no dates defaults to current week."""
-        result = get_mock_week_calendar()
-        assert result.week_start is not None
-        assert result.week_end is not None
-        assert len(result.events) > 0
+        result = get_mock_calendar_events()
+        assert len(result) > 0
+        # Check that events are in Google Calendar API format
+        assert "id" in result[0]
+        assert "summary" in result[0]
+        assert "start" in result[0]
+        assert "end" in result[0]
 
     def test_custom_date_range(self):
         """Test mock calendar with custom date range."""
-        result = get_mock_week_calendar("2026-09-01", "2026-09-07")
-        assert result.week_start == "2026-09-01"
-        assert result.week_end == "2026-09-07"
-        assert len(result.events) > 0
+        result = get_mock_calendar_events("2026-09-01", "2026-09-07")
+        assert len(result) > 0
 
     def test_single_day_range(self):
         """Test mock calendar with single day range."""
-        result = get_mock_week_calendar("2026-08-15", "2026-08-15")
-        assert result.week_start == "2026-08-15"
-        assert result.week_end == "2026-08-15"
+        result = get_mock_calendar_events("2026-08-15", "2026-08-15")
+        # Single day may or may not have events depending on templates
+        assert isinstance(result, list)
 
     def test_month_range(self):
         """Test mock calendar with full month range."""
-        result = get_mock_week_calendar("2026-08-01", "2026-08-31")
-        assert result.week_start == "2026-08-01"
-        assert result.week_end == "2026-08-31"
-        assert len(result.events) > 10  # Should have many events for a month
+        result = get_mock_calendar_events("2026-08-01", "2026-08-31")
+        assert len(result) > 10  # Should have many events for a month
 
     def test_year_range(self):
         """Test mock calendar with full year range."""
-        result = get_mock_week_calendar("2026-01-01", "2026-12-31")
-        assert result.week_start == "2026-01-01"
-        assert result.week_end == "2026-12-31"
-        assert len(result.events) > 100  # Should have many events for a year
+        result = get_mock_calendar_events("2026-01-01", "2026-12-31")
+        assert len(result) > 100  # Should have many events for a year
 
     def test_events_sorted_by_start_time(self):
         """Test that mock events are sorted by start time."""
-        result = get_mock_week_calendar("2026-08-01", "2026-08-31")
-        start_times = [e.start for e in result.events]
+        result = get_mock_calendar_events("2026-08-01", "2026-08-31")
+        start_times = []
+        for e in result:
+            if "dateTime" in e["start"]:
+                start_times.append(e["start"]["dateTime"])
+            else:
+                start_times.append(e["start"]["date"] + "T00:00:00")
         assert start_times == sorted(start_times)
 
-    def test_events_have_member_tags(self):
-        """Test that all mock events have member tags."""
-        result = get_mock_week_calendar("2026-08-01", "2026-08-07")
-        for event in result.events:
-            assert len(event.members) > 0
-            assert isinstance(event.members, list)
+    def test_events_have_attendees(self):
+        """Test that all mock events have attendees."""
+        result = get_mock_calendar_events("2026-08-01", "2026-08-07")
+        for event in result:
+            assert "attendees" in event
+            assert isinstance(event["attendees"], list)
+            assert len(event["attendees"]) > 0
 
     def test_all_day_events_flagged(self):
         """Test that all-day events are properly flagged."""
-        result = get_mock_week_calendar("2026-08-01", "2026-08-31")
-        all_day_events = [e for e in result.events if e.all_day]
-        timed_events = [e for e in result.events if not e.all_day]
+        result = get_mock_calendar_events("2026-08-01", "2026-08-31")
+        all_day_events = [e for e in result if "date" in e["start"]]
+        timed_events = [e for e in result if "dateTime" in e["start"]]
         assert len(all_day_events) > 0  # Should have some all-day events
         assert len(timed_events) > 0  # Should have some timed events
 

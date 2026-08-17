@@ -6,7 +6,6 @@ when real API credentials are not available or in development mode.
 
 from datetime import datetime, timedelta
 
-from app.api.models.calendar import Attendee, CalendarEvent, WeekCalendar
 from app.api.models.family import FamilyMember
 from app.api.models.weather import WeatherResponse
 
@@ -62,48 +61,20 @@ MEMBER_COLORS = {
 }
 
 
-def _create_mock_attendees(members: list[str], organizer_key: str) -> list[Attendee]:
-    """Create mock attendees with RSVP status for testing.
-
-    Args:
-        members: List of member keys to create attendees for.
-        organizer_key: Member key of the event organizer.
-
-    Returns:
-        List of Attendee objects with mock data.
-    """
-    attendees = []
-    for member_key in members:
-        status = "accepted" if member_key == organizer_key else "accepted"
-        attendees.append(
-            Attendee(
-                member_key=member_key,
-                email=f"{member_key}@gmail.com",
-                display_name=member_key.capitalize(),
-                status=status,
-                color=MEMBER_COLORS.get(member_key, "#9ca3af"),
-            )
-        )
-    return attendees
-
-
-def get_mock_week_calendar(
+def get_mock_calendar_events(
     start_date: str | None = None, end_date: str | None = None
-) -> WeekCalendar:
-    """Generate mock calendar events relative to the requested date range.
+) -> list[dict]:
+    """Generate mock calendar events in Google Calendar API format.
 
-    If no dates provided, defaults to current week.
-    Events are generated with realistic patterns shifted to the target range;
-    the one-week template pattern repeats across longer ranges (month/year).
-    Includes full event details: description, location, attendees with RSVP status,
-    and recurring event metadata.
+    Returns events as raw dicts matching Google Calendar API structure,
+    so they can be parsed by the same parse_event() function used for real data.
 
     Args:
         start_date: Start date in ISO format (e.g. "2026-08-08"). Defaults to current week Monday.
         end_date: End date in ISO format (e.g. "2026-08-08"). Defaults to current week Sunday.
 
     Returns:
-        WeekCalendar with mock events for the specified date range.
+        List of event dicts in Google Calendar API format.
     """
     if start_date and end_date:
         # Parse the requested range
@@ -433,32 +404,49 @@ def get_mock_week_calendar(
                 event_start = event_start.replace(hour=0, minute=0)
                 event_end = event_end.replace(hour=23, minute=59)
 
-            # Create mock attendees
-            attendees = _create_mock_attendees(members, organizer)
+            # Create mock attendees in Google Calendar API format
+            attendees = []
+            for member_key in members:
+                attendees.append({
+                    "email": f"{member_key}@gmail.com",
+                    "displayName": member_key.capitalize(),
+                    "responseStatus": "accepted",
+                    "self": member_key == organizer,
+                })
 
-            events.append(
-                CalendarEvent(
-                    id=str(event_id),
-                    title=title,
-                    start=event_start.strftime("%Y-%m-%dT%H:%M:%S"),
-                    end=event_end.strftime("%Y-%m-%dT%H:%M:%S"),
-                    all_day=all_day,
-                    members=members,
-                    description=description,
-                    location=location,
-                    organizer=organizer,
-                    attendees=attendees,
-                    recurring_event_id=None,
-                    is_recurring_instance=False,
-                    recurrence_rule=recurrence,
-                )
-            )
+            # Build event in Google Calendar API format
+            event = {
+                "id": str(event_id),
+                "summary": title,
+                "status": "confirmed",
+                "description": description,
+                "location": location,
+                "creator": {
+                    "email": f"{organizer}@gmail.com",
+                    "displayName": organizer.capitalize(),
+                },
+                "organizer": {
+                    "email": f"{organizer}@gmail.com",
+                    "displayName": organizer.capitalize(),
+                },
+                "attendees": attendees,
+            }
 
-    return WeekCalendar(
-        week_start=range_start.strftime("%Y-%m-%d"),
-        week_end=range_end.strftime("%Y-%m-%d"),
-        events=events,
-    )
+            # Add start/end times in Google Calendar API format
+            if all_day:
+                event["start"] = {"date": event_start.strftime("%Y-%m-%d")}
+                event["end"] = {"date": event_end.strftime("%Y-%m-%d")}
+            else:
+                event["start"] = {"dateTime": event_start.strftime("%Y-%m-%dT%H:%M:%S")}
+                event["end"] = {"dateTime": event_end.strftime("%Y-%m-%dT%H:%M:%S")}
+
+            # Add recurrence rule if present
+            if recurrence:
+                event["recurrence"] = [recurrence]
+
+            events.append(event)
+
+    return events
 
 
 def _get_mock_api_responses() -> tuple[dict, list[dict], list[dict]]:
