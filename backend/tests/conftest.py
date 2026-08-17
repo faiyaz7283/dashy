@@ -17,9 +17,35 @@ def setup_test_database():
     """Create database tables before any tests run.
 
     This fixture runs once per test session and ensures all SQLModel
-    tables exist in the test database.
+    tables exist in the test database with the current schema.
+    Drops and recreates tables to ensure schema consistency.
+    Seeds the database with test family members for calendar tests.
     """
-    create_db_and_tables()
+    from app.core.database import sync_engine, get_async_session_factory
+    from sqlmodel import SQLModel
+    from app.infrastructure.persistence.models import FamilyMemberDB
+    
+    # Drop all tables and recreate to ensure schema matches current models
+    SQLModel.metadata.drop_all(sync_engine)
+    SQLModel.metadata.create_all(sync_engine)
+    
+    # Seed test family members for calendar tests
+    from app.domain.family.models import FamilyMember
+    from app.infrastructure.persistence.family_repository import FamilyRepositoryImpl
+    import asyncio
+    
+    async def seed_test_data():
+        session_factory = get_async_session_factory()
+        async with session_factory() as session:
+            repo = FamilyRepositoryImpl(session)
+            test_members = [
+                FamilyMember(id="faiyaz", name="Faiyaz", email="faiyaz@test.com", color="#4A90E2", initial="F"),
+                FamilyMember(id="trisha", name="Trisha", email="trisha@test.com", color="#E24A8D", initial="T"),
+            ]
+            for member in test_members:
+                await repo.save(member)
+    
+    asyncio.run(seed_test_data())
     yield
 
 
