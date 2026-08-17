@@ -4,12 +4,12 @@ Provides test configuration, mock providers, and container overrides
 for unit, integration, and API tests.
 """
 
+import asyncio
 from unittest.mock import AsyncMock
 
 import pytest
 
 from app.config import Settings
-from app.core.database import create_db_and_tables
 
 
 @pytest.fixture(autouse=True, scope="session")
@@ -21,30 +21,40 @@ def setup_test_database():
     Drops and recreates tables to ensure schema consistency.
     Seeds the database with test family members for calendar tests.
     """
-    from app.core.database import sync_engine, get_async_session_factory
     from sqlmodel import SQLModel
-    from app.infrastructure.persistence.models import FamilyMemberDB
-    
+
+    from app.core.database import get_async_session_factory, sync_engine
+    from app.domain.family.models import FamilyMember
+    from app.infrastructure.persistence.family_repository import FamilyRepositoryImpl
+
     # Drop all tables and recreate to ensure schema matches current models
     SQLModel.metadata.drop_all(sync_engine)
     SQLModel.metadata.create_all(sync_engine)
-    
+
     # Seed test family members for calendar tests
-    from app.domain.family.models import FamilyMember
-    from app.infrastructure.persistence.family_repository import FamilyRepositoryImpl
-    import asyncio
-    
     async def seed_test_data():
         session_factory = get_async_session_factory()
         async with session_factory() as session:
             repo = FamilyRepositoryImpl(session)
             test_members = [
-                FamilyMember(id="faiyaz", name="Faiyaz", email="faiyaz@test.com", color="#4A90E2", initial="F"),
-                FamilyMember(id="trisha", name="Trisha", email="trisha@test.com", color="#E24A8D", initial="T"),
+                FamilyMember(
+                    id="faiyaz",
+                    name="Faiyaz",
+                    email="faiyaz@test.com",
+                    color="#4A90E2",
+                    initial="F",
+                ),
+                FamilyMember(
+                    id="trisha",
+                    name="Trisha",
+                    email="trisha@test.com",
+                    color="#E24A8D",
+                    initial="T",
+                ),
             ]
             for member in test_members:
                 await repo.save(member)
-    
+
     asyncio.run(seed_test_data())
     yield
 
