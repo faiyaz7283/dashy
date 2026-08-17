@@ -37,8 +37,12 @@ async def get_calendar(
     Returns:
         WeekCalendar with events for the specified date range.
     """
+    # Convert date objects to ISO format strings
+    start_date_str = query.start_date.isoformat() if query.start_date else None
+    end_date_str = query.end_date.isoformat() if query.end_date else None
+    
     # Build cache key from date range
-    cache_key = f"calendar:{query.start_date or 'default'}:{query.end_date or 'default'}"
+    cache_key = f"calendar:{start_date_str or 'default'}:{end_date_str or 'default'}"
 
     # Try cache first
     cached = await cache.get(cache_key)
@@ -47,10 +51,10 @@ async def get_calendar(
 
     # Fetch from service
     try:
-        result = await get_calendar_events(query.start_date, query.end_date)
+        result = await get_calendar_events(start_date_str, end_date_str)
         # Cache the result
         await cache.set(cache_key, result.model_dump(), settings.CALENDAR_CACHE_TTL)
         return result
     except Exception:
         # Fail-open: return mock data on any failure
-        return get_mock_week_calendar(query.start_date, query.end_date)
+        return get_mock_week_calendar(start_date_str, end_date_str)
