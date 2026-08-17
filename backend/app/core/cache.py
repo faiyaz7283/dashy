@@ -59,7 +59,11 @@ class Cache:
     async def disconnect(self) -> None:
         """Close Redis connection."""
         if self._client:
-            await self._client.close()
+            try:
+                await self._client.aclose()
+            except RuntimeError:
+                # Event loop is closed, ignore
+                pass
             self._client = None
             logger.info("cache_disconnected")
 
@@ -103,7 +107,7 @@ class Cache:
 
         try:
             serialized = json.dumps(value, default=str)
-            await self._client.setex(key, ttl, serialized)
+            await self._client.set(key, serialized, ex=ttl)
         except Exception as e:
             logger.warning("cache_set_failed", key=key, error=str(e))
             self._stats.errors += 1

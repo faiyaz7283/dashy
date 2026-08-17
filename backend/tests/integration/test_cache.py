@@ -18,10 +18,10 @@ class TestCache:
         client = AsyncMock()
         client.ping = AsyncMock()
         client.get = AsyncMock()
-        client.setex = AsyncMock()
+        client.set = AsyncMock()
         client.delete = AsyncMock()
         client.flushdb = AsyncMock()
-        client.close = AsyncMock()
+        client.aclose = AsyncMock()
         return client
 
     @pytest.fixture
@@ -57,10 +57,10 @@ class TestCache:
         """Test cache set stores value with TTL."""
         await cache.set("test_key", {"test": "data"}, ttl=300)
 
-        mock_redis.setex.assert_called_once()
-        call_args = mock_redis.setex.call_args
+        mock_redis.set.assert_called_once()
+        call_args = mock_redis.set.call_args
         assert call_args[0][0] == "test_key"
-        assert call_args[0][1] == 300
+        assert call_args[1]["ex"] == 300
 
     async def test_cache_delete(self, cache, mock_redis):
         """Test cache delete removes key."""
@@ -79,7 +79,7 @@ class TestCache:
 
     async def test_cache_fail_open_on_set_error(self, cache, mock_redis):
         """Test cache doesn't raise on set error (fail-open)."""
-        mock_redis.setex.side_effect = Exception("Redis error")
+        mock_redis.set.side_effect = Exception("Redis error")
 
         # Should not raise
         await cache.set("test_key", {"test": "data"}, ttl=300)
