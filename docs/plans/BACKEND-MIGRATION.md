@@ -6,6 +6,24 @@
 
 ---
 
+## Guiding Principles
+
+### Modern Best Practices Over Dashtam Replication
+
+Dashtam is used as **conceptual inspiration only** — not as a reference implementation. Dashtam was built some time ago and its code may use outdated patterns, deprecated APIs, or older package versions.
+
+**Rules:**
+- **Borrow the architecture concepts** (registry, protocols, DI, result types, testing tiers) — not the implementation details
+- **Always use latest stable package versions** — design around current APIs, not legacy ones
+- **Follow current Python best practices** — modern type hints (`X | None` not `Optional[X]`), `asyncio` patterns, Pydantic v2 idioms
+- **Follow current FastAPI best practices** — latest dependency injection patterns, modern middleware, current security practices
+- **Discard anything deprecated** — if a Dashtam pattern uses deprecated APIs or terminology, find the modern equivalent
+- **Verify package versions at implementation time** — check PyPI for latest stable before adding any dependency
+
+**Why:** Dashy is a new project being built for longevity. Starting with modern foundations means less tech debt from day one. Dashtam's architectural *ideas* are sound — its specific *implementations* may not reflect today's best practices.
+
+---
+
 ## Current State Audit
 
 ### Directory Structure
