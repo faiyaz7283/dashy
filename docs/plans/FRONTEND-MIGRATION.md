@@ -1,22 +1,21 @@
 # Frontend Migration Plan
 
-> Status: **DRAFT — awaiting review**
+> Status: **COMPLETE** ✅
 > Created: 2026-08-16
+> Completed: 2026-08-17
 > Scope: Restructure frontend for configuration-driven design, unified styling, feature-based organization, decomposed god-components, and clean domain separation.
 
 ### Implementation Status (as of 2026-08-17)
 
-All phases are **planned** — no implementation has started yet.
-
 | Phase | Status | Summary |
 |-------|--------|---------|
-| F1: Foundation | 🔲 Not started | Path aliases, strict TS, error boundary, loading skeleton, dead code removal, locale centralization |
-| F2: Unified Styling | 🔲 Not started | Connect tokens to Tailwind CSS vars, migrate Sidebar/StatusBar, fix hover mutations |
-| F3: Extract Domain Logic | 🔲 Not started | Shared domain utils for calendar/weather, replace hand-rolled date utils with Temporal API |
-| F4: Decompose App.tsx | 🔲 Not started | Extract useViewNavigation, create AppShell, slim App.tsx to <20 lines |
-| F5: Feature-Based Reorganization | 🔲 Not started | Move from flat `components/` to feature-based `features/` structure |
-| F6: API Layer Cleanup | 🔲 Not started | Endpoint registry, unified fetch hook, config-driven refresh intervals |
-| F7: Extract WeatherTooltip Icons | 🔲 Not started | Extract 15 SVG icons to separate files, reduce WeatherTooltip to ~100 lines |
+| F1: Foundation | ✅ Complete | Path aliases, strict TS, error boundary, loading skeleton, dead code removal, locale centralization |
+| F2: Unified Styling | ✅ Complete | CSS custom properties, Tailwind theme integration, migrated Sidebar/StatusBar to tokens, replaced all e.currentTarget.style mutations with CSS hover classes, fixed EventPopup viewport overflow with dynamic height measurement |
+| F3: Extract Domain Logic | ✅ Complete | Created domain/calendar, domain/weather, domain/family directories with types.ts and utils.ts. Extracted getEventsForDate, getTimedEventsForDate, getAllDayEventsForDate, getWeatherForDate. Refactored DayView, WeekGrid, MonthView, YearView to use shared domain utils. Updated types/index.ts as barrel re-export |
+| F4: Decompose App.tsx | ✅ Complete | Created useViewNavigation hook (view state + date navigation), AppShell component (layout orchestrator), extracted DatePicker from DateDisplay. App.tsx reduced from ~300 lines to 22 lines. Extracted density calculation to domain/calendar/density.ts |
+| F5: Feature-Based Reorganization | ✅ Complete | Moved all components/hooks/utils/services to feature-based structure (features/calendar, features/weather, features/navigation, features/dashboard, features/kiosk, shared/). Updated all imports to @/ paths. Created barrel exports |
+| F6: API Layer Cleanup | ✅ Complete | Endpoint registry, config-driven refresh intervals, dynamic member colors, config-driven nav items |
+| F7: Extract WeatherTooltip Icons | ✅ Complete | Extracted 11 SVG icon components to icons/ directory (ThermometerIcon, FeelsLikeFaceIcon, HumidityIcon, WindIcon, UVIcon, PrecipIcon, PressureIcon, SunriseIcon, SunsetIcon, MoonIcon, TempChart). WeatherTooltip reduced from 968 lines to 359 lines |
 
 **Platform compatibility note:** Temporal API requires Chromium 144+. The kiosk runs Chromium 151.0.7922.108 (verified via SSH to `r4pi` on 2026-08-17). No polyfill needed.
 
@@ -559,6 +558,13 @@ Pick one styling approach and migrate everything to it.
 - `MonthView.tsx`
 
 **Verification:** Visual regression test — app looks identical. No `e.currentTarget.style` in codebase.
+
+**Additional UX fixes discovered during visual testing (2026-08-17):**
+- EventPopup viewport overflow: Popup was bleeding outside bottom edge. Fixed by measuring actual popup height dynamically instead of using hardcoded estimate
+- MonthView popup behavior: Hovering a day showed all events for that day. Changed to show only the specific hovered event
+- MonthView grid layout: Last row was shrinking when status bar appeared. Fixed by using `repeat(6, 1fr)` for equal row heights
+- YearView mini-calendars: Months had uneven sizing. Fixed by using `minmax(auto, 1fr)` for grid rows and ensuring all months use 6 rows
+- Scrollable event lists: DayCard and MonthView event lists now have proper flex layout with `overflow-y: auto` and padding to maintain whitespace from card edges
 
 ---
 
