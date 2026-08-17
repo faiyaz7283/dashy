@@ -6,11 +6,14 @@ Uses FastAPI's Depends() for request-scoped dependencies.
 
 from functools import lru_cache
 
+from fastapi import Depends
+
 from app.config import settings
 from app.core.cache import Cache, get_cache
 from app.core.database import get_async_session_factory
 from app.domain.calendar.ports import CalendarProvider
 from app.domain.family.ports import FamilyRepository
+from app.domain.family.services import FamilyService
 from app.domain.weather.ports import WeatherProvider
 from app.infrastructure.calendar.google_adapter import GoogleCalendarAdapter
 from app.infrastructure.calendar.mock_adapter import MockCalendarAdapter
@@ -53,10 +56,31 @@ async def get_family_repository() -> FamilyRepository:
     """Get the family repository with async database session.
 
     Returns FamilyRepositoryImpl with a fresh database session.
+    The session lifecycle is managed by FastAPI's dependency injection.
     """
     async_session_factory = get_async_session_factory()
-    async with async_session_factory() as session:
-        return FamilyRepositoryImpl(session)
+    session = async_session_factory()
+    try:
+        yield FamilyRepositoryImpl(session)
+    finally:
+        await session.close()
+
+
+async def get_family_service(
+    family_repository: FamilyRepository = Depends(get_family_repository),
+) -> FamilyService:
+    """Get the family service wrapping the repository.
+
+    Uses ``Depends(get_family_repository)`` explicitly to avoid a circular
+    import with ``app.api.deps``.
+
+    Args:
+        family_repository: Injected family repository.
+
+    Returns:
+        FamilyService instance.
+    """
+    return FamilyService(repository=family_repository)
 
 
 async def get_redis_cache() -> Cache:

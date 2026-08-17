@@ -2,7 +2,21 @@
 
 > Status: **DRAFT — awaiting review**
 > Created: 2026-08-16
-> Scope: Split the monorepo into separate frontend (`dashy`) and backend (`dashy-api`) repositories with a well-defined API contract.
+> Last updated: 2026-08-17
+> Scope: Convert the `dashy` monorepo into an orchestrator repo with `dashy-kiosk` (frontend) and `dashy-api` (backend) as git submodules, following the proven dashtam pattern.
+
+### Implementation Status (as of 2026-08-17)
+
+All phases are **planned** — no implementation has started yet. Depends on both frontend migration (F1-F7) and backend migration (B1-B7) being complete.
+
+| Phase | Status | Summary |
+|-------|--------|---------|
+| S1: Create Submodule Repos | 🔲 Not started | Create `dashy-api` and `dashy-kiosk` repos, move code |
+| S2: Convert to Orchestrator | 🔲 Not started | Add `.gitmodules`, remove source dirs, update references |
+| S3: Update CI | 🔲 Not started | Submodule CI + orchestrator CI (compose validation) |
+| S4: Update Compose & Deploy | 🔲 Not started | Compose files reference submodule paths, update `make deploy-pi` |
+| S5: Update Skills & Docs | 🔲 Not started | AGENTS.md, README.md, `.qwen/skills/` in all repos |
+| S6: Deploy to Pi | 🔲 Not started | Clone submodules on Pi, verify two-repo deploy |
 
 ---
 
@@ -16,61 +30,97 @@ After the frontend and backend migrations are complete, the codebases will have 
 - **Smaller context** — agents working on one side don't need to load the other
 - **Separate versioning** — API breaking changes don't force frontend releases
 
+**Why orchestrator + submodules (not two independent repos):**
+
+The dashtam project already uses this pattern successfully. An orchestrator repo keeps compose files, deployment scripts, docs, and kiosk config in one place — avoiding the fragility of two independent repos that need to be checked out side-by-side in a specific layout.
+
+| Concern | Two independent repos | Orchestrator + submodules |
+|---------|----------------------|---------------------------|
+| **Compose files** | Awkward — need both repos side-by-side | Natural — compose references `./frontend` and `./backend` |
+| **Deployment** | Need to know about two repos, coordinate | Single `make deploy-pi` from one repo |
+| **Docs & plans** | Duplicated or split across repos | Centralized in orchestrator |
+| **Kiosk scripts** | Don't belong in frontend OR backend | Live in orchestrator where they belong |
+| **Dev setup** | Clone two repos manually | `git clone --recurse-submodules` — done |
+| **CI** | Two separate CI configs to maintain | Orchestrator CI validates compose; each submodule has its own CI |
+| **Familiarity** | New pattern | Already used and understood (dashtam pattern) |
+| **Future services** | Where does `dashy-cli` live? | Just add another submodule |
+
 ---
 
 ## Target Repository Structure
 
-### `dashy/` (current repo → frontend only)
+### `dashy/` (orchestrator repo — stays as-is, gains submodules)
 
 ```
 dashy/
-├── frontend/                   # Becomes root (or stays as subdirectory)
-├── compose/                    # Stays (orchestration)
-├── mockups/                    # Stays
-├── docs/                       # Stays (includes migration plans)
-├── scripts/                    # Stays (sync-memory.sh, etc.)
-├── Makefile                    # Updated — no backend targets
-├── AGENTS.md                   # Updated — frontend-only conventions
-├── README.md                   # Updated
-├── .qwen/                      # Stays (skills, settings)
-└── .github/workflows/          # Updated — frontend CI only
+├── .gitmodules                   # NEW — points to dashy-kiosk + dashy-api
+├── Makefile                      # Updated — orchestrates frontend + backend
+├── AGENTS.md                     # Updated — orchestrator conventions
+├── README.md                     # Updated — reflects submodule structure
+├── compose/                      # Stays — docker-compose (dev + prod)
+├── docs/                         # Stays — plans, guides
+├── env/                          # Stays — shared .env files
+├── scripts/                      # Stays — kiosk scripts, deploy helpers
+├── mockups/                      # Stays
+├── frontend/                     # → submodule (dashy-kiosk)
+│   └── src/...
+├── backend/                      # → submodule (dashy-api)
+│   └── app/...
+├── .qwen/                        # Stays — orchestrator skills
+└── .github/workflows/            # Updated — compose validation CI
 ```
 
-### `dashy-api/` (new repo → backend only)
+### `dashy-kiosk/` (new repo — frontend only)
+
+```
+dashy-kiosk/
+├── src/                          # React app source
+│   ├── main.tsx
+│   ├── App.tsx
+│   ├── core/
+│   ├── domain/
+│   ├── features/
+│   ├── theme/
+│   ├── shared/
+│   └── types/
+├── public/
+├── tests/
+├── package.json                  # pnpm, "packageManager" field
+├── pnpm-lock.yaml
+├── tsconfig.json
+├── vite.config.ts
+├── vitest.config.ts
+├── Dockerfile                    # Vite build → nginx serve
+├── Dockerfile.dev                # Vite dev server
+├── Makefile                      # Frontend-only targets
+├── AGENTS.md                     # Frontend conventions (TSDoc, testing, etc.)
+├── README.md
+├── .qwen/skills/                 # Frontend-specific skills
+└── .github/workflows/ci.yml     # Frontend CI: lint, typecheck, test, build
+```
+
+### `dashy-api/` (new repo — backend only)
 
 ```
 dashy-api/
-├── backend/                    # Becomes root (or stays as subdirectory)
-├── env/                        # Moves here
-├── Makefile                    # New — backend-only targets
-├── AGENTS.md                   # New — backend conventions
-├── README.md                   # API-specific docs
-├── .qwen/                      # New (skills: quality-gate, etc.)
-├── .github/workflows/          # Backend CI: lint, typecheck, test, build
-└── docker-compose.prod.yml     # Production compose (or stays in dashy)
+├── app/                          # FastAPI source
+│   ├── main.py
+│   ├── core/
+│   ├── domain/
+│   ├── infrastructure/
+│   ├── api/
+│   └── registry.py
+├── tests/
+├── env/                          # Backend-specific .env templates
+├── pyproject.toml
+├── Dockerfile
+├── Dockerfile.dev
+├── Makefile                      # Backend-only targets
+├── AGENTS.md                     # Backend conventions (Google docstrings, etc.)
+├── README.md                     # API-specific docs
+├── .qwen/skills/                 # Backend-specific skills (quality-gate, etc.)
+└── .github/workflows/ci.yml     # Backend CI: lint, typecheck, test, build
 ```
-
----
-
-## Decision: Subdirectory vs Root
-
-**Option A: Keep subdirectories**
-```
-dashy/frontend/src/...
-dashy-api/backend/app/...
-```
-- Pro: Minimal path changes, Dockerfiles stay the same
-- Con: Extra nesting level
-
-**Option B: Promote to root**
-```
-dashy/src/...
-dashy-api/app/...
-```
-- Pro: Cleaner paths
-- Con: Must update all Dockerfiles, Makefiles, CI configs, compose files
-
-**Recommendation**: **Option A** — keep subdirectories. The nesting is minimal and avoids a massive path update.
 
 ---
 
@@ -98,161 +148,205 @@ GET /health                            → { status, version, cache }
 
 **Current**: Types are manually duplicated in `frontend/src/types/index.ts` and `backend/app/models.py`.
 
-**Options**:
-1. **Manual sync** (current) — acceptable for small projects, use tests to catch drift
-2. **OpenAPI codegen** — generate frontend types from backend OpenAPI spec
-3. **Shared types package** — publish a `@dashy/types` npm package from the backend repo
+**Decision**: Start with **manual sync + drift detection test**. Add a CI test that compares frontend types against backend OpenAPI spec. Upgrade to codegen later if drift becomes painful.
 
-**Recommendation**: Start with **Option 1** (manual sync + drift detection tests). Add a CI test that compares frontend types against backend OpenAPI spec. Upgrade to codegen later if drift becomes painful.
+**Why not a shared types package:** Current scale is small (3 endpoints). A `@dashy/types` npm package adds publishing overhead that's not worth it yet.
 
 ---
 
-## Migration Steps
+## Migration Phases
 
-### Phase S1: Create `dashy-api` Repo
+### Phase S1: Create Submodule Repos
+
+Create the two new repos from the existing code.
 
 | Step | What | Risk |
 |------|------|------|
-| S1.1 | Create new GitHub repo `dashy-api` | Low |
-| S1.2 | Copy `backend/` directory to `dashy-api/backend/` | Low — copy, not move |
-| S1.3 | Copy `env/` directory to `dashy-api/env/` | Low |
-| S1.4 | Create `dashy-api/Makefile` with backend-only targets | Low |
-| S1.5 | Create `dashy-api/AGENTS.md` with backend conventions | Low |
-| S1.6 | Create `dashy-api/README.md` with API docs | Low |
-| S1.7 | Copy `.qwen/skills/` to `dashy-api/.qwen/skills/` (quality-gate) | Low |
+| S1.1 | Create GitHub repo `dashy-api` | Low |
+| S1.2 | Copy `backend/` directory contents to `dashy-api/` root (promote `backend/` to root) | Low — copy, not move |
+| S1.3 | Create `dashy-api/Makefile` with backend-only targets | Low |
+| S1.4 | Create `dashy-api/AGENTS.md` with backend conventions | Low |
+| S1.5 | Create `dashy-api/README.md` with API docs | Low |
+| S1.6 | Copy `.qwen/skills/` to `dashy-api/.qwen/skills/` (quality-gate) | Low |
+| S1.7 | Create `.github/workflows/ci.yml` for `dashy-api` | Low |
+| S1.8 | Create GitHub repo `dashy-kiosk` | Low |
+| S1.9 | Copy `frontend/` directory contents to `dashy-kiosk/` root (promote `frontend/` to root) | Low — copy, not move |
+| S1.10 | Create `dashy-kiosk/Makefile` with frontend-only targets | Low |
+| S1.11 | Create `dashy-kiosk/AGENTS.md` with frontend conventions | Low |
+| S1.12 | Create `dashy-kiosk/README.md` | Low |
+| S1.13 | Create `.github/workflows/ci.yml` for `dashy-kiosk` | Low |
 
-**Verification**: `dashy-api` has all backend code. `dashy` still has backend code (not yet removed).
+**Key decision**: Promote subdirectories to root (`backend/app/` → `app/`, `frontend/src/` → `src/`). This means updating Dockerfiles, Makefiles, and CI configs — but the result is cleaner paths and standard project layouts.
+
+**Verification:** Both repos exist on GitHub with correct code. Each has its own CI, Makefile, AGENTS.md, README.md.
 
 ---
 
-### Phase S2: Set Up CI for `dashy-api`
+### Phase S2: Convert to Orchestrator
+
+Convert `dashy/` from a monorepo to an orchestrator with submodules.
 
 | Step | What | Risk |
-|------|------|-----|
-| S2.1 | Create `.github/workflows/ci.yml` for `dashy-api` | Low |
-| S2.2 | CI runs: lint, typecheck, test, build | Low |
-| S2.3 | CI uses Docker (same as current `make test-backend`) | Low |
+|------|------|------|
+| S2.1 | Add `.gitmodules` pointing to `dashy-kiosk` and `dashy-api` | Low |
+| S2.2 | Remove `frontend/` source directory (replaced by submodule) | Medium — verify nothing breaks |
+| S2.3 | Remove `backend/` source directory (replaced by submodule) | Medium — verify nothing breaks |
+| S2.4 | Run `git submodule add` for both repos | Low |
+| S2.5 | Update `dashy/Makefile` — targets now orchestrate submodules | Low |
+| S2.6 | Update `dashy/AGENTS.md` — orchestrator conventions | Low |
+| S2.7 | Update `dashy/README.md` — reflect submodule structure | Low |
+| S2.8 | Update `compose/` Dockerfiles — build contexts point to submodule paths | Medium |
 
-**Verification**: PR to `dashy-api` triggers CI. All checks pass.
+**Makefile orchestration pattern:**
+```makefile
+# Orchestrator targets
+dev-up:
+	docker compose -f compose/docker-compose.dev.yml up -d
 
----
+deploy-pi:
+	# Pull latest submodule commits
+	git submodule update --remote --merge
+	# Deploy via compose
+	docker compose -f compose/docker-compose.prod.yml up -d --build
 
-### Phase S3: Update `dashy` Compose Files
+lint: lint-frontend lint-backend
+test: test-frontend test-backend
+build: build-frontend build-api
 
-| Step | What | Risk |
-|------|------|-----|
-| S3.1 | Update `compose/docker-compose.dev.yml` to reference `dashy-api` image | Medium |
-| S3.2 | Update `compose/docker-compose.prod.yml` to reference `dashy-api` image | Medium |
-| S3.3 | Test dev environment: `make dev-up` | Medium — verify backend starts |
-| S3.4 | Test prod environment: `make deploy-pi` | Medium — verify Pi deployment |
+lint-frontend:
+	$(MAKE) -C frontend lint
 
-**Key change**: The backend service in compose files now builds from `dashy-api` repo (or pulls a pre-built image).
+lint-backend:
+	$(MAKE) -C backend lint
 
-**Verification**: Dev and prod environments work with backend from `dashy-api`.
+test-frontend:
+	$(MAKE) -C frontend test
 
----
+test-backend:
+	$(MAKE) -C backend test
+```
 
-### Phase S4: Remove Backend from `dashy` Repo
-
-| Step | What | Risk |
-|------|------|-----|
-| S4.1 | Remove `backend/` directory from `dashy` | Medium — verify nothing breaks |
-| S4.2 | Remove `env/` directory from `dashy` (if moved to `dashy-api`) | Medium |
-| S4.3 | Update `dashy/Makefile` — remove backend targets | Low |
-| S4.4 | Update `dashy/AGENTS.md` — remove backend conventions | Low |
-| S4.5 | Update `dashy/README.md` — remove backend docs | Low |
-
-**Verification**: `make lint && make typecheck && make test && make build` — all pass (frontend only).
-
----
-
-### Phase S5: Update `.qwen/skills/` in `dashy`
-
-| Step | What | Why |
-|------|------|-----|
-| S5.1 | Update `quality-gate` skill — frontend-only targets | Remove backend references |
-| S5.2 | Keep `deploy-pi` skill — still relevant | Deploy now orchestrates two repos |
-| S5.3 | Keep `dev-env` skill — still relevant | Dev env now references `dashy-api` |
-| S5.4 | Keep `mockup` skill — frontend-only | No changes needed |
-
-**Verification**: Skills are accurate for the new structure.
+**Verification:** `git submodule status` shows both repos. `make lint && make test && make build` orchestrates both. App looks identical.
 
 ---
 
-### Phase S6: Update Documentation
+### Phase S3: Update CI
 
-| Step | What | Why |
-|------|------|-----|
-| S6.1 | Update `dashy/README.md` — mention `dashy-api` repo | Clarity |
-| S6.2 | Update `dashy-api/README.md` — mention `dashy` repo | Clarity |
-| S6.3 | Update `AGENTS.md` in both repos — reflect new structure | Agent accuracy |
-| S6.4 | Update `docs/plans/REPO-SPLIT-INTEGRATION.md` — mark complete | Historical record |
+Each repo has independent CI. The orchestrator validates compose files.
 
----
-
-### Phase S7: Deploy to Pi
-
-| Step | What | Risk |
-|------|------|-----|
-| S7.1 | SSH to Pi, clone `dashy-api` repo | Low |
-| S7.2 | Update `dashy` on Pi (new compose files) | Medium |
-| S7.3 | Run `make deploy-pi` from Mac | Medium — verify two-repo deploy |
-| S7.4 | Verify frontend + backend both running on Pi | Medium |
-
-**Verification**: Pi serves frontend from `dashy` and backend from `dashy-api`. Health check passes.
-
----
-
-## Compose File Strategy
-
-### Option A: Compose stays in `dashy`, references `dashy-api` build context
-
+**`dashy-kiosk` CI:**
 ```yaml
-# dashy/compose/docker-compose.prod.yml
+# .github/workflows/ci.yml
+name: CI
+on: [push, pull_request]
+jobs:
+  frontend:
+    runs-on: ubuntu-latest
+    steps:
+      - checkout
+      - setup pnpm
+      - pnpm install --frozen-lockfile
+      - pnpm run lint
+      - pnpm run typecheck
+      - pnpm run test
+      - pnpm run build
+```
+
+**`dashy-api` CI:**
+```yaml
+# .github/workflows/ci.yml
+name: CI
+on: [push, pull_request]
+jobs:
+  backend:
+    runs-on: ubuntu-latest
+    steps:
+      - checkout
+      - setup Python
+      - make lint-backend
+      - make typecheck-backend
+      - make test-backend
+      - make build-backend
+```
+
+**`dashy` orchestrator CI:**
+```yaml
+# .github/workflows/ci.yml
+name: CI
+on: [push, pull_request]
+jobs:
+  compose-validation:
+    runs-on: ubuntu-latest
+    steps:
+      - checkout (with submodules)
+      - validate docker-compose files
+      - make lint (orchestrates both)
+```
+
+**Verification:** PR to any repo triggers appropriate CI. All checks pass.
+
+---
+
+### Phase S4: Update Compose & Deploy
+
+Update compose files to reference submodule paths and update deployment.
+
+| Step | What | Risk |
+|------|------|------|
+| S4.1 | Update `compose/docker-compose.dev.yml` build contexts | Medium |
+| S4.2 | Update `compose/docker-compose.prod.yml` build contexts | Medium |
+| S4.3 | Update Dockerfiles if paths changed (S1 promoted to root) | Medium |
+| S4.4 | Test dev environment: `make dev-up` | Medium |
+| S4.5 | Test prod environment: `make deploy-pi` | Medium |
+| S4.6 | Add SQLite volume mount (from B7) | Low |
+
+**Compose build contexts (after S1 promotion):**
+```yaml
+# compose/docker-compose.prod.yml
 services:
   frontend:
     build:
-      context: ../frontend
+      context: ../frontend    # → dashy-kiosk submodule
+      dockerfile: Dockerfile
   backend:
     build:
-      context: ../../dashy-api/backend  # Relative path to other repo
+      context: ../backend     # → dashy-api submodule
+      dockerfile: Dockerfile
+    volumes:
+      - ../backend/data:/app/data  # SQLite persistence
 ```
 
-- Pro: Single `make deploy-pi` orchestrates both
-- Con: Requires both repos checked out side-by-side on Pi
+**Verification:** Dev and prod environments work. Both frontend and backend start correctly.
 
-### Option B: Each repo has its own compose file
+---
 
-```yaml
-# dashy/compose/docker-compose.prod.yml (frontend only)
-services:
-  frontend:
-    build: ../frontend
+### Phase S5: Update Skills & Docs
 
-# dashy-api/docker-compose.prod.yml (backend only)
-services:
-  backend:
-    build: ./backend
-```
+| Step | What | Why |
+|------|------|-----|
+| S5.1 | Update `dashy/AGENTS.md` | Orchestrator conventions — no backend/frontend code details |
+| S5.2 | Update `dashy-kiosk/AGENTS.md` | Frontend conventions (TSDoc, testing, pnpm, etc.) |
+| S5.3 | Update `dashy-api/AGENTS.md` | Backend conventions (Google docstrings, testing, etc.) |
+| S5.4 | Update `dashy/README.md` | Reflect submodule structure, clone instructions |
+| S5.5 | Update `.qwen/skills/` in `dashy` | Remove direct code references, keep deploy/orchestration skills |
+| S5.6 | Copy relevant skills to `dashy-kiosk/.qwen/skills/` | Frontend-specific skills |
+| S5.7 | Copy relevant skills to `dashy-api/.qwen/skills/` | Backend-specific skills (quality-gate) |
 
-- Pro: Each repo is self-contained
-- Con: Need to run two deploy commands, or a wrapper script
+**Verification:** AGENTS.md in each repo accurately describes that repo's conventions. Skills are scoped correctly.
 
-### Option C: Pre-built images
+---
 
-```yaml
-# dashy/compose/docker-compose.prod.yml
-services:
-  frontend:
-    image: ghcr.io/faiyaz7283/dashy-frontend:latest
-  backend:
-    image: ghcr.io/faiyaz7283/dashy-api:latest
-```
+### Phase S6: Deploy to Pi
 
-- Pro: No build on Pi, fast deploys
-- Con: Need CI to build and push images
+| Step | What | Risk |
+|------|------|------|
+| S6.1 | SSH to Pi, clone `dashy-kiosk` and `dashy-api` repos | Low |
+| S6.2 | Update `dashy` on Pi (new submodule structure) | Medium |
+| S6.3 | Run `make deploy-pi` from Mac | Medium — verify two-submodule deploy |
+| S6.4 | Verify frontend + backend both running on Pi | Medium |
+| S6.5 | Verify health check passes | Low |
 
-**Recommendation**: **Option A** for now (simplest migration). Upgrade to **Option C** later when CI image building is set up.
+**Verification:** Pi serves frontend from `dashy-kiosk` and backend from `dashy-api`. Health check passes. `make deploy-pi` works end-to-end.
 
 ---
 
@@ -264,86 +358,80 @@ services:
 
 ### Target State
 
-**`dashy` repo CI:**
-```yaml
-# .github/workflows/ci.yml
-name: CI
-on: [push, pull_request]
-jobs:
-  frontend:
-    runs-on: ubuntu-latest
-    steps:
-      - checkout
-      - make lint-frontend
-      - make typecheck-frontend
-      - make test-frontend
-      - make build-frontend
-```
-
-**`dashy-api` repo CI:**
-```yaml
-# .github/workflows/ci.yml
-name: CI
-on: [push, pull_request]
-jobs:
-  backend:
-    runs-on: ubuntu-latest
-    steps:
-      - checkout
-      - make lint-backend
-      - make typecheck-backend  # (if added)
-      - make test-backend
-      - make build-backend
-```
+| Repo | CI Triggers | CI Jobs |
+|------|-------------|---------|
+| `dashy-kiosk` | Push, PR | lint, typecheck, test, build (pnpm) |
+| `dashy-api` | Push, PR | lint, typecheck, test, build (Python/Docker) |
+| `dashy` | Push, PR | compose validation, orchestrate lint/test |
 
 **Deploy workflow** (unchanged):
-- Merge to `main` in either repo
+- Merge to `main` in any repo
 - Manual `make deploy-pi` from Mac
-- Deploy script detects which repo changed and rebuilds accordingly
+- Deploy script pulls latest submodule commits and rebuilds
+
+### Future: Pre-built Images (Optional)
+
+When CI is mature, build Docker images in CI and push to ghcr.io:
+
+```yaml
+# compose/docker-compose.prod.yml (future)
+services:
+  frontend:
+    image: ghcr.io/faiyaz7283/dashy-kiosk:latest
+  backend:
+    image: ghcr.io/faiyaz7283/dashy-api:latest
+```
+
+**Why ghcr.io:** Already authenticated via GitHub Actions, no extra secrets, namespaced under `ghcr.io/faiyaz7283/`, free for public repos.
+
+---
+
+## Decisions Made
+
+| Question | Decision | Rationale |
+|----------|----------|-----------|
+| **Architecture** | Orchestrator + submodules (dashtam pattern) | Proven pattern, compose/scripts/docs stay in one place, single deploy command |
+| **Repo naming** | `dashy-api` (backend), `dashy-kiosk` (frontend) | `dashy-api` matches URL convention. `dashy-kiosk` captures the purpose (wall-mounted family display) better than `dashy-web` |
+| **Subdirectory vs root** | Promote to root (`backend/app/` → `app/`) | Cleaner paths, standard project layout. Requires Dockerfile/Makefile updates but worth it |
+| **Compose location** | Stays in `dashy` orchestrator | Single `make deploy-pi` orchestrates both. Both submodules checked out via `--recurse-submodules` |
+| **Image registry** | ghcr.io (future, when CI is mature) | GitHub-native auth, no extra secrets, namespaced |
+| **Shared types** | Manual sync + drift detection test | Small API surface (3 endpoints), upgrade to codegen later if needed |
+| **Deploy script** | Update existing `make deploy-pi` | Already handles full deploy flow, just needs submodule awareness |
+| **Package manager (frontend)** | pnpm only | User requirement. CI uses `pnpm install --frozen-lockfile` |
 
 ---
 
 ## Migration Checklist
 
-- [ ] **S1**: Create `dashy-api` repo with backend code
-- [ ] **S2**: Set up CI for `dashy-api`
-- [ ] **S3**: Update `dashy` compose files to reference `dashy-api`
-- [ ] **S4**: Remove backend code from `dashy` repo
-- [ ] **S5**: Update `.qwen/skills/` in both repos
-- [ ] **S6**: Update documentation in both repos
-- [ ] **S7**: Deploy to Pi with new two-repo setup
+- [ ] **S1**: Create `dashy-api` and `dashy-kiosk` repos with code from `backend/` and `frontend/`
+- [ ] **S2**: Convert `dashy/` to orchestrator with `.gitmodules`
+- [ ] **S3**: Set up CI for all three repos
+- [ ] **S4**: Update compose files and deployment for submodule paths
+- [ ] **S5**: Update AGENTS.md, README.md, and skills in all repos
+- [ ] **S6**: Deploy to Pi with new submodule structure
+
+---
+
+## Execution Order
+
+This plan should be executed **after** both the backend migration (B1-B7) and frontend migration (F1-F7) are complete.
+
+```
+Backend Migration (B1-B7) ──┐
+                             ├──→ Repo Split (S1-S6)
+Frontend Migration (F1-F7) ──┘
+```
+
+Each migration can proceed in parallel. The repo split depends on both being complete.
 
 ---
 
 ## Rollback Plan
 
 If the split causes issues:
-1. Revert compose file changes in `dashy` (Option A makes this easy)
-2. Copy `backend/` back from `dashy-api` to `dashy`
-3. Delete `dashy-api` repo
 
-The split is non-destructive — the original monorepo state can be restored at any point before Phase S4 (removing backend from `dashy`).
+1. Revert `.gitmodules` and submodule additions in `dashy`
+2. Copy `backend/` and `frontend/` source back from the submodule repos
+3. Delete `dashy-api` and `dashy-kiosk` repos
 
----
-
-## Open Questions
-
-- [ ] **Repo naming**: `dashy-api` or `dashy-backend`?
-- [ ] **Compose location**: Stay in `dashy` (Option A) or split (Option B)?
-- [ ] **Image registry**: GitHub Container Registry (ghcr.io) or Docker Hub?
-- [ ] **Shared types**: Manual sync, OpenAPI codegen, or shared package?
-- [ ] **Deploy script**: Update `make deploy-pi` to handle two repos, or create a new target?
-
----
-
-## Execution Order
-
-This plan should be executed **after** both the backend migration (B1-B6) and frontend migration (F1-F7) are complete.
-
-```
-Backend Migration (B1-B6) ──┐
-                             ├──→ Repo Split (S1-S7)
-Frontend Migration (F1-F7) ──┘
-```
-
-Each migration can proceed in parallel. The repo split depends on both being complete.
+The split is non-destructive — the original monorepo state can be restored at any point before Phase S2 (removing source directories from `dashy`).

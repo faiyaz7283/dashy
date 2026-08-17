@@ -9,7 +9,7 @@ A DIY family command center dashboard inspired by [Skylight Calendar](https://my
 ## Current Status
 
 - **Phase:** Backend migration complete (B1-B6). Frontend migration and repo split pending.
-- **Pi:** Raspberry Pi 4 (4GB), Raspberry Pi OS 64-bit (Bookworm/Debian 13), SSH accessible at `rpi4_main@dashy.local` (192.168.1.194), booting from an NVMe SSD (WD Blue SN500 500 GB via Realtek RTL9210 USB bridge). Original 64 GB microSD preserved as rollback.
+- **Pi:** Raspberry Pi 4 (4GB), Raspberry Pi OS 64-bit (Trixie/Debian 13), SSH accessible at `rpi4_main@dashy.local` (192.168.1.194), booting from an NVMe SSD (WD Blue SN500 500 GB via Realtek RTL9210 USB bridge). Original 64 GB microSD preserved as rollback.
 - **Repo:** `git@github.com:faiyaz7283/dashy.git`
 - **Local Dev URLs:** https://dashy.local (frontend), https://api.dashy.local (backend)
 - **Pi URLs:** https://dashy.local (frontend), https://api.dashy.local (backend)
@@ -40,7 +40,7 @@ A DIY family command center dashboard inspired by [Skylight Calendar](https://my
 | **Containerization** | Docker + Docker Compose | Docker 29.7, Compose v5.4 |
 | **Package Management** | npm (frontend), UV (backend) | — |
 | **Build Automation** | Makefile (Docker-first) | — |
-| **Pi OS** | Raspberry Pi OS 64-bit (Bookworm) | Debian 13, kernel 6.18 |
+| **Pi OS** | Raspberry Pi OS 64-bit (Trixie) | Debian 13, kernel 6.18 |
 
 ---
 

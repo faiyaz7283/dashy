@@ -30,8 +30,13 @@ class ProviderRegistry:
 
     @staticmethod
     async def get_family_repository():
-        """Get the registered family repository."""
-        return await get_family_repository()
+        """Get the registered family repository.
+
+        Yields:
+            FamilyRepository: The family repository instance.
+        """
+        async for repo in get_family_repository():
+            yield repo
 
     @staticmethod
     def verify_providers() -> dict[str, bool]:

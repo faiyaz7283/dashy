@@ -53,7 +53,7 @@ help:
 	@echo "  make build-backend       - Production build backend"
 	@echo ""
 	@echo "📦 Package Management:"
-	@echo "  make install-frontend    - Install frontend dependencies (npm install)"
+	@echo "  make install-frontend    - Install frontend dependencies (pnpm install)"
 	@echo "  make install-backend     - Install backend dependencies (uv sync)"
 	@echo "  make add-frontend PACKAGE=<name>  - Add frontend package"
 	@echo "  make add-backend PACKAGE=<name>   - Add backend package"
@@ -146,7 +146,7 @@ test:
 
 test-frontend:
 	@echo "🧪 Running frontend tests..."
-	@docker compose -f compose/docker-compose.dev.yml exec -T frontend npm run test
+	@docker compose -f compose/docker-compose.dev.yml exec -T frontend pnpm run test
 
 test-backend:
 	@echo "🧪 Running backend tests..."
@@ -162,7 +162,7 @@ lint:
 
 lint-frontend:
 	@echo "🔍 Linting frontend..."
-	@docker compose -f compose/docker-compose.dev.yml exec -T frontend npm run lint
+	@docker compose -f compose/docker-compose.dev.yml exec -T frontend pnpm run lint
 
 lint-backend:
 	@echo "🔍 Linting backend..."
@@ -174,7 +174,7 @@ format:
 
 format-frontend:
 	@echo "✨ Formatting frontend..."
-	@docker compose -f compose/docker-compose.dev.yml exec -T frontend npm run format
+	@docker compose -f compose/docker-compose.dev.yml exec -T frontend pnpm run format
 
 format-backend:
 	@echo "✨ Formatting backend..."
@@ -186,7 +186,7 @@ typecheck:
 
 typecheck-frontend:
 	@echo "🔍 TypeScript type check..."
-	@docker compose -f compose/docker-compose.dev.yml exec -T frontend npm run typecheck
+	@docker compose -f compose/docker-compose.dev.yml exec -T frontend pnpm run typecheck
 
 # ==============================================================================
 # BUILD
@@ -198,7 +198,7 @@ build:
 
 build-frontend:
 	@echo " Building frontend for production..."
-	@docker compose -f compose/docker-compose.dev.yml exec -T frontend npm run build
+	@docker compose -f compose/docker-compose.dev.yml exec -T frontend pnpm run build
 	@echo "✅ Frontend built"
 
 build-backend:
@@ -212,7 +212,7 @@ build-backend:
 
 install-frontend:
 	@echo "📦 Installing frontend dependencies..."
-	@docker compose -f compose/docker-compose.dev.yml exec -T frontend npm install
+	@docker compose -f compose/docker-compose.dev.yml exec -T frontend pnpm install
 	@echo "✅ Frontend dependencies installed"
 
 install-backend:
@@ -230,7 +230,7 @@ ifndef PACKAGE
 	$(error PACKAGE is required. Usage: make add-frontend PACKAGE=<package-name>)
 endif
 	@echo "📦 Adding $(PACKAGE) to frontend..."
-	@docker compose -f compose/docker-compose.dev.yml exec -T frontend npm install $(PACKAGE)
+	@docker compose -f compose/docker-compose.dev.yml exec -T frontend pnpm add $(PACKAGE)
 	@echo "✅ Added $(PACKAGE) to frontend"
 
 add-backend:
@@ -246,7 +246,7 @@ ifndef PACKAGE
 	$(error PACKAGE is required. Usage: make remove-frontend PACKAGE=<package-name>)
 endif
 	@echo "🗑️  Removing $(PACKAGE) from frontend..."
-	@docker compose -f compose/docker-compose.dev.yml exec -T frontend npm uninstall $(PACKAGE)
+	@docker compose -f compose/docker-compose.dev.yml exec -T frontend pnpm remove $(PACKAGE)
 	@echo "✅ Removed $(PACKAGE) from frontend"
 
 remove-backend:

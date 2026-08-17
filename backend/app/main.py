@@ -10,11 +10,12 @@ from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
+from app.api.routes import calendar, family, weather
 from app.config import settings
 from app.core.cache import close_cache, get_cache
 from app.core.exceptions import DashyError
 from app.core.logging import _configure_structlog, get_logger
-from app.routes import calendar, family, weather
+from app.core.seed import seed_family_members_if_empty
 
 logger = get_logger(__name__)
 
@@ -30,6 +31,8 @@ async def lifespan(app: FastAPI):
         environment=settings.ENVIRONMENT,
         cache_connected=cache.is_connected,
     )
+    # Seed family members from environment if database is empty
+    await seed_family_members_if_empty()
     yield
     # Close cache connection
     await close_cache()

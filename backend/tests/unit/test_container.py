@@ -1,6 +1,7 @@
 """Tests for dependency injection container."""
 
-from unittest.mock import MagicMock, patch
+import contextlib
+from unittest.mock import AsyncMock, patch
 
 import pytest
 
@@ -106,13 +107,20 @@ class TestFamilyRepository:
 
     @pytest.mark.asyncio
     async def test_returns_family_repository(self):
-        """Container returns FamilyRepositoryImpl."""
+        """Container yields FamilyRepositoryImpl."""
         with patch("app.core.container.get_async_session_factory") as mock_factory:
-            mock_session = MagicMock()
-            mock_factory.return_value.return_value.__aenter__.return_value = mock_session
+            mock_session = AsyncMock()
+            mock_factory.return_value = mock_session
 
-            repository = await get_family_repository()
+            # Get the generator and verify it yields a FamilyRepositoryImpl
+            gen = get_family_repository()
+            repository = await gen.__anext__()
+
             assert isinstance(repository, FamilyRepositoryImpl)
+
+            # Generator cleanup may fail with mocks — that's expected in tests
+            with contextlib.suppress(TypeError, RuntimeError):
+                await gen.aclose()
 
 
 class TestResetContainer:

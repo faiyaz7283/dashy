@@ -15,22 +15,22 @@ class FamilyMemberConfig:
     Attributes:
         name: Display name for the family member.
         key: Unique identifier used in API responses and member lookups.
-        calendar_id: Google Calendar ID associated with this member.
-        color: Hex color code for calendar event color-coding.
+        email: Email address (also used as Google Calendar ID).
+        color: Hex color code for UI color-coding.
     """
 
-    def __init__(self, name: str, key: str, calendar_id: str, color: str) -> None:
+    def __init__(self, name: str, key: str, email: str, color: str) -> None:
         """Initialize a family member configuration.
 
         Args:
             name: Display name for the family member.
             key: Unique identifier used in API responses and member lookups.
-            calendar_id: Google Calendar ID associated with this member.
-            color: Hex color code for calendar event color-coding.
+            email: Email address (also used as Google Calendar ID).
+            color: Hex color code for UI color-coding.
         """
         self.name = name
         self.key = key
-        self.calendar_id = calendar_id
+        self.email = email
         self.color = color
 
 
@@ -65,7 +65,7 @@ class Settings(BaseSettings):
 
     # Family
     FAMILY_MEMBERS: str = (
-        '[{"name":"Test User","key":"test","calendar_id":"test@example.com","color":"#FF0000"}]'
+        '[{"name":"Test User","key":"test","email":"test@example.com","color":"#FF0000"}]'
     )
 
     # CORS
@@ -97,7 +97,7 @@ class Settings(BaseSettings):
             FamilyMemberConfig(
                 name=m["name"],
                 key=m["key"],
-                calendar_id=m["calendar_id"],
+                email=m["email"],
                 color=m["color"],
             )
             for m in members

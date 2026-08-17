@@ -22,20 +22,39 @@ make build
 2. **Stop on first failure.** If `make lint` fails, fix lint errors before running typecheck. Do not pile up errors from multiple steps.
 3. **Fix, don't suppress.** If a lint or typecheck error appears, fix the root cause. Do not add `@ts-ignore`, `# type: ignore`, or `eslint-disable` unless the user explicitly approves.
 4. **Report results clearly.** After all four pass, confirm with the exact output. If any step fails, report the full error output — do not summarize or truncate.
-5. **Docker-first.** All commands run through Makefile targets inside Docker containers. Never run `npm`, `npx`, `uv`, `ruff`, `pytest`, or `tsc` directly on the host.
+5. **Docker-first.** All commands run through Makefile targets inside Docker containers. Never run `pnpm`, `npm`, `npx`, `uv`, `ruff`, `pytest`, or `tsc` directly on the host.
 
 ## What each step checks
 
 | Step | Frontend | Backend |
 |------|----------|---------|
-| `make lint` | ESLint (`npm run lint`) | Ruff check (`ruff check app/ tests/`) |
-| `make typecheck` | TypeScript (`npm run typecheck`) | N/A (Python uses runtime types) |
+| `make lint` | ESLint (`pnpm run lint`) | Ruff check (`ruff check app/ tests/`) |
+| `make typecheck` | TypeScript (`pnpm run typecheck`) | N/A (Python uses runtime types) |
 | `make test` | Vitest + Testing Library (jsdom) | pytest + pytest-asyncio |
 | `make build` | Vite production build | `python -m compileall app/` |
 
 ## After a change
 
 If you made changes to both frontend and backend, all four steps still apply — the Makefile targets handle both. You do not need to run `lint-frontend` and `lint-backend` separately unless you want to isolate a failure.
+
+## Granular checks (for faster feedback)
+
+When working on only one side, you can run side-specific targets for faster iteration:
+
+**Backend only:**
+```bash
+make lint-backend
+make test-backend
+```
+
+**Frontend only:**
+```bash
+make lint-frontend
+make typecheck-frontend
+make test-frontend
+```
+
+**Note:** Always run the full quality gate (`make lint && make typecheck && make test && make build`) before committing or declaring work complete, even if you've been using granular checks during development.
 
 ## Common failure patterns
 

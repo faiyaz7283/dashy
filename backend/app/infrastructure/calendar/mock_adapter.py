@@ -4,7 +4,7 @@ Returns mock calendar data for development and testing.
 """
 
 from app.domain.calendar.models import DateRange
-from app.services.mock_data import get_mock_week_calendar
+from app.infrastructure.mock_data import get_mock_week_calendar
 
 
 class MockCalendarAdapter:

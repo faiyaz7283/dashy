@@ -9,7 +9,6 @@ from app.api.deps import CacheDep, WeatherProviderDep
 from app.api.models.requests import WeatherQuery
 from app.api.models.weather import WeatherResponse
 from app.config import settings
-from app.services.mock_data import get_mock_weather
 
 router = APIRouter(prefix="/weather", tags=["weather"])
 
@@ -22,8 +21,8 @@ async def get_weather_endpoint(
 ) -> WeatherResponse:
     """Get current weather and 19-day forecast.
 
-    Fetches from OpenWeatherMap API. Falls back to mock data
-    when API key is not configured. Results are cached for 10 minutes.
+    Fetches from weather provider (OpenWeatherMap or mock).
+    Results are cached for the configured TTL.
 
     Args:
         weather_provider: Injected weather provider instance.
@@ -40,12 +39,8 @@ async def get_weather_endpoint(
     if cached is not None:
         return WeatherResponse(**cached)
 
-    # Fetch from provider
-    try:
-        result = await weather_provider.get_weather(query.units)
-        # Cache the result
-        await cache.set(cache_key, result.model_dump(), settings.WEATHER_CACHE_TTL)
-        return result
-    except Exception:
-        # Fail-open: return mock data on any failure
-        return get_mock_weather(query.units)
+    # Fetch from provider (providers handle their own fallback internally)
+    result = await weather_provider.get_weather(query.units)
+    # Cache the result
+    await cache.set(cache_key, result.model_dump(), settings.WEATHER_CACHE_TTL)
+    return result

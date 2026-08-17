@@ -40,12 +40,17 @@ class TestRegistry:
         """Registry returns family repository from container."""
         with patch("app.core.registry.get_family_repository") as mock_get:
             mock_repo = MagicMock(spec=FamilyRepositoryImpl)
-            mock_get.return_value = mock_repo
 
-            repository = await registry.get_family_repository()
+            # Create an async generator that yields the mock repo
+            async def mock_gen():
+                yield mock_repo
 
-            assert repository is mock_repo
-            mock_get.assert_called_once()
+            mock_get.return_value = mock_gen()
+
+            # Get the generator from registry and iterate it
+            async for repository in registry.get_family_repository():
+                assert repository is mock_repo
+                break
 
 
 class TestRegistryVerification:

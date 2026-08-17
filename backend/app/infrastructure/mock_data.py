@@ -21,22 +21,34 @@ def get_mock_family_members() -> list[FamilyMember]:
         FamilyMember(
             name="Faiyaz",
             key="faiyaz",
-            calendar_id="faiyaz@gmail.com",
+            email="faiyaz7283@gmail.com",
             color="#4A90E2",
             initial="F",
+            relation="father",
         ),
         FamilyMember(
             name="Trisha",
             key="trisha",
-            calendar_id="trisha@gmail.com",
+            email="humairaabbasi26@gmail.com",
             color="#E24A8D",
             initial="T",
+            relation="mother",
         ),
         FamilyMember(
-            name="Arya", key="arya", calendar_id="arya@gmail.com", color="#4ADE80", initial="A"
+            name="Arya",
+            key="arya",
+            email="aryahaider1210@gmail.com",
+            color="#4ADE80",
+            initial="A",
+            relation="daughter",
         ),
         FamilyMember(
-            name="Raya", key="raya", calendar_id="raya@gmail.com", color="#FBBF24", initial="R"
+            name="Raya",
+            key="raya",
+            email="rayahaider23@gmail.com",
+            color="#FBBF24",
+            initial="R",
+            relation="daughter",
         ),
     ]
 
@@ -631,7 +643,7 @@ def get_mock_weather(units: str = "imperial") -> WeatherResponse:
     Returns:
         WeatherResponse with mock current conditions and 19-day forecast.
     """
-    from app.services.weather_service import _build_response
+    from app.infrastructure.weather.owm_adapter import _build_response
 
     current_data, hourly_data, daily_data = _get_mock_api_responses()
 

@@ -1,9 +1,50 @@
 # Backend Migration Plan
 
-> Status: **COMPLETED**
+> Status: **B1–B6 BUILT — wiring cleanup remaining (see B7)**
 > Created: 2026-08-16
-> Completed: 2026-08-17
+> Last updated: 2026-08-17
 > Scope: Restructure backend for dependency injection, configuration-driven design, provider-agnostic architecture, caching, clean separation of concerns, and database persistence for family members.
+
+### Implementation Status (as of 2026-08-17)
+
+All six phases have been **built** — domain layer, infrastructure adapters, DI container, cache, database, and API models all exist. However, the **wiring is incomplete**:
+
+| Area | Status | Detail |
+|------|--------|--------|
+| Domain layer (`domain/`) | ✅ Complete | All 3 domains with models, ports, services |
+| Infrastructure adapters | ✅ Built | OWM, Google, mock adapters + persistence |
+| DI container + registry | ✅ Built | `core/container.py`, `core/registry.py` |
+| Cache (Redis) | ✅ Built + wired | `core/cache.py`, Redis in docker compose |
+| Database (SQLite + SQLModel) | ✅ Built | `core/database.py`, Alembic migration, `FamilyRepositoryImpl` |
+| API models | ✅ Built | Split into `api/models/` (weather, calendar, family, requests) |
+| Route wiring | ⚠️ Partial | `main.py` still imports from old `app/routes/`; new routes in `app/routes/` use DI but calendar still calls old `get_calendar_events()` |
+| Family endpoint | ⚠️ Not wired | Injects `FamilyRepositoryDep` but returns mock data, ignoring the repository |
+| Old code removal | ❌ Pending | `app/services/` (old service layer) still actively imported by routes and adapters |
+| SQLite Docker volume | ❌ Missing | No volume mount for `dashy.db` — data loss on container restart |
+| Redis in plan | ❌ Not documented | Redis service exists in docker compose but was never added to this plan |
+
+**Remaining work is tracked in B7** — wiring cleanup, old code removal, Docker volume mounts, and extended domains.
+
+### Repository Structure (as of 2026-08-17)
+
+This backend will become the **`dashy-api`** submodule in the `dashy` orchestrator repo (dashtam pattern). See `docs/plans/REPO-SPLIT-INTEGRATION.md` for details.
+
+```
+dashy/                        ← orchestrator repo
+├── compose/                  ← docker-compose (dev + prod)
+├── scripts/                  ← kiosk scripts, deploy helpers
+├── docs/                     ← plans, guides
+├── env/                      ← shared .env files
+├── frontend/  → submodule    ← dashy-kiosk (React kiosk dashboard)
+├── backend/   → submodule    ← dashy-api (this repo — FastAPI backend)
+└── Makefile                  ← orchestrates frontend + backend
+```
+
+**Implications for this plan:**
+- Docker compose files live in the orchestrator (`dashy/compose/`), not here
+- Deployment is orchestrated via `make deploy-pi` from the orchestrator
+- This repo has its own CI (lint, typecheck, test, build) independent of the frontend
+- API contract with frontend is defined in `app/registry.py` (backend) and `src/core/api/endpoints.ts` (frontend)
 
 ---
 
@@ -222,14 +263,14 @@ def get_http_client() -> httpx.AsyncClient:
 
 ### Async Checklist
 
-- [ ] All domain service methods: `async def`
-- [ ] All repository methods: `async def`
-- [ ] All infrastructure adapters: `async def`
-- [ ] Google Calendar API calls: wrapped in `run_in_executor`
-- [ ] httpx client: shared async client with connection pooling
-- [ ] Redis cache: `redis.asyncio` client
-- [ ] Database (future): `asyncpg` via SQLAlchemy async
-- [ ] Tests: `asyncio_mode = auto` in pytest config
+- [x] All domain service methods: `async def`
+- [x] All repository methods: `async def`
+- [x] All infrastructure adapters: `async def`
+- [x] Google Calendar API calls: wrapped in `run_in_executor`
+- [x] httpx client: shared async client with connection pooling
+- [x] Redis cache: `redis.asyncio` client
+- [x] Database: SQLModel + `aiosqlite` for async SQLite (sync engine for Alembic migrations)
+- [x] Tests: `asyncio_mode = auto` in pytest config
 
 ---
 
@@ -522,16 +563,18 @@ Fix the easy bugs. No restructuring. Everything stays in place.
 | B1.9 | Enforce Google-style docstrings | Add ruff `pydocstyle` rules with `convention = "google"`, upgrade all existing docstrings to comply |
 
 **Testing for B1:**
-- [ ] Create `tests/conftest.py` with shared fixtures
-- [ ] Create `tests/unit/`, `tests/integration/`, `tests/api/` directories
-- [ ] Update pytest config: `asyncio_mode = "auto"`, markers
-- [ ] Add `pytest-httpx` to dev dependencies
-- [ ] Migrate existing tests to new structure (no behavior changes)
-- [ ] Add ruff `pydocstyle` config: `convention = "google"` in `pyproject.toml`
-- [ ] All existing functions/classes have compliant Google-style docstrings
-- [ ] `make lint` passes with docstring rules enabled
+- [x] Create `tests/conftest.py` with shared fixtures
+- [x] Create `tests/unit/`, `tests/integration/`, `tests/api/` directories
+- [x] Update pytest config: `asyncio_mode = "auto"`, markers
+- [x] Add `pytest-httpx` to dev dependencies
+- [x] Migrate existing tests to new structure (no behavior changes)
+- [x] Add ruff `pydocstyle` config: `convention = "google"` in `pyproject.toml`
+- [x] All existing functions/classes have compliant Google-style docstrings
+- [x] `make lint` passes with docstring rules enabled
 
-**Verification:** `make lint && make typecheck && make test && make build` — all pass. No behavior changes.
+**Verification:** ✅ `make lint && make typecheck && make test && make build` — all pass. No behavior changes.
+
+**Status:** ✅ **COMPLETE**
 
 ---
 
@@ -552,13 +595,15 @@ Extract business logic into a framework-free domain layer.
 **Key rule:** Domain layer has ZERO imports from FastAPI, httpx, or any framework. Pure Python only.
 
 **Testing for B2:**
-- [ ] Unit tests for all value objects (Temperature, WindSpeed, etc.)
-- [ ] Unit tests for domain services (with mocked repositories)
-- [ ] Test deduplication logic thoroughly
-- [ ] Test unit conversion functions
-- [ ] All domain tests are synchronous (no I/O)
+- [x] Unit tests for all value objects (Temperature, WindSpeed, etc.)
+- [x] Unit tests for domain services (with mocked repositories)
+- [x] Test deduplication logic thoroughly
+- [x] Test unit conversion functions
+- [x] All domain tests are synchronous (no I/O)
 
-**Verification:** Domain tests pass without any framework imports. Existing service tests still pass.
+**Verification:** ✅ Domain tests pass without any framework imports. Existing service tests still pass.
+
+**Status:** ✅ **COMPLETE**
 
 ---
 
@@ -582,16 +627,18 @@ Move external integrations behind protocol interfaces.
 **Why DB in B3 (not B7):** The `FamilyRepository` Protocol is defined in B2. Building a config-file implementation (originally planned) would be throwaway work — we're going to DB anyway. Family members are the simplest domain (one table, basic CRUD), making them the perfect first table to validate the SQLite + SQLModel + Alembic setup before heavier domains land in B7.
 
 **Testing for B3:**
-- [ ] Integration tests for OWM adapter using `pytest-httpx`
-- [ ] Integration tests for Google adapter (mock the sync Google API calls)
-- [ ] Unit tests for mock adapters (verify they return correct shapes)
-- [ ] Test connection pooling and retry logic
-- [ ] Test `run_in_executor` wrapping for Google API
-- [ ] Integration tests for `FamilyRepository` — CRUD operations against real SQLite
-- [ ] Test Alembic migration applies cleanly (including seed data)
-- [ ] All adapter tests are async
+- [x] Integration tests for OWM adapter using `pytest-httpx`
+- [x] Integration tests for Google adapter (mock the sync Google API calls)
+- [x] Unit tests for mock adapters (verify they return correct shapes)
+- [x] Test connection pooling and retry logic
+- [x] Test `run_in_executor` wrapping for Google API
+- [x] Integration tests for `FamilyRepository` — CRUD operations against real SQLite
+- [x] Test Alembic migration applies cleanly (including seed data)
+- [x] All adapter tests are async
 
-**Verification:** Each adapter has unit tests. Swapping `WEATHER_PROVIDER=mock|owm` works via env var. Family members persist in SQLite, seeded from existing `.env` data.
+**Verification:** ✅ Each adapter has unit tests. Swapping `WEATHER_PROVIDER=mock|owm` works via env var. Family members persist in SQLite, seeded from existing `.env` data.
+
+**Status:** ✅ **COMPLETE** (adapters built, DB schema created, Alembic migration exists)
 
 ---
 
@@ -625,12 +672,14 @@ def weather_provider() -> WeatherProvider:
 ```
 
 **Testing for B4:**
-- [ ] Registry compliance tests (verify all providers implement protocols)
-- [ ] Test container wiring (verify correct provider returned based on env)
-- [ ] Test `Depends()` overrides work correctly
-- [ ] Mock container in unit tests
+- [x] Registry compliance tests (verify all providers implement protocols)
+- [x] Test container wiring (verify correct provider returned based on env)
+- [x] Test `Depends()` overrides work correctly
+- [x] Mock container in unit tests
 
-**Verification:** Registry compliance tests pass. Adding a new provider requires only: write adapter + add registry entry.
+**Verification:** ✅ Registry compliance tests pass. Adding a new provider requires only: write adapter + add registry entry.
+
+**Status:** ✅ **COMPLETE**
 
 ---
 
@@ -662,13 +711,15 @@ async def get_weather(units: str) -> WeatherResponse:
 ```
 
 **Testing for B5:**
-- [ ] Integration tests for Redis cache (real Redis in Docker)
-- [ ] Test TTL expiration
-- [ ] Test fail-open behavior (cache failure falls through to API)
-- [ ] Test cache hit/miss stats
-- [ ] All cache tests are async
+- [x] Integration tests for Redis cache (real Redis in Docker)
+- [x] Test TTL expiration
+- [x] Test fail-open behavior (cache failure falls through to API)
+- [x] Test cache hit/miss stats
+- [x] All cache tests are async
 
-**Verification:** Second request within TTL returns cached data. Cache failure falls through to API.
+**Verification:** ✅ Second request within TTL returns cached data. Cache failure falls through to API.
+
+**Status:** ✅ **COMPLETE** (Redis service in docker compose, cache wired into weather + calendar routes)
 
 ---
 
@@ -685,23 +736,25 @@ Final polish on the HTTP layer.
 | B6.5 | Add `conftest.py` with test fixtures | Shared fixtures, container override for testing |
 
 **Testing for B6:**
-- [ ] API tests for all endpoints (weather, calendar, family)
-- [ ] Test request validation (invalid units, bad dates)
-- [ ] Test RFC 9457 error responses
-- [ ] Test family endpoint returns real config data
-- [ ] All API tests use `httpx.AsyncClient` with `ASGITransport`
+- [x] API tests for all endpoints (weather, calendar, family)
+- [x] Test request validation (invalid units, bad dates)
+- [x] Test RFC 9457 error responses
+- [ ] Test family endpoint returns real DB data (currently returns mock — see B7)
+- [x] All API tests use `httpx.AsyncClient` with `ASGITransport`
 
-**Verification:** Full quality gate passes. API docs at `/docs` are accurate.
+**Verification:** ⚠️ Quality gate passes, but family endpoint still returns mock data (repository injected but unused). Calendar route still calls old `get_calendar_events()` from `app.services.calendar_service`.
+
+**Status:** ⚠️ **MOSTLY COMPLETE** — models split, request validation, and test fixtures done. Family DB wiring and calendar route migration deferred to B7.
 
 ---
 
 ## Execution Order
 
 ```
-B1 (Foundation) → B2 (Domain) → B3 (Adapters) → B4 (DI + Registry) → B5 (Cache) → B6 (API Cleanup)
+B1 (Foundation) → B2 (Domain) → B3 (Adapters) → B4 (DI + Registry) → B5 (Cache) → B6 (API Cleanup) → B7.1-B7.9 (Wiring Cleanup) → B7 Part 2 (Extended Domains, optional)
 ```
 
-Each phase is independently deployable. No phase requires a later phase to be complete.
+Each phase B1-B6 is independently deployable. **B7 Part 1 (wiring cleanup) is required** to complete the migration. B7 Part 2 (extended domains) is optional and can be deferred until lists/chores/rewards features are needed.
 
 ---
 
@@ -763,6 +816,39 @@ backend/app/
 
 ---
 
+## Docker Infrastructure
+
+**Services in docker compose (dev + prod):**
+
+| Service | Purpose | Status |
+|---------|---------|--------|
+| **Redis** | Cache backend (B5) | ✅ Implemented — `redis:7-alpine`, AOF persistence, exposed on 6379 |
+| **Backend** | FastAPI app | ✅ Implemented |
+| **Frontend** | React + Vite (dev) / Nginx (prod) | ✅ Implemented |
+| **Traefik** | Reverse proxy (prod only) | ✅ Implemented |
+| **SQLite** | Database persistence | ⚠️ **Missing volume mount** — `dashy.db` not volume-mounted, data loss on container restart |
+
+**Redis configuration:**
+- Image: `redis:7-alpine`
+- Persistence: AOF (Append Only File) enabled via `--appendonly yes`
+- Volume: `redis-data:/data` (persists cache across restarts)
+- Network: Internal docker network, exposed to backend via `REDIS_URL=redis://redis:6379`
+
+**SQLite volume mount (TODO — B7):**
+```yaml
+# Add to backend service in docker-compose.dev.yml and docker-compose.prod.yml
+volumes:
+  - ../backend/data:/app/data  # Persist SQLite database
+```
+
+**Why Redis was added (2026-08-17):**
+- B5 cache layer requires a distributed cache backend
+- Redis chosen over in-memory cache for production reliability
+- Added to docker compose manually during B5 implementation
+- This plan was not updated to reflect the infrastructure change until now
+
+---
+
 ## Dependencies to Add
 
 | Package | Purpose | Phase |
@@ -779,9 +865,51 @@ None currently planned. The existing dependency tree is lean and appropriate.
 
 ---
 
-## Future Phase: Extended Domains + Family CRUD (B7)
+## Future Phase: Wiring Cleanup + Extended Domains (B7)
 
-**When to implement:** After B1-B6 are complete, when you're ready to add lists, chores, or rewards features.
+**When to implement:** After B1-B6 are complete. B7 has two parts: wiring cleanup (required) and extended domains (optional, when ready for lists/chores/rewards).
+
+### Part 1: Wiring Cleanup (Required)
+
+Complete the migration by wiring up the new architecture and removing old code.
+
+**Current gaps:**
+- `main.py` imports from old `app.routes` instead of new `app.api.routes`
+- Calendar route injects `CalendarProviderDep` but still calls old `get_calendar_events()` from `app.services.calendar_service`
+- Family route injects `FamilyRepositoryDep` but returns `get_mock_family_members()`, ignoring the repository
+- Old `app/services/` directory (weather_service.py, calendar_service.py, mock_data.py) still actively imported by routes and adapters
+- SQLite database file not volume-mounted in docker compose (data loss on container restart)
+
+**Steps:**
+
+| Step | What | Why |
+|------|------|-----|
+| B7.1 | Move route files to `app/api/routes/` | Align with target architecture — routes currently in `app/routes/` |
+| B7.2 | Update `main.py` imports | Change `from app.routes` to `from app.api.routes` |
+| B7.3 | Migrate calendar route to use injected provider | Replace `get_calendar_events()` call with `calendar_provider.fetch_events()` |
+| B7.4 | Wire family route to use repository | Replace `get_mock_family_members()` with `family_repository.get_members()` |
+| B7.5 | Add SQLite volume mount to docker compose | Persist `dashy.db` across container restarts |
+| B7.6 | Update infrastructure adapters to use domain services | OWM adapter and mock adapters still import from `app.services.mock_data` |
+| B7.7 | Remove old `app/services/` directory | Delete weather_service.py, calendar_service.py, mock_data.py after all imports migrated |
+| B7.8 | Update tests | Ensure all tests use new architecture, remove tests for old service layer |
+| B7.9 | Verify family endpoint returns real DB data | Test that `GET /api/v1/family` reads from SQLite, not mock |
+
+**Verification:**
+- [ ] `main.py` imports from `app.api.routes`
+- [ ] Calendar route uses injected `CalendarProvider` (no old service calls)
+- [ ] Family route uses injected `FamilyRepository` (returns real DB data)
+- [ ] No imports from `app.services` anywhere in codebase
+- [ ] Old `app/services/` directory deleted
+- [ ] SQLite volume mount in both `docker-compose.dev.yml` and `docker-compose.prod.yml`
+- [ ] `make lint && make typecheck && make test && make build` — all pass
+- [ ] Family endpoint returns data from SQLite database
+- [ ] Update backend skills (`/add-domain`, `/add-repository`) to reflect final structure
+
+**Status:** 🔲 **NOT STARTED**
+
+### Part 2: Extended Domains + Family CRUD (Optional)
+
+**When to implement:** After B7.1-B7.9 are complete, when you're ready to add lists, chores, or rewards features.
 
 **Scope:**
 - Add family member CRUD endpoints (`POST`, `PUT`, `DELETE /api/v1/family`)
@@ -820,3 +948,5 @@ class ListItem(SQLModel, table=True):
 ```
 
 This enables features like "show me all shopping items for this week's events" or "what chores are due today."
+
+**Status:** 🔲 **NOT STARTED** (depends on B7.1-B7.9)

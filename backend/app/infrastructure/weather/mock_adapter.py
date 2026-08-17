@@ -4,7 +4,7 @@ Returns mock weather data for development and testing.
 """
 
 from app.api.models.weather import WeatherResponse
-from app.services.mock_data import get_mock_weather
+from app.infrastructure.mock_data import get_mock_weather
 
 
 class MockWeatherAdapter:

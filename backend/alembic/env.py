@@ -18,8 +18,11 @@ if config.config_file_name is not None:
 from app.core.database import SQLModel
 from app.infrastructure.persistence.models import FamilyMemberDB
 
-# Set the database URL from config or use default
-config.set_main_option("sqlalchemy.url", "sqlite:///./dashy.db")
+# Set the database URL from app config (single source of truth)
+from app.config import settings
+
+sync_url = settings.DATABASE_URL.replace("+aiosqlite", "")
+config.set_main_option("sqlalchemy.url", sync_url)
 
 # add your model's MetaData object here
 # for 'autogenerate' support

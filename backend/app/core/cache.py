@@ -4,6 +4,7 @@ Provides caching for weather and calendar data to reduce API calls.
 Uses Redis for distributed caching with automatic fallback on failures.
 """
 
+import contextlib
 import json
 from typing import Any
 
@@ -59,11 +60,9 @@ class Cache:
     async def disconnect(self) -> None:
         """Close Redis connection."""
         if self._client:
-            try:
-                await self._client.aclose()
-            except RuntimeError:
+            with contextlib.suppress(RuntimeError):
                 # Event loop is closed, ignore
-                pass
+                await self._client.aclose()
             self._client = None
             logger.info("cache_disconnected")
 

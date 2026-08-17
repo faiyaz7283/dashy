@@ -9,6 +9,18 @@ from unittest.mock import AsyncMock
 import pytest
 
 from app.config import Settings
+from app.core.database import create_db_and_tables
+
+
+@pytest.fixture(autouse=True, scope="session")
+def setup_test_database():
+    """Create database tables before any tests run.
+
+    This fixture runs once per test session and ensures all SQLModel
+    tables exist in the test database.
+    """
+    create_db_and_tables()
+    yield
 
 
 @pytest.fixture

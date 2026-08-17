@@ -3,28 +3,35 @@
 Domain entities representing family members.
 """
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
+from datetime import date
 
 
 @dataclass
 class FamilyMember:
     """Family member entity.
 
-    Represents a person in the family with their associated calendar and preferences.
+    Represents a person in the family registry. This is the canonical
+    source of member identity used across all features (calendar, rewards,
+    permissions, etc.).
 
     Attributes:
-        id: Unique identifier (typically member key).
+        id: Unique business identifier (member key, e.g. "faiyaz").
         name: Display name.
-        calendar_id: Google Calendar ID (email address).
-        color: Hex color code for calendar events.
+        email: Email address (also used as Google Calendar ID).
+        color: Hex color code for UI color-coding.
         initial: Single character initial for display.
+        date_of_birth: Optional date of birth.
+        relation: Optional relationship label (e.g. "father", "daughter").
     """
 
     id: str
     name: str
-    calendar_id: str
+    email: str
     color: str
     initial: str
+    date_of_birth: date | None = field(default=None)
+    relation: str | None = field(default=None)
 
     def __eq__(self, other: object) -> bool:
         """Check equality based on identity (id).

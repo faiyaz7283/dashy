@@ -1,16 +1,11 @@
-"""Tests for weather_service.py.
-
-One Call API 4.0 parsing, timezone handling, and mock data structure validation.
-"""
+"""Tests for weather adapter and parsing functions."""
 
 from datetime import UTC, datetime, timedelta
 from datetime import timezone as dt_timezone
 
 import pytest
-from httpx import ASGITransport, AsyncClient
 
-from app.main import app
-from app.services.weather_service import (
+from app.infrastructure.weather.owm_adapter import (
     _build_response,
     _get_today_midnight_timestamp,
     _map_condition,
@@ -19,7 +14,6 @@ from app.services.weather_service import (
     _ts_to_date,
     _ts_to_datetime,
     _ts_to_iso,
-    get_weather,
 )
 
 # ── _map_condition ────────────────────────────────────────
@@ -152,7 +146,7 @@ class TestParseHourlyFromData:
         # Mock _ts_to_date to control date matching
         from unittest.mock import patch
 
-        with patch("app.services.weather_service._ts_to_date") as mock_date:
+        with patch("app.infrastructure.weather.owm_adapter._ts_to_date") as mock_date:
             mock_date.side_effect = ["2026-08-11", "2026-08-12"]
             result = _parse_hourly_from_data(hourly_data, "2026-08-11", tz_offset=-14400)
             assert len(result) == 1
@@ -173,7 +167,7 @@ class TestParseHourlyFromData:
         ]
         from unittest.mock import patch
 
-        with patch("app.services.weather_service._ts_to_date", return_value="2026-08-11"):
+        with patch("app.infrastructure.weather.owm_adapter._ts_to_date", return_value="2026-08-11"):
             result = _parse_hourly_from_data(
                 hourly_data, "2026-08-11", tz_offset=-14400, units="imperial"
             )
@@ -194,7 +188,7 @@ class TestParseHourlyFromData:
         ]
         from unittest.mock import patch
 
-        with patch("app.services.weather_service._ts_to_date", return_value="2026-08-12"):
+        with patch("app.infrastructure.weather.owm_adapter._ts_to_date", return_value="2026-08-12"):
             result = _parse_hourly_from_data(hourly_data, "2026-08-11", tz_offset=-14400)
             assert len(result) == 0
 
@@ -384,23 +378,27 @@ class TestBuildResponse:
             assert day.hourly == []
 
 
-# ── get_weather with WEATHER_USE_MOCK ───────────────────────────
+# ── MockWeatherAdapter tests ───────────────────────────
 
 
-class TestGetWeatherMock:
-    """Test that get_weather returns mock data when WEATHER_USE_MOCK=true."""
+class TestMockWeatherAdapter:
+    """Test that MockWeatherAdapter returns mock data."""
 
     @pytest.mark.asyncio
-    async def test_returns_mock_data_when_env_set(self):
-        """In test env (WEATHER_USE_MOCK=true), get_weather returns mock data."""
-        response = await get_weather()
+    async def test_returns_mock_data(self):
+        """MockWeatherAdapter returns mock data."""
+        from app.infrastructure.weather.mock_adapter import MockWeatherAdapter
+        adapter = MockWeatherAdapter()
+        response = await adapter.get_weather()
         assert response.current is not None
         assert len(response.forecast) == 19
 
     @pytest.mark.asyncio
     async def test_mock_data_has_rich_fields(self):
         """Mock data matches 4.0 structure — all 19 days have rich fields."""
-        response = await get_weather()
+        from app.infrastructure.weather.mock_adapter import MockWeatherAdapter
+        adapter = MockWeatherAdapter()
+        response = await adapter.get_weather()
         for day in response.forecast:
             assert day.feels_like_day is not None
             assert day.temp_morn is not None
@@ -411,7 +409,9 @@ class TestGetWeatherMock:
     @pytest.mark.asyncio
     async def test_mock_data_has_hourly_for_first_two_days(self):
         """Mock data has 48 hourly records split across first 2 days."""
-        response = await get_weather()
+        from app.infrastructure.weather.mock_adapter import MockWeatherAdapter
+        adapter = MockWeatherAdapter()
+        response = await adapter.get_weather()
         assert len(response.forecast[0].hourly) == 24
         assert len(response.forecast[1].hourly) == 24
         for day in response.forecast[2:]:
@@ -420,50 +420,15 @@ class TestGetWeatherMock:
     @pytest.mark.asyncio
     async def test_mock_data_units_imperial(self):
         """Mock data returns Fahrenheit by default."""
-        response = await get_weather(units="imperial")
+        from app.infrastructure.weather.mock_adapter import MockWeatherAdapter
+        adapter = MockWeatherAdapter()
+        response = await adapter.get_weather(units="imperial")
         assert response.current.temperature > 50  # Fahrenheit
 
     @pytest.mark.asyncio
     async def test_mock_data_units_metric(self):
         """Mock data returns Celsius when requested."""
-        response = await get_weather(units="metric")
+        from app.infrastructure.weather.mock_adapter import MockWeatherAdapter
+        adapter = MockWeatherAdapter()
+        response = await adapter.get_weather(units="metric")
         assert 15 < response.current.temperature < 35  # Celsius
-
-    @pytest.mark.asyncio
-    async def test_endpoint_returns_19_days(self):
-        """The /api/v1/weather endpoint returns exactly 19 days."""
-        transport = ASGITransport(app=app)
-        async with AsyncClient(transport=transport, base_url="http://test") as client:
-            response = await client.get("/api/v1/weather")
-            assert response.status_code == 200
-            data = response.json()
-            assert len(data["forecast"]) == 19
-
-    @pytest.mark.asyncio
-    async def test_endpoint_all_days_have_rich_fields(self):
-        """All 19 days from the endpoint have rich 4.0 fields."""
-        transport = ASGITransport(app=app)
-        async with AsyncClient(transport=transport, base_url="http://test") as client:
-            response = await client.get("/api/v1/weather")
-            data = response.json()
-            for day in data["forecast"]:
-                assert "feels_like_day" in day
-                assert "temp_morn" in day
-                assert "temp_day" in day
-                assert "humidity" in day
-                assert "pressure" in day
-                assert "moonrise" in day
-                assert "moonset" in day
-                assert "moon_phase" in day
-
-    @pytest.mark.asyncio
-    async def test_endpoint_hourly_only_first_two_days(self):
-        """Hourly data only present for first 2 days in endpoint response."""
-        transport = ASGITransport(app=app)
-        async with AsyncClient(transport=transport, base_url="http://test") as client:
-            response = await client.get("/api/v1/weather")
-            data = response.json()
-            assert len(data["forecast"][0]["hourly"]) == 24
-            assert len(data["forecast"][1]["hourly"]) == 24
-            for day in data["forecast"][2:]:
-                assert day["hourly"] == []

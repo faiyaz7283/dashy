@@ -18,7 +18,6 @@ from app.api.models.weather import (
 from app.config import settings
 from app.core.logging import get_logger
 from app.infrastructure.weather.http_client import get_http_client
-from app.services.mock_data import get_mock_weather
 
 logger = get_logger(__name__)
 
@@ -139,6 +138,138 @@ def _parse_hourly_from_data(
     return result
 
 
+def _build_response(
+    current_data: dict,
+    hourly_data: list[dict] | None,
+    daily_data: list[dict] | None,
+    tz_offset: int,
+    units: str = "imperial",
+) -> WeatherResponse:
+    """Build WeatherResponse from One Call API 4.0 data.
+
+    Args:
+        current_data: Current weather data dict from OWM API.
+        hourly_data: Hourly forecast data list, or None.
+        daily_data: Daily forecast data list, or None.
+        tz_offset: Timezone offset in seconds from UTC.
+        units: Temperature units ("metric" or "imperial").
+
+    Returns:
+        WeatherResponse with parsed current and forecast data.
+    """
+    # Build current weather
+    if "data" in current_data and len(current_data["data"]) > 0:
+        current_record = current_data["data"][0]
+        current_condition = _map_condition(current_record["weather"][0]["main"])
+
+        # Calculate is_night based on sunrise/sunset times
+        is_night = False
+        if "sunrise" in current_record and "sunset" in current_record:
+            local_tz = timezone(timedelta(seconds=tz_offset))
+            now = datetime.now(local_tz)
+            sunrise_ts = current_record["sunrise"]
+            sunset_ts = current_record["sunset"]
+            now_ts = now.timestamp()
+            is_night = now_ts < sunrise_ts or now_ts > sunset_ts
+
+        current = WeatherCurrent(
+            temperature=convert_temperature(current_record.get("temp"), units),
+            feels_like=convert_temperature(current_record.get("feels_like"), units),
+            condition=current_condition,
+            icon=current_condition,  # Use condition name, not day/night suffix
+            is_night=is_night,
+            humidity=current_record.get("humidity", 0),
+            wind_speed=current_record.get("wind_speed", 0),
+            wind_gust=current_record.get("wind_gust"),
+            wind_deg=current_record.get("wind_deg"),
+            pressure=current_record.get("pressure"),
+            dew_point=convert_temperature(current_record.get("dew_point"), units),
+            uvi=current_record.get("uvi"),
+            sunrise=_ts_to_iso(current_record["sunrise"], tz_offset)
+            if "sunrise" in current_record
+            else None,
+            sunset=_ts_to_iso(current_record["sunset"], tz_offset)
+            if "sunset" in current_record
+            else None,
+        )
+    else:
+        # Should not reach here since we already checked current_data, but fallback
+        from app.infrastructure.mock_data import get_mock_weather
+        return get_mock_weather(units)
+
+    # Build daily forecast
+    forecast: list[DailyForecast] = []
+    seen_dates: set[str] = set()
+
+    # Get today's date in local timezone to filter out past days
+    local_tz = timezone(timedelta(seconds=tz_offset))
+    now_ts = int(datetime.now(local_tz).timestamp())
+    today_date = _ts_to_date(now_ts, tz_offset)
+
+    if daily_data:
+        for day in daily_data:
+            date = _ts_to_date(day["dt"], tz_offset)
+            # Skip past dates and duplicates
+            if date < today_date or date in seen_dates:
+                continue
+            seen_dates.add(date)
+
+            temp = day.get("temp", {})
+            feels = day.get("feels_like", {})
+            weather = day["weather"][0] if day.get("weather") else {}
+            day_condition = _map_condition(weather.get("main", "clouds"))
+
+            # Get hourly data for this day
+            day_hourly = []
+            if hourly_data:
+                day_hourly = _parse_hourly_from_data(hourly_data, date, tz_offset, units)
+
+            forecast.append(
+                DailyForecast(
+                    date=date,
+                    high=convert_temperature(temp.get("max", 0), units),
+                    low=convert_temperature(temp.get("min", 0), units),
+                    condition=day_condition,
+                    icon=day_condition,  # Use condition name, not day/night suffix
+                    feels_like_day=convert_temperature(feels.get("day"), units),
+                    feels_like_night=convert_temperature(feels.get("night"), units),
+                    temp_morn=convert_temperature(temp.get("morn"), units),
+                    temp_day=convert_temperature(temp.get("day"), units),
+                    temp_eve=convert_temperature(temp.get("eve"), units),
+                    temp_night=convert_temperature(temp.get("night"), units),
+                    humidity=day.get("humidity"),
+                    pressure=day.get("pressure"),
+                    dew_point=convert_temperature(day.get("dew_point"), units),
+                    wind_speed=day.get("wind_speed"),
+                    wind_gust=day.get("wind_gust"),
+                    wind_deg=day.get("wind_deg"),
+                    uvi=day.get("uvi"),
+                    pop=day.get("pop"),
+                    rain=day.get("rain"),
+                    snow=day.get("snow"),
+                    clouds=day.get("clouds"),
+                    sunrise=(
+                        _ts_to_iso(day["sunrise"], tz_offset) if "sunrise" in day else None
+                    ),
+                    sunset=(_ts_to_iso(day["sunset"], tz_offset) if "sunset" in day else None),
+                    moonrise=(
+                        _ts_to_iso(day["moonrise"], tz_offset) if "moonrise" in day else None
+                    ),
+                    moonset=(
+                        _ts_to_iso(day["moonset"], tz_offset) if "moonset" in day else None
+                    ),
+                    moon_phase=day.get("moon_phase"),
+                    summary=None,  # daily.summary removed in 4.0
+                    hourly=day_hourly,
+                )
+            )
+
+    # Ensure exactly 19 days (today + 18 future days)
+    forecast = forecast[:19]
+
+    return WeatherResponse(current=current, forecast=forecast)
+
+
 class OWMWeatherAdapter:
     """OpenWeatherMap API adapter.
 
@@ -178,6 +309,7 @@ class OWMWeatherAdapter:
         current_data = await self._fetch_current(client)
         if current_data is None:
             logger.warning("current_weather_failed", msg="falling back to mock data")
+            from app.infrastructure.mock_data import get_mock_weather
             return get_mock_weather(units)
 
         # Step 2: Calculate start timestamp (today's midnight in local timezone)
@@ -194,9 +326,10 @@ class OWMWeatherAdapter:
         # If both failed, fall back to mock
         if daily_data is None and hourly_data is None:
             logger.warning("daily_hourly_failed", msg="falling back to mock data")
+            from app.infrastructure.mock_data import get_mock_weather
             return get_mock_weather(units)
 
-        return self._build_response(current_data, hourly_data, daily_data, tz_offset, units)
+        return _build_response(current_data, hourly_data, daily_data, tz_offset, units)
 
     async def _fetch_current(self, client: httpx.AsyncClient) -> dict | None:
         """Fetch current weather from One Call API 4.0."""
@@ -318,134 +451,3 @@ class OWMWeatherAdapter:
         except httpx.HTTPError as e:
             logger.error("daily_forecast_api_error", error=str(e))
             return None
-
-    def _build_response(
-        self,
-        current_data: dict,
-        hourly_data: list[dict] | None,
-        daily_data: list[dict] | None,
-        tz_offset: int,
-        units: str = "imperial",
-    ) -> WeatherResponse:
-        """Build WeatherResponse from One Call API 4.0 data.
-
-        Args:
-            current_data: Current weather data dict from OWM API.
-            hourly_data: Hourly forecast data list, or None.
-            daily_data: Daily forecast data list, or None.
-            tz_offset: Timezone offset in seconds from UTC.
-            units: Temperature units ("metric" or "imperial").
-
-        Returns:
-            WeatherResponse with parsed current and forecast data.
-        """
-        # Build current weather
-        if "data" in current_data and len(current_data["data"]) > 0:
-            current_record = current_data["data"][0]
-            current_condition = _map_condition(current_record["weather"][0]["main"])
-
-            # Calculate is_night based on sunrise/sunset times
-            is_night = False
-            if "sunrise" in current_record and "sunset" in current_record:
-                local_tz = timezone(timedelta(seconds=tz_offset))
-                now = datetime.now(local_tz)
-                sunrise_ts = current_record["sunrise"]
-                sunset_ts = current_record["sunset"]
-                now_ts = now.timestamp()
-                is_night = now_ts < sunrise_ts or now_ts > sunset_ts
-
-            current = WeatherCurrent(
-                temperature=convert_temperature(current_record.get("temp"), units),
-                feels_like=convert_temperature(current_record.get("feels_like"), units),
-                condition=current_condition,
-                icon=current_condition,  # Use condition name, not day/night suffix
-                is_night=is_night,
-                humidity=current_record.get("humidity", 0),
-                wind_speed=current_record.get("wind_speed", 0),
-                wind_gust=current_record.get("wind_gust"),
-                wind_deg=current_record.get("wind_deg"),
-                pressure=current_record.get("pressure"),
-                dew_point=convert_temperature(current_record.get("dew_point"), units),
-                uvi=current_record.get("uvi"),
-                sunrise=_ts_to_iso(current_record["sunrise"], tz_offset)
-                if "sunrise" in current_record
-                else None,
-                sunset=_ts_to_iso(current_record["sunset"], tz_offset)
-                if "sunset" in current_record
-                else None,
-            )
-        else:
-            # Should not reach here since we already checked current_data, but fallback
-            return get_mock_weather(units)
-
-        # Build daily forecast
-        forecast: list[DailyForecast] = []
-        seen_dates: set[str] = set()
-
-        # Get today's date in local timezone to filter out past days
-        local_tz = timezone(timedelta(seconds=tz_offset))
-        now_ts = int(datetime.now(local_tz).timestamp())
-        today_date = _ts_to_date(now_ts, tz_offset)
-
-        if daily_data:
-            for day in daily_data:
-                date = _ts_to_date(day["dt"], tz_offset)
-                # Skip past dates and duplicates
-                if date < today_date or date in seen_dates:
-                    continue
-                seen_dates.add(date)
-
-                temp = day.get("temp", {})
-                feels = day.get("feels_like", {})
-                weather = day["weather"][0] if day.get("weather") else {}
-                day_condition = _map_condition(weather.get("main", "clouds"))
-
-                # Get hourly data for this day
-                day_hourly = []
-                if hourly_data:
-                    day_hourly = _parse_hourly_from_data(hourly_data, date, tz_offset, units)
-
-                forecast.append(
-                    DailyForecast(
-                        date=date,
-                        high=convert_temperature(temp.get("max", 0), units),
-                        low=convert_temperature(temp.get("min", 0), units),
-                        condition=day_condition,
-                        icon=day_condition,  # Use condition name, not day/night suffix
-                        feels_like_day=convert_temperature(feels.get("day"), units),
-                        feels_like_night=convert_temperature(feels.get("night"), units),
-                        temp_morn=convert_temperature(temp.get("morn"), units),
-                        temp_day=convert_temperature(temp.get("day"), units),
-                        temp_eve=convert_temperature(temp.get("eve"), units),
-                        temp_night=convert_temperature(temp.get("night"), units),
-                        humidity=day.get("humidity"),
-                        pressure=day.get("pressure"),
-                        dew_point=convert_temperature(day.get("dew_point"), units),
-                        wind_speed=day.get("wind_speed"),
-                        wind_gust=day.get("wind_gust"),
-                        wind_deg=day.get("wind_deg"),
-                        uvi=day.get("uvi"),
-                        pop=day.get("pop"),
-                        rain=day.get("rain"),
-                        snow=day.get("snow"),
-                        clouds=day.get("clouds"),
-                        sunrise=(
-                            _ts_to_iso(day["sunrise"], tz_offset) if "sunrise" in day else None
-                        ),
-                        sunset=(_ts_to_iso(day["sunset"], tz_offset) if "sunset" in day else None),
-                        moonrise=(
-                            _ts_to_iso(day["moonrise"], tz_offset) if "moonrise" in day else None
-                        ),
-                        moonset=(
-                            _ts_to_iso(day["moonset"], tz_offset) if "moonset" in day else None
-                        ),
-                        moon_phase=day.get("moon_phase"),
-                        summary=None,  # daily.summary removed in 4.0
-                        hourly=day_hourly,
-                    )
-                )
-
-        # Ensure exactly 19 days (today + 18 future days)
-        forecast = forecast[:19]
-
-        return WeatherResponse(current=current, forecast=forecast)

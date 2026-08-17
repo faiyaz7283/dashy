@@ -66,8 +66,11 @@ services:
       - ../env/.env.prod
     expose:
       - "8000"
+    volumes:
+      - backend-data:/app/data
     environment:
       - REDIS_URL=redis://redis:6379
+      - DATABASE_URL=sqlite+aiosqlite:////app/data/dashy.db
     depends_on:
       - redis
     networks:
@@ -86,3 +89,4 @@ networks:
 
 volumes:
   redis-data:
+  backend-data:
