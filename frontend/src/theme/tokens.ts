@@ -73,22 +73,6 @@ export const densityBarColors = {
   high: '#fca5a5',
 } as const
 
-/**
- * Family member pill / event colors keyed by member key.
- *
- * Each member has a bg (pill background), border, text, and avatar color.
- * These are used for family pills, event cards, and event borders.
- */
-export const memberColors: Record<
-  string,
-  { bg: string; border: string; text: string; avatar: string }
-> = {
-  faiyaz: { bg: '#eff6ff', border: '#bfdbfe', text: '#1e40af', avatar: '#3b82f6' },
-  trisha: { bg: '#fdf2f8', border: '#fbcfe8', text: '#9d174d', avatar: '#ec4899' },
-  arya: { bg: '#f0fdf4', border: '#bbf7d0', text: '#166534', avatar: '#22c55e' },
-  raya: { bg: '#fffbeb', border: '#fde68a', text: '#92400e', avatar: '#f59e0b' },
-}
-
 // ---------------------------------------------------------------------------
 // Spacing (in px — used for padding, margin, gap)
 // ---------------------------------------------------------------------------

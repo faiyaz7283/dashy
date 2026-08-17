@@ -2,6 +2,7 @@ import js from '@eslint/js'
 import tseslint from 'typescript-eslint'
 import reactHooks from 'eslint-plugin-react-hooks'
 import reactRefresh from 'eslint-plugin-react-refresh'
+import tsdoc from 'eslint-plugin-tsdoc'
 import prettier from 'eslint-plugin-prettier/recommended'
 
 export default tseslint.config(
@@ -13,12 +14,14 @@ export default tseslint.config(
     plugins: {
       'react-hooks': reactHooks,
       'react-refresh': reactRefresh,
+      tsdoc,
     },
     rules: {
       ...reactHooks.configs.recommended.rules,
       'react-refresh/only-export-components': ['warn', { allowConstantExport: true }],
       '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_' }],
       '@typescript-eslint/no-explicit-any': 'warn',
+      'tsdoc/syntax': 'warn',
       'no-console': ['warn', { allow: ['warn', 'error'] }],
       // Allow setState in effects for data fetching hooks
       'react-hooks/set-state-in-effect': 'off',

@@ -17,6 +17,14 @@
 
 import { colors, densityColors, densityBarColors, layout, spacing, radii, zIndices } from './tokens'
 
+/**
+ * Application locale for date/time formatting.
+ *
+ * Single source of truth — all `toLocaleDateString`, `toLocaleTimeString`,
+ * and `toLocaleString` calls should use this constant instead of hardcoded strings.
+ */
+export const LOCALE = 'en-US'
+
 /** Density level identifier. */
 export type DensityLevel = 'none' | 'low' | 'medium' | 'high'
 
@@ -65,9 +73,9 @@ export const themeConfig = {
      * Relative density thresholds (for year/month/week views).
      *
      * `ratio = (count - min) / (max - min)` among non-zero counts.
-     * - ratio < lowThreshold → 'low'
-     * - ratio < mediumThreshold → 'medium'
-     * - ratio ≥ mediumThreshold → 'high'
+     * - ratio \< lowThreshold → 'low'
+     * - ratio \< mediumThreshold → 'medium'
+     * - ratio \>= mediumThreshold → 'high'
      */
     relativeLowThreshold: 0.33,
     relativeMediumThreshold: 0.66,
@@ -88,7 +96,7 @@ export const themeConfig = {
   /** Date formatting configuration. */
   dateFormat: {
     /** Locale for date formatting. */
-    locale: 'en-US',
+    locale: LOCALE,
 
     /** Whether to use ordinal suffixes (1st, 2nd, 3rd, etc.). */
     useOrdinalSuffix: true,
