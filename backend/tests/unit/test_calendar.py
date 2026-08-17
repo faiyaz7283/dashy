@@ -3,7 +3,9 @@
 from datetime import datetime
 from unittest.mock import patch
 
-from app.models import Attendee, CalendarEvent
+import pytest
+
+from app.api.models.calendar import Attendee, CalendarEvent
 from app.services.calendar_service import (
     _deduplicate_events,
     _parse_iso_date,
@@ -95,62 +97,86 @@ class TestMockWeekCalendar:
 class TestGetCalendarEvents:
     """Tests for calendar service with date range params."""
 
-    @patch("app.services.calendar_service._get_credentials", return_value=None)
-    def test_no_params_returns_current_week(self, mock_creds):
+    @pytest.mark.asyncio
+    @patch("app.services.calendar_service.settings")
+    async def test_no_params_returns_current_week(self, mock_settings):
         """Test that no params returns current week events."""
-        result = get_calendar_events()
+        mock_settings.CALENDAR_USE_MOCK = True
+        mock_settings.get_family_members.return_value = []
+        result = await get_calendar_events()
         assert result.week_start is not None
         assert result.week_end is not None
         assert len(result.events) > 0
 
-    @patch("app.services.calendar_service._get_credentials", return_value=None)
-    def test_with_date_range(self, mock_creds):
+    @pytest.mark.asyncio
+    @patch("app.services.calendar_service.settings")
+    async def test_with_date_range(self, mock_settings):
         """Test fetching events for a specific date range."""
-        result = get_calendar_events("2026-09-01", "2026-09-07")
+        mock_settings.CALENDAR_USE_MOCK = True
+        mock_settings.get_family_members.return_value = []
+        result = await get_calendar_events("2026-09-01", "2026-09-07")
         assert result.week_start == "2026-09-01"
         assert result.week_end == "2026-09-07"
         assert len(result.events) > 0
 
-    @patch("app.services.calendar_service._get_credentials", return_value=None)
-    def test_single_day_range(self, mock_creds):
+    @pytest.mark.asyncio
+    @patch("app.services.calendar_service.settings")
+    async def test_single_day_range(self, mock_settings):
         """Test fetching events for a single day."""
-        result = get_calendar_events("2026-08-15", "2026-08-15")
+        mock_settings.CALENDAR_USE_MOCK = True
+        mock_settings.get_family_members.return_value = []
+        result = await get_calendar_events("2026-08-15", "2026-08-15")
         assert result.week_start == "2026-08-15"
         assert result.week_end == "2026-08-15"
 
-    @patch("app.services.calendar_service._get_credentials", return_value=None)
-    def test_month_range(self, mock_creds):
+    @pytest.mark.asyncio
+    @patch("app.services.calendar_service.settings")
+    async def test_month_range(self, mock_settings):
         """Test fetching events for a full month."""
-        result = get_calendar_events("2026-08-01", "2026-08-31")
+        mock_settings.CALENDAR_USE_MOCK = True
+        mock_settings.get_family_members.return_value = []
+        result = await get_calendar_events("2026-08-01", "2026-08-31")
         assert result.week_start == "2026-08-01"
         assert result.week_end == "2026-08-31"
 
-    @patch("app.services.calendar_service._get_credentials", return_value=None)
-    def test_year_range(self, mock_creds):
+    @pytest.mark.asyncio
+    @patch("app.services.calendar_service.settings")
+    async def test_year_range(self, mock_settings):
         """Test fetching events for a full year."""
-        result = get_calendar_events("2026-01-01", "2026-12-31")
+        mock_settings.CALENDAR_USE_MOCK = True
+        mock_settings.get_family_members.return_value = []
+        result = await get_calendar_events("2026-01-01", "2026-12-31")
         assert result.week_start == "2026-01-01"
         assert result.week_end == "2026-12-31"
 
-    @patch("app.services.calendar_service._get_credentials", return_value=None)
-    def test_events_sorted_by_start_time(self, mock_creds):
+    @pytest.mark.asyncio
+    @patch("app.services.calendar_service.settings")
+    async def test_events_sorted_by_start_time(self, mock_settings):
         """Test that events are sorted by start time."""
-        result = get_calendar_events("2026-08-01", "2026-08-31")
+        mock_settings.CALENDAR_USE_MOCK = True
+        mock_settings.get_family_members.return_value = []
+        result = await get_calendar_events("2026-08-01", "2026-08-31")
         start_times = [e.start for e in result.events]
         assert start_times == sorted(start_times)
 
-    @patch("app.services.calendar_service._get_credentials", return_value=None)
-    def test_events_have_member_tags(self, mock_creds):
+    @pytest.mark.asyncio
+    @patch("app.services.calendar_service.settings")
+    async def test_events_have_member_tags(self, mock_settings):
         """Test that all events have member tags."""
-        result = get_calendar_events("2026-08-01", "2026-08-07")
+        mock_settings.CALENDAR_USE_MOCK = True
+        mock_settings.get_family_members.return_value = []
+        result = await get_calendar_events("2026-08-01", "2026-08-07")
         for event in result.events:
             assert len(event.members) > 0
             assert isinstance(event.members, list)
 
-    @patch("app.services.calendar_service._get_credentials", return_value=None)
-    def test_all_day_events_flagged(self, mock_creds):
+    @pytest.mark.asyncio
+    @patch("app.services.calendar_service.settings")
+    async def test_all_day_events_flagged(self, mock_settings):
         """Test that all-day events are properly flagged."""
-        result = get_calendar_events("2026-08-01", "2026-08-31")
+        mock_settings.CALENDAR_USE_MOCK = True
+        mock_settings.get_family_members.return_value = []
+        result = await get_calendar_events("2026-08-01", "2026-08-31")
         all_day_events = [e for e in result.events if e.all_day]
         timed_events = [e for e in result.events if not e.all_day]
 

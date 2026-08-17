@@ -1,16 +1,30 @@
+"""Family API routes.
+
+Provides endpoints for fetching family member data.
+"""
+
 from fastapi import APIRouter
 
-from app.models import FamilyMember
+from app.api.deps import FamilyRepositoryDep
+from app.api.models.family import FamilyMember
 from app.services.mock_data import get_mock_family_members
 
-router = APIRouter(prefix="/api/family", tags=["family"])
+router = APIRouter(prefix="/family", tags=["family"])
 
 
 @router.get("", response_model=list[FamilyMember])
-def get_family_members():
-    """
-    Get list of family members.
+async def get_family_members(
+    family_repository: FamilyRepositoryDep,
+) -> list[FamilyMember]:
+    """Get list of family members.
 
     Returns all configured family members with their calendar colors.
+
+    Args:
+        family_repository: Injected family repository instance.
+
+    Returns:
+        List of FamilyMember objects.
     """
+    # For now, return mock data. In the future, this will use the repository.
     return get_mock_family_members()

@@ -1,5 +1,4 @@
-"""
-OpenWeatherMap service using One Call API 4.0.
+"""OpenWeatherMap service using One Call API 4.0.
 
 Fetches current weather and forecast from OpenWeatherMap API 4.0.
 - Current weather: /data/4.0/onecall/current
@@ -17,15 +16,20 @@ from datetime import datetime, timedelta, timezone
 
 import httpx
 
-from app.config import settings
-from app.models import (
+from app.api.models.weather import (
     DailyForecast,
     HourlyForecast,
     WeatherCondition,
     WeatherCurrent,
     WeatherResponse,
 )
+from app.config import settings
+from app.core.logging import get_logger
+from app.infrastructure.weather.mock_adapter import MockWeatherAdapter
+from app.infrastructure.weather.owm_adapter import OWMWeatherAdapter
 from app.services.mock_data import get_mock_weather
+
+logger = get_logger(__name__)
 
 # Valid OWM weather.main values — 1:1 mapping, no grouping.
 _VALID_CONDITIONS: set[str] = {
@@ -99,11 +103,16 @@ def _ts_to_date(ts: int, tz_offset: int = 0) -> str:
 
 
 def _get_today_midnight_timestamp(tz_offset: int) -> int:
-    """
-    Get Unix timestamp for today's midnight in the given timezone.
+    """Get Unix timestamp for today's midnight in the given timezone.
 
     This ensures "today" is calculated in the local timezone (Eastern Time),
     not UTC. The tz_offset comes from the OWM API response and accounts for DST.
+
+    Args:
+        tz_offset: Timezone offset in seconds from UTC.
+
+    Returns:
+        Unix timestamp for today's midnight in the specified timezone.
     """
     local_tz = timezone(timedelta(seconds=tz_offset))
     now = datetime.now(local_tz)
@@ -157,7 +166,7 @@ async def _fetch_current(
         response.raise_for_status()
         return response.json()
     except httpx.HTTPError as e:
-        print(f"Current weather API error: {e}")
+        logger.error("current_weather_api_error", error=str(e))
         return None
 
 
@@ -169,11 +178,21 @@ async def _fetch_hourly(
     start: int | None = None,
     max_records: int = _MAX_HOURLY_RECORDS,
 ) -> list[dict] | None:
-    """
-    Fetch hourly forecast from One Call API 4.0 with pagination.
+    """Fetch hourly forecast from One Call API 4.0 with pagination.
 
     Anchored at 'start' timestamp (today's midnight in local timezone).
     Limited to max_records to avoid fetching historical data.
+
+    Args:
+        client: HTTP client for making requests.
+        api_key: OpenWeatherMap API key.
+        lat: Latitude coordinate.
+        lon: Longitude coordinate.
+        start: Start timestamp for pagination (today's midnight).
+        max_records: Maximum number of records to fetch.
+
+    Returns:
+        List of hourly forecast data dicts, or None on error.
     """
     try:
         all_hourly: list[dict] = []
@@ -204,7 +223,7 @@ async def _fetch_hourly(
         # Trim to max_records
         return all_hourly[:max_records]
     except httpx.HTTPError as e:
-        print(f"Hourly forecast API error: {e}")
+        logger.error("hourly_forecast_api_error", error=str(e))
         return None
 
 
@@ -216,11 +235,21 @@ async def _fetch_daily(
     start: int | None = None,
     max_records: int = _MAX_DAILY_RECORDS,
 ) -> list[dict] | None:
-    """
-    Fetch daily forecast from One Call API 4.0 with pagination.
+    """Fetch daily forecast from One Call API 4.0 with pagination.
 
     Anchored at 'start' timestamp (today's midnight in local timezone).
     Limited to max_records (20 days) to ensure 19 remain after filtering past entries.
+
+    Args:
+        client: HTTP client for making requests.
+        api_key: OpenWeatherMap API key.
+        lat: Latitude coordinate.
+        lon: Longitude coordinate.
+        start: Start timestamp for pagination (today's midnight).
+        max_records: Maximum number of records to fetch.
+
+    Returns:
+        List of daily forecast data dicts, or None on error.
     """
     try:
         all_daily: list[dict] = []
@@ -251,13 +280,12 @@ async def _fetch_daily(
         # Trim to max_records
         return all_daily[:max_records]
     except httpx.HTTPError as e:
-        print(f"Daily forecast API error: {e}")
+        logger.error("daily_forecast_api_error", error=str(e))
         return None
 
 
 async def get_weather(units: str = "imperial") -> WeatherResponse:
-    """
-    Fetch current weather and 19-day forecast from OpenWeatherMap API 4.0.
+    """Fetch current weather and 19-day forecast from OpenWeatherMap API 4.0.
 
     In development (WEATHER_USE_MOCK=true), returns mock data.
     In production (WEATHER_USE_MOCK=false), calls the real API.
@@ -272,50 +300,32 @@ async def get_weather(units: str = "imperial") -> WeatherResponse:
     - Total: 5 calls/refresh × 144 = 720 calls/day (under 1000 free limit)
 
     Args:
-        units: Temperature units - "metric" for Celsius, "imperial" for Fahrenheit (default)
+        units: Temperature units - "metric" for Celsius, "imperial" for Fahrenheit (default).
+
+    Returns:
+        WeatherResponse with current conditions and 19-day forecast.
     """
     # Check if we should use mock data (development mode)
     if settings.WEATHER_USE_MOCK:
-        return get_mock_weather(units)
+        adapter = MockWeatherAdapter()
+        return await adapter.get_weather(units)
 
     api_key = settings.OPENWEATHERMAP_API_KEY
     if not api_key or api_key == "your-openweathermap-api-key":
-        return get_mock_weather(units)
-
-    lat = settings.OPENWEATHERMAP_LAT
-    lon = settings.OPENWEATHERMAP_LON
+        adapter = MockWeatherAdapter()
+        return await adapter.get_weather(units)
 
     try:
-        async with httpx.AsyncClient() as client:
-            # Step 1: Fetch current weather to get timezone_offset
-            current_data = await _fetch_current(client, api_key, lat, lon)
-            if current_data is None:
-                print("Current weather API failed, falling back to mock data")
-                return get_mock_weather(units)
-
-            # Step 2: Calculate start timestamp (today's midnight in local timezone)
-            # The timezone_offset from OWM accounts for DST automatically.
-            tz_offset = current_data.get("timezone_offset", 0)
-            start_ts = _get_today_midnight_timestamp(tz_offset)
-
-            # Step 3: Fetch daily and hourly concurrently with start parameter
-            import asyncio
-
-            daily_task = _fetch_daily(client, api_key, lat, lon, start=start_ts)
-            hourly_task = _fetch_hourly(client, api_key, lat, lon, start=start_ts)
-
-            daily_data, hourly_data = await asyncio.gather(daily_task, hourly_task)
-
-            # If both failed, fall back to mock
-            if daily_data is None and hourly_data is None:
-                print("Daily and hourly API calls failed, falling back to mock data")
-                return get_mock_weather(units)
-
-            return _build_response(current_data, hourly_data, daily_data, tz_offset, units)
-
+        adapter = OWMWeatherAdapter(
+            api_key=api_key,
+            lat=settings.OPENWEATHERMAP_LAT,
+            lon=settings.OPENWEATHERMAP_LON,
+        )
+        return await adapter.get_weather(units)
     except Exception as e:
-        print(f"Unexpected error fetching weather: {e}")
-        return get_mock_weather(units)
+        logger.error("unexpected_weather_error", error=str(e))
+        adapter = MockWeatherAdapter()
+        return await adapter.get_weather(units)
 
 
 def _build_response(
@@ -325,7 +335,18 @@ def _build_response(
     tz_offset: int,
     units: str = "imperial",
 ) -> WeatherResponse:
-    """Build WeatherResponse from One Call API 4.0 data."""
+    """Build WeatherResponse from One Call API 4.0 data.
+
+    Args:
+        current_data: Current weather data dict from OWM API.
+        hourly_data: Hourly forecast data list, or None.
+        daily_data: Daily forecast data list, or None.
+        tz_offset: Timezone offset in seconds from UTC.
+        units: Temperature units ("metric" or "imperial").
+
+    Returns:
+        WeatherResponse with parsed current and forecast data.
+    """
     # Build current weather
     if "data" in current_data and len(current_data["data"]) > 0:
         current_record = current_data["data"][0]

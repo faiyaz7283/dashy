@@ -1,5 +1,7 @@
-"""
-Tests for the Dashy API endpoints.
+"""Tests for the Dashy API endpoints.
+
+This module contains integration tests for all API endpoints to verify
+they return the expected response structure and status codes.
 """
 
 import pytest
@@ -36,7 +38,7 @@ async def test_get_calendar():
     """Test the calendar endpoint returns events."""
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as client:
-        response = await client.get("/api/calendar")
+        response = await client.get("/api/v1/calendar")
         assert response.status_code == 200
         data = response.json()
         assert "week_start" in data
@@ -50,7 +52,7 @@ async def test_get_weather():
     """Test the weather endpoint returns current and forecast."""
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as client:
-        response = await client.get("/api/weather")
+        response = await client.get("/api/v1/weather")
         assert response.status_code == 200
         data = response.json()
         assert "current" in data
@@ -64,7 +66,7 @@ async def test_get_family_members():
     """Test the family members endpoint."""
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as client:
-        response = await client.get("/api/family")
+        response = await client.get("/api/v1/family")
         assert response.status_code == 200
         data = response.json()
         assert isinstance(data, list)

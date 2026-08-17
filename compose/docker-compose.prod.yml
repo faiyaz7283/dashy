@@ -23,6 +23,19 @@ services:
       - "traefik.http.routers.dashboard.entrypoints=websecure"
       - "traefik.http.routers.dashboard.tls=true"
 
+  # Redis Cache
+  redis:
+    image: redis:7-alpine
+    container_name: dashy-prod-redis
+    expose:
+      - "6379"
+    volumes:
+      - redis-data:/data
+    networks:
+      - dashy-network
+    restart: unless-stopped
+    command: redis-server --appendonly yes
+
   # Frontend (React + Vite built with Nginx)
   frontend:
     build:
@@ -53,6 +66,10 @@ services:
       - ../env/.env.prod
     expose:
       - "8000"
+    environment:
+      - REDIS_URL=redis://redis:6379
+    depends_on:
+      - redis
     networks:
       - dashy-network
     labels:
@@ -66,3 +83,6 @@ services:
 networks:
   dashy-network:
     driver: bridge
+
+volumes:
+  redis-data:

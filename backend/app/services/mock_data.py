@@ -1,15 +1,22 @@
+"""Mock data generators for development and testing.
+
+Provides realistic mock data for weather, calendar, and family members
+when real API credentials are not available or in development mode.
+"""
+
 from datetime import datetime, timedelta
 
-from app.models import (
-    Attendee,
-    CalendarEvent,
-    FamilyMember,
-    WeatherResponse,
-    WeekCalendar,
-)
+from app.api.models.calendar import Attendee, CalendarEvent, WeekCalendar
+from app.api.models.family import FamilyMember
+from app.api.models.weather import WeatherResponse
 
 
 def get_mock_family_members() -> list[FamilyMember]:
+    """Generate mock family member data.
+
+    Returns:
+        List of FamilyMember objects with mock data.
+    """
     return [
         FamilyMember(
             name="Faiyaz",
@@ -44,7 +51,15 @@ MEMBER_COLORS = {
 
 
 def _create_mock_attendees(members: list[str], organizer_key: str) -> list[Attendee]:
-    """Create mock attendees with RSVP status for testing."""
+    """Create mock attendees with RSVP status for testing.
+
+    Args:
+        members: List of member keys to create attendees for.
+        organizer_key: Member key of the event organizer.
+
+    Returns:
+        List of Attendee objects with mock data.
+    """
     attendees = []
     for member_key in members:
         status = "accepted" if member_key == organizer_key else "accepted"
@@ -63,14 +78,20 @@ def _create_mock_attendees(members: list[str], organizer_key: str) -> list[Atten
 def get_mock_week_calendar(
     start_date: str | None = None, end_date: str | None = None
 ) -> WeekCalendar:
-    """
-    Generate mock calendar events relative to the requested date range.
+    """Generate mock calendar events relative to the requested date range.
 
     If no dates provided, defaults to current week.
     Events are generated with realistic patterns shifted to the target range;
     the one-week template pattern repeats across longer ranges (month/year).
     Includes full event details: description, location, attendees with RSVP status,
     and recurring event metadata.
+
+    Args:
+        start_date: Start date in ISO format (e.g. "2026-08-08"). Defaults to current week Monday.
+        end_date: End date in ISO format (e.g. "2026-08-08"). Defaults to current week Sunday.
+
+    Returns:
+        WeekCalendar with mock events for the specified date range.
     """
     if start_date and end_date:
         # Parse the requested range
@@ -429,11 +450,10 @@ def get_mock_week_calendar(
 
 
 def _get_mock_api_responses() -> tuple[dict, list[dict], list[dict]]:
-    """
-    Generate mock API response dicts that match One Call API 4.0 structure exactly.
+    """Generate mock API response dicts that match One Call API 4.0 structure exactly.
 
     Returns:
-        (current_data, hourly_data, daily_data) - raw dicts matching 4.0 API responses
+        Tuple of (current_data, hourly_data, daily_data) - raw dicts matching 4.0 API responses.
     """
     from datetime import timezone as tz
 
@@ -600,9 +620,16 @@ def _get_mock_api_responses() -> tuple[dict, list[dict], list[dict]]:
 
 
 def get_mock_weather(units: str = "imperial") -> WeatherResponse:
-    """
-    Generate mock weather data by creating 4.0-shaped API response dicts,
-    then parsing them through the same _build_response() function as real data.
+    """Generate mock weather data by creating 4.0-shaped API response dicts.
+
+    Parses them through the same _build_response() function as real data
+    to ensure code parity between mock and real responses.
+
+    Args:
+        units: Temperature units - "metric" for Celsius, "imperial" for Fahrenheit (default).
+
+    Returns:
+        WeatherResponse with mock current conditions and 19-day forecast.
     """
     from app.services.weather_service import _build_response
 

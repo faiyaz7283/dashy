@@ -1,6 +1,6 @@
-"""
-Tests for weather_service.py — One Call API 4.0 parsing, timezone handling,
-and mock data structure validation.
+"""Tests for weather_service.py.
+
+One Call API 4.0 parsing, timezone handling, and mock data structure validation.
 """
 
 from datetime import UTC, datetime, timedelta
@@ -431,10 +431,10 @@ class TestGetWeatherMock:
 
     @pytest.mark.asyncio
     async def test_endpoint_returns_19_days(self):
-        """The /api/weather endpoint returns exactly 19 days."""
+        """The /api/v1/weather endpoint returns exactly 19 days."""
         transport = ASGITransport(app=app)
         async with AsyncClient(transport=transport, base_url="http://test") as client:
-            response = await client.get("/api/weather")
+            response = await client.get("/api/v1/weather")
             assert response.status_code == 200
             data = response.json()
             assert len(data["forecast"]) == 19
@@ -444,7 +444,7 @@ class TestGetWeatherMock:
         """All 19 days from the endpoint have rich 4.0 fields."""
         transport = ASGITransport(app=app)
         async with AsyncClient(transport=transport, base_url="http://test") as client:
-            response = await client.get("/api/weather")
+            response = await client.get("/api/v1/weather")
             data = response.json()
             for day in data["forecast"]:
                 assert "feels_like_day" in day
@@ -461,7 +461,7 @@ class TestGetWeatherMock:
         """Hourly data only present for first 2 days in endpoint response."""
         transport = ASGITransport(app=app)
         async with AsyncClient(transport=transport, base_url="http://test") as client:
-            response = await client.get("/api/weather")
+            response = await client.get("/api/v1/weather")
             data = response.json()
             assert len(data["forecast"][0]["hourly"]) == 24
             assert len(data["forecast"][1]["hourly"]) == 24

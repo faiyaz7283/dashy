@@ -1,6 +1,19 @@
 name: dashy-dev
 
 services:
+  # Redis Cache
+  redis:
+    image: redis:7-alpine
+    container_name: dashy-dev-redis
+    expose:
+      - "6379"
+    volumes:
+      - redis-data:/data
+    networks:
+      - dashy-dev-network
+    restart: unless-stopped
+    command: redis-server --appendonly yes
+
   # Frontend (React + Vite)
   frontend:
     build:
@@ -40,6 +53,9 @@ services:
       - ../backend:/app
     environment:
       - PYTHONUNBUFFERED=1
+      - REDIS_URL=redis://redis:6379
+    depends_on:
+      - redis
     networks:
       - dashy-dev-network
       - traefik-public
@@ -57,3 +73,6 @@ networks:
     driver: bridge
   traefik-public:
     external: true
+
+volumes:
+  redis-data:

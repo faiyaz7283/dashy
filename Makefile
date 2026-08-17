@@ -150,7 +150,7 @@ test-frontend:
 
 test-backend:
 	@echo "🧪 Running backend tests..."
-	@docker compose -f compose/docker-compose.dev.yml exec -T backend uv run pytest -v
+	@docker compose -f compose/docker-compose.dev.yml exec -T backend uv run pytest tests/ -v
 
 # ==============================================================================
 # CODE QUALITY

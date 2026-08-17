@@ -8,7 +8,7 @@ A DIY family command center dashboard inspired by [Skylight Calendar](https://my
 
 ## Current Status
 
-- **Phase:** Production deployed and working on a Raspberry Pi 4 in kiosk mode.
+- **Phase:** Backend migration complete (B1-B6). Frontend migration and repo split pending.
 - **Pi:** Raspberry Pi 4 (4GB), Raspberry Pi OS 64-bit (Bookworm/Debian 13), SSH accessible at `rpi4_main@dashy.local` (192.168.1.194), booting from an NVMe SSD (WD Blue SN500 500 GB via Realtek RTL9210 USB bridge). Original 64 GB microSD preserved as rollback.
 - **Repo:** `git@github.com:faiyaz7283/dashy.git`
 - **Local Dev URLs:** https://dashy.local (frontend), https://api.dashy.local (backend)
@@ -18,7 +18,7 @@ A DIY family command center dashboard inspired by [Skylight Calendar](https://my
 - **Views:** Day, Week, Month, Year with navigation and auto-refresh
 - **Weather integration:** Current conditions and forecasts displayed across all views with 1:1 OWM condition icons (15 unique SVG icons with day/night variants), detailed hover tooltips with value-aware metric icons
 - **Header:** Auto-hiding (proximity-based), single row, responsive compaction tiers; no logo/hamburger
-- **Backend:** Enhanced with event deduplication, attendees, recurring events, full event details
+- **Backend:** Domain-driven architecture with dependency injection, protocol-based adapters, Redis caching, SQLite persistence, structured logging, and API versioning (`/api/v1/`)
 - **Frontend:** Unified event architecture — `EventItem` (card/strip/block) + `useEventInteraction` across all views; see `frontend/src/docs/event-architecture-analysis.md`
 - **Event interactions:** Uniform across views — hover event = popup, click event = modal, click day = drill down (year view is navigation-only)
 - **Layout:** Fluid full-viewport — all views fill available width and height. On monitors wider than 1920 CSS px the whole UI scales up uniformly via CSS `zoom` on the app root (`useUiScale`); it never scales down, so 1080p-class displays keep a constant design-size text. Popups/modals portal to `body` and apply the same scale factor to their content only.
@@ -32,7 +32,10 @@ A DIY family command center dashboard inspired by [Skylight Calendar](https://my
 | **Frontend** | React + Vite + TypeScript + Tailwind CSS | React 19, Vite 8, Node 24 |
 | **Backend** | Python FastAPI + UV package manager | Python 3.13, FastAPI 0.115+, UV 0.12 |
 | **Calendar** | Google Calendar API (service account) | — |
-| **Weather** | OpenWeatherMap API (free tier) | — |
+| **Weather** | OpenWeatherMap API (free tier) | One Call 4.0 |
+| **Cache** | Redis | 7 (Alpine) |
+| **Database** | SQLite + SQLModel + Alembic | For family member persistence |
+| **Logging** | structlog | Structured JSON logging |
 | **Reverse Proxy** | Traefik (shared infrastructure) | v3.7.10 |
 | **Containerization** | Docker + Docker Compose | Docker 29.7, Compose v5.4 |
 | **Package Management** | npm (frontend), UV (backend) | — |
@@ -83,8 +86,17 @@ dashy/
 │   └── nginx.conf         # Production nginx config (with cache-busting headers)
 ├── backend/               # Python FastAPI + UV
 │   ├── app/
-│   ├── routes/            # API route handlers
+│   │   ├── core/          # Cross-cutting concerns (config, DI container, logging, cache, database)
+│   │   ├── domain/        # Pure business logic (weather, calendar, family)
+│   │   ├── infrastructure/ # Adapters (OWM, Google Calendar, SQLite, mock providers)
+│   │   ├── api/           # HTTP layer (routes, models, deps)
+│   │   ├── services/      # Service orchestration layer
+│   │   └── main.py        # FastAPI app entry point
 │   ├── tests/
+│   │   ├── unit/          # Domain logic tests (no I/O)
+│   │   ├── integration/   # Infrastructure tests (cache, adapters)
+│   │   └── api/           # HTTP endpoint tests
+│   ├── alembic/           # Database migrations
 │   ├── pyproject.toml     # UV dependencies
 │   ├── uv.lock            # Locked dependencies (committed)
 │   ├── Dockerfile         # Production build
@@ -221,6 +233,47 @@ Children (Arya, 8 and Raya, 4) are not in v1 calendar scope but the system suppo
 - **Timezone handling:** All timestamps converted using OWM's `timezone_offset` field, ensuring forecast dates align with local time (no past-day dates in the forecast).
 - **Tooltip metrics:** Value-aware SVG icons for temperature (color-coded by feel), humidity (opacity scales), wind (more lines = stronger), UV (color+size by intensity), precipitation (more drops = higher chance), pressure (barometer needle), and 8 moon phases.
 - **Test coverage:** 53 backend tests (unit conversion, 4.0 API parsing, timezone handling, mock data validation, endpoint behavior), 11 frontend tests (WeatherTooltip rendering, hourly chart visibility, unified content for all 19 days, day labels).
+
+---
+
+## Backend Architecture
+
+The backend follows a domain-driven design with clean separation of concerns:
+
+### Layer Structure
+
+- **`domain/`** — Pure business logic with zero framework dependencies. Contains value objects (Temperature, DateRange), protocols (WeatherProvider, CalendarProvider), and domain services.
+- **`infrastructure/`** — External integrations behind protocol interfaces. Adapters for OpenWeatherMap, Google Calendar, SQLite, and Redis. Each adapter is independently testable and swappable.
+- **`api/`** — HTTP layer with thin controllers. Routes use FastAPI dependency injection to receive providers and repositories.
+- **`core/`** — Cross-cutting concerns: configuration (pydantic-settings), DI container, structured logging (structlog), caching (Redis with fail-open design), database (SQLite + SQLModel + Alembic), and custom exceptions (RFC 9457 error responses).
+- **`services/`** — Service orchestration layer that coordinates between domain logic and infrastructure adapters.
+
+### Key Patterns
+
+- **Dependency Injection** — All providers and repositories are injected via FastAPI `Depends()`. The DI container (`core/container.py`) uses `@lru_cache` for singletons.
+- **Protocol-Based Architecture** — Python `Protocol` for all service contracts (no ABC inheritance). Enables easy mocking and testing.
+- **Provider-Agnostic Domain** — Weather and calendar services work with any provider implementing the protocol. Switch between real APIs and mock data via environment variables.
+- **Fail-Open Cache** — Redis cache with 10-minute TTL for weather, 2-minute TTL for calendar. Cache failures fall through to API calls, never break the app.
+- **Async-First** — All services and adapters are async. Google Calendar's sync API is wrapped in `run_in_executor` to avoid blocking the event loop.
+- **API Versioning** — All endpoints under `/api/v1/` prefix.
+
+### API Endpoints
+
+```
+GET /api/v1/weather?units=imperial     → WeatherResponse (current + 19-day forecast)
+GET /api/v1/calendar?start_date=...&end_date=...  → WeekCalendar (events with deduplication)
+GET /api/v1/family                     → FamilyMember[] (from SQLite database)
+GET /health                            → Health status with cache stats
+```
+
+### Testing Strategy
+
+Three-tier testing structure:
+- **Unit tests** (`tests/unit/`) — Domain logic with mocked dependencies. Fast, no I/O.
+- **Integration tests** (`tests/integration/`) — Real infrastructure (Redis cache, database). Uses `pytest-httpx` for HTTP mocking.
+- **API tests** (`tests/api/`) — Full HTTP request/response cycle via `httpx.AsyncClient`.
+
+All 169 backend tests pass with `asyncio_mode = "auto"`.
 
 ---
 
@@ -497,8 +550,9 @@ This intelligent deployment command:
 ### Docker Compose Project Naming
 
 - **Project name:** `dashy-dev` (set in `compose/docker-compose.dev.yml`)
-- **Container names:** `dashy-dev-frontend`, `dashy-dev-backend`
+- **Container names:** `dashy-dev-frontend`, `dashy-dev-backend`, `dashy-dev-redis`
 - **Pattern:** `{project}-{service}`
+- **Services:** Frontend (React + Vite), Backend (FastAPI + UV), Redis (cache layer)
 
 ### Local Domain Routing
 
@@ -512,7 +566,16 @@ This intelligent deployment command:
 
 - **File:** `env/.env.dev` (gitignored)
 - **Template:** `env/.env.dev.example` (committed)
-- **Key vars:** `GOOGLE_CALENDAR_ID`, `GOOGLE_SERVICE_ACCOUNT_JSON`, `OPENWEATHERMAP_API_KEY`, `WEATHER_USE_MOCK`, `FAMILY_MEMBERS`
+- **Key vars:**
+  - `GOOGLE_SERVICE_ACCOUNT_JSON` — path to Google service account credentials
+  - `OPENWEATHERMAP_API_KEY` — OpenWeatherMap API key
+  - `OPENWEATHERMAP_LAT`, `OPENWEATHERMAP_LON` — weather location coordinates
+  - `WEATHER_USE_MOCK` — `true` in development (mock data), `false` in production (real API)
+  - `CALENDAR_USE_MOCK` — `true` in development (mock data), `false` in production (real Google Calendar)
+  - `FAMILY_MEMBERS` — JSON array of family member configs
+  - `REDIS_URL` — Redis connection URL (default: `redis://redis:6379`)
+  - `CORS_ORIGINS` — comma-separated list of allowed CORS origins
+  - `DATABASE_URL` — SQLite database URL (default: `sqlite+aiosqlite:///./dashy.db`)
 - **Weather control:** `WEATHER_USE_MOCK=true` in development (all dev machines use mock data), `WEATHER_USE_MOCK=false` in production (Pi only, calls real API to stay within 1000 calls/day limit)
 
 ### MCP Servers

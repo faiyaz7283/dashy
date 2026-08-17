@@ -1,8 +1,9 @@
 # Backend Migration Plan
 
-> Status: **DRAFT — awaiting review**
+> Status: **COMPLETED**
 > Created: 2026-08-16
-> Scope: Restructure backend for dependency injection, configuration-driven design, provider-agnostic architecture, caching, and clean separation of concerns.
+> Completed: 2026-08-17
+> Scope: Restructure backend for dependency injection, configuration-driven design, provider-agnostic architecture, caching, clean separation of concerns, and database persistence for family members.
 
 ---
 
@@ -21,6 +22,64 @@ Dashtam is used as **conceptual inspiration only** — not as a reference implem
 - **Verify package versions at implementation time** — check PyPI for latest stable before adding any dependency
 
 **Why:** Dashy is a new project being built for longevity. Starting with modern foundations means less tech debt from day one. Dashtam's architectural *ideas* are sound — its specific *implementations* may not reflect today's best practices.
+
+### Docstring Standard — Google Style (Mandatory)
+
+All Python code in the backend **must** follow Google-style docstrings. This is a project coding standard, enforced via ruff.
+
+**Convention:** [Google Python Style Guide — §3.8 Comments and Docstrings](https://google.github.io/styleguide/pyguide.html#38-comments-and-docstrings)
+
+**Why Google style:**
+- Most popular convention in the broader Python community
+- Already loosely used in the existing codebase
+- Clean, readable in source (unlike Sphinx/reST)
+- Consistent with Dashtam's convention
+- Fully supported by ruff's `pydocstyle` (D) rules
+
+**Rules:**
+- **Every** public module, class, function, and method gets a docstring
+- Private helpers (`_prefixed`) get docstrings when the logic is non-obvious
+- Module docstrings describe the module's purpose and contents
+- Class docstrings describe what instances represent (not "Class that describes...")
+- Function/method docstrings include `Args:`, `Returns:`, `Raises:` sections as applicable
+- Summary line: one line, imperative mood (`"""Fetch weather data."""` not `"""This function fetches..."""`), ends with a period
+- Blank line between summary and the rest of the docstring
+- Exception class docstrings describe the error, not the context (`"""No more cheese is available."""` not `"""Raised when no more cheese is available."""`)
+
+**Example:**
+```python
+def fetch_smalltable_rows(
+    table_handle: smalltable.Table,
+    keys: Sequence[bytes | str],
+    require_all_keys: bool = False,
+) -> Mapping[bytes, tuple[str, ...]]:
+    """Fetches rows from a Smalltable.
+
+    Retrieves rows pertaining to the given keys from the Table instance
+    represented by table_handle. String keys will be UTF-8 encoded.
+
+    Args:
+        table_handle: An open smalltable.Table instance.
+        keys: A sequence of strings representing the key of each table
+            row to fetch. String keys will be UTF-8 encoded.
+        require_all_keys: If True only rows with values set for all keys
+            will be returned.
+
+    Returns:
+        A dict mapping keys to the corresponding table row data
+        fetched. Each row is represented as a tuple of strings.
+
+    Raises:
+        IOError: An error occurred accessing the smalltable.
+    """
+```
+
+**Enforcement:**
+- Ruff `pydocstyle` (D) rules with `convention = "google"` in `pyproject.toml`
+- `make lint` must pass — docstring violations are lint failures
+- All new code must comply; existing code upgraded during migration phases
+
+**Why:** Consistent, readable documentation across the codebase. Docstrings are the primary way developers understand what code does without reading the implementation. Enforced via linting so it never drifts.
 
 ---
 
@@ -72,6 +131,7 @@ backend/
 | 18 | No rate limiting | Any client can burn through OWM/Google API quotas |
 | 19 | Mock data imports from weather_service | Circular dependency risk |
 | 20 | Calendar service knows about `FamilyMemberConfig` | Tight coupling to config internals |
+| 21 | Family members stored in `.env` JSON | No add/modify/delete capability, not persistent across deployments, no validation |
 
 ### What Works Well (preserve these)
 - Clean route/service separation (routes are thin)
@@ -386,7 +446,8 @@ backend/
 │   │   ├── container.py           # DI container — all dependencies wired here
 │   │   ├── logging.py             # Structured logging (structlog or stdlib logging)
 │   │   ├── exceptions.py          # Custom exception hierarchy + RFC 9457 error responses
-│   │   └── cache.py               # TTL cache (in-memory or Redis) with fail-open design
+│   │   ├── cache.py               # TTL cache (in-memory or Redis) with fail-open design
+│   │   └── database.py            # SQLite engine, session factory, WAL mode (added in B3)
 │   │
 │   ├── domain/                    # Pure business logic, zero framework imports
 │   │   ├── weather/
@@ -411,7 +472,9 @@ backend/
 │   │   │   ├── google_adapter.py  # Google Calendar implementation of CalendarProvider
 │   │   │   └── mock_adapter.py    # Mock implementation of CalendarProvider
 │   │   └── persistence/
-│   │       └── family_config.py   # Config-file implementation of FamilyRepository
+│   │       ├── models.py          # SQLModel ORM models (DB schema)
+│   │       ├── migrations/        # Alembic migration files
+│   │       └── family_repository.py  # SQLite-backed implementation of FamilyRepository
 │   │
 │   ├── api/                       # HTTP layer — thin controllers
 │   │   ├── router.py              # Single router, composed from sub-routers
@@ -456,6 +519,7 @@ Fix the easy bugs. No restructuring. Everything stays in place.
 | B1.6 | Move CORS origins to config | Remove hardcoded list from `main.py` |
 | B1.7 | Remove dead code | `_fetch_cancelled_instances` or wire it up, remove `GOOGLE_CALENDAR_ID` |
 | B1.8 | Set up test infrastructure | `conftest.py`, pytest config, `pytest-httpx`, test directory structure |
+| B1.9 | Enforce Google-style docstrings | Add ruff `pydocstyle` rules with `convention = "google"`, upgrade all existing docstrings to comply |
 
 **Testing for B1:**
 - [ ] Create `tests/conftest.py` with shared fixtures
@@ -463,6 +527,9 @@ Fix the easy bugs. No restructuring. Everything stays in place.
 - [ ] Update pytest config: `asyncio_mode = "auto"`, markers
 - [ ] Add `pytest-httpx` to dev dependencies
 - [ ] Migrate existing tests to new structure (no behavior changes)
+- [ ] Add ruff `pydocstyle` config: `convention = "google"` in `pyproject.toml`
+- [ ] All existing functions/classes have compliant Google-style docstrings
+- [ ] `make lint` passes with docstring rules enabled
 
 **Verification:** `make lint && make typecheck && make test && make build` — all pass. No behavior changes.
 
@@ -479,7 +546,7 @@ Extract business logic into a framework-free domain layer.
 | B2.3 | Create `domain/calendar/models.py` | Value objects: `EventId`, `DateRange`, `RecurrenceRule` |
 | B2.4 | Create `domain/calendar/ports.py` | `CalendarProvider` Protocol — `async def fetch_events(member, range)` |
 | B2.5 | Create `domain/family/models.py` | `FamilyMember` entity with identity |
-| B2.6 | Create `domain/family/ports.py` | `FamilyRepository` Protocol — `def get_members() -> list[FamilyMember]` |
+| B2.6 | Create `domain/family/ports.py` | `FamilyRepository` Protocol — `async def get_members() -> list[FamilyMember]`, `async def add_member()`, `async def update_member()`, `async def delete_member()` |
 | B2.7 | Move business logic from services into domain | Parsing, deduplication, unit conversion → pure functions in domain |
 
 **Key rule:** Domain layer has ZERO imports from FastAPI, httpx, or any framework. Pure Python only.
@@ -506,9 +573,13 @@ Move external integrations behind protocol interfaces.
 | B3.3 | Create `google_adapter.py` | Implements `CalendarProvider` — moves Google API logic, make it **async** via `run_in_executor` |
 | B3.4 | Create `mock_adapter.py` for weather | Implements `WeatherProvider` — moves mock generation |
 | B3.5 | Create `mock_adapter.py` for calendar | Implements `CalendarProvider` — moves mock generation |
-| B3.6 | Create `family_config.py` | Implements `FamilyRepository` — parses `FAMILY_MEMBERS` JSON from config |
+| B3.6 | Set up SQLite + SQLModel + Alembic | `core/database.py` — engine, session factory, WAL mode. Initialize Alembic for migrations |
+| B3.7 | Create `family_members` table | SQLModel ORM model for `FamilyMember`. First Alembic migration. Seed from existing `.env` data |
+| B3.8 | Create `family_repository.py` | SQLite-backed `FamilyRepository` implementation — reads/writes `family_members` table |
 
 **Key rule:** Each adapter is independently testable. Mock adapters are first-class, not afterthoughts.
+
+**Why DB in B3 (not B7):** The `FamilyRepository` Protocol is defined in B2. Building a config-file implementation (originally planned) would be throwaway work — we're going to DB anyway. Family members are the simplest domain (one table, basic CRUD), making them the perfect first table to validate the SQLite + SQLModel + Alembic setup before heavier domains land in B7.
 
 **Testing for B3:**
 - [ ] Integration tests for OWM adapter using `pytest-httpx`
@@ -516,9 +587,11 @@ Move external integrations behind protocol interfaces.
 - [ ] Unit tests for mock adapters (verify they return correct shapes)
 - [ ] Test connection pooling and retry logic
 - [ ] Test `run_in_executor` wrapping for Google API
+- [ ] Integration tests for `FamilyRepository` — CRUD operations against real SQLite
+- [ ] Test Alembic migration applies cleanly (including seed data)
 - [ ] All adapter tests are async
 
-**Verification:** Each adapter has unit tests. Swapping `WEATHER_PROVIDER=mock|owm` works via env var.
+**Verification:** Each adapter has unit tests. Swapping `WEATHER_PROVIDER=mock|owm` works via env var. Family members persist in SQLite, seeded from existing `.env` data.
 
 ---
 
@@ -607,7 +680,7 @@ Final polish on the HTTP layer.
 |------|------|-----|
 | B6.1 | Split `models.py` | Move to domain-specific model files |
 | B6.2 | Separate request/response models | `WeatherQuery` (request) vs `WeatherResponse` (response) |
-| B6.3 | Fix family endpoint | Return real config data via `FamilyRepository`, not mock |
+| B6.3 | Fix family endpoint | Return real DB data via `FamilyRepository` (SQLite-backed since B3), remove `.env` JSON parsing |
 | B6.4 | Add request validation | Proper query param validation with helpful error messages |
 | B6.5 | Add `conftest.py` with test fixtures | Shared fixtures, container override for testing |
 
@@ -641,12 +714,15 @@ Each phase is independently deployable. No phase requires a later phase to be co
 | **Result types** | Hand-rolled `Result[T, E]` | Simple use case, avoid heavy dependency |
 | **API versioning** | URL path `/api/v1/` | Simpler, more explicit, easier to test |
 | **Database** | SQLite + SQLModel + Alembic | Perfect for single-family app on Pi, zero infra |
+| **Family member storage** | SQLite DB (not `.env` JSON) | Persistent, supports add/modify/delete, no login needed for kiosk |
+| **Family CRUD timing** | Deferred to B7 | Persistence in B3, management endpoints alongside lists/chores/rewards |
+| **DB setup timing** | B3 (not B7) | `FamilyRepository` Protocol defined in B2 — config-file impl would be throwaway |
 
 ---
 
 ## Database & Persistence
 
-**Future features requiring persistence:**
+**Family members are the first persistent domain** (implemented in B3). Future features requiring persistence:
 - Shopping lists (with cross-reference to calendar events)
 - Chores (assignments, completion tracking, reward points)
 - Rewards (redemptions, point balances)
@@ -657,15 +733,18 @@ Each phase is independently deployable. No phase requires a later phase to be co
 - **SQLModel** — Pydantic + SQLAlchemy hybrid, eliminates model duplication
 - **Alembic** — schema migrations, versioning
 
-**Architecture:**
+**Architecture (after B3):**
 ```
-infrastructure/persistence/
-├── database.py          # SQLite engine, WAL mode, connection pool
-├── models.py            # SQLModel ORM models (DB schema)
-├── migrations/          # Alembic migrations
-├── list_repository.py   # Implements ListRepository Protocol
-├── chore_repository.py  # Implements ChoreRepository Protocol
-└── reward_repository.py # Implements RewardRepository Protocol
+backend/app/
+├── core/
+│   └── database.py              # SQLite engine, session factory, WAL mode
+├── infrastructure/
+│   └── persistence/
+│       ├── models.py            # SQLModel ORM models (DB schema)
+│       ├── migrations/          # Alembic migration files
+│       └── family_repository.py # SQLite-backed FamilyRepository
+└── data/
+    └── dashy.db                 # SQLite database file (volume-mounted in Docker)
 ```
 
 **Performance:**
@@ -673,6 +752,14 @@ infrastructure/persistence/
 - Connection pooling (reuse, don't open/close per request)
 - Indexes on foreign keys
 - Transactions for multi-step operations
+
+**Family Members Design Decision (2026-08-17):**
+- Family members move from `.env` JSON config to SQLite database
+- No login/logout — this is a family kiosk, not a multi-tenant app
+- CRUD endpoints (add/modify/delete) deferred to B7 alongside lists/chores/rewards
+- B3 provides DB persistence + read-only access via existing `GET /api/v1/family`
+- Seed migration populates initial members from existing `.env` data
+- **Deprecation path:** B3 seeds DB from `FAMILY_MEMBERS` env var → B6.3 removes env var parsing → `FAMILY_MEMBERS` removed from `.env` files after B6
 
 ---
 
@@ -683,8 +770,8 @@ infrastructure/persistence/
 | `structlog` | Structured logging | B1 |
 | `redis` | Redis client for caching | B5 |
 | `pytest-httpx` | HTTP mocking for integration tests | B1 |
-| `sqlmodel` | Pydantic + SQLAlchemy hybrid ORM | B7 (future) |
-| `alembic` | Database migrations | B7 (future) |
+| `sqlmodel` | Pydantic + SQLAlchemy hybrid ORM | B3 |
+| `alembic` | Database migrations | B3 |
 
 ## Dependencies to Remove
 
@@ -692,39 +779,34 @@ None currently planned. The existing dependency tree is lean and appropriate.
 
 ---
 
-## Future Phase: Database & Persistence (B7)
+## Future Phase: Extended Domains + Family CRUD (B7)
 
 **When to implement:** After B1-B6 are complete, when you're ready to add lists, chores, or rewards features.
 
 **Scope:**
-- Set up SQLite database with SQLModel ORM
-- Configure Alembic for schema migrations
-- Create base repository pattern for CRUD operations
-- Add first domain: shopping lists (simplest cross-reference case)
+- Add family member CRUD endpoints (`POST`, `PUT`, `DELETE /api/v1/family`)
+- Add new persistent domains: shopping lists, chores, rewards
+- Cross-referencing between domains (lists ↔ calendar events, chores ↔ rewards)
 
-**Architecture additions:**
+**New domains to add:**
 ```
 backend/app/
-├── core/
-│   └── database.py              # SQLite engine, session factory, WAL mode
+├── domain/
+│   └── lists/                   # First new persistent domain
+│       ├── models.py
+│       ├── ports.py
+│       └── services.py
 ├── infrastructure/
 │   └── persistence/
-│       ├── models.py            # SQLModel ORM models
-│       ├── migrations/          # Alembic migration files
-│       └── repositories/        # Repository implementations
-└── domain/
-    └── lists/                   # First persistent domain
-        ├── models.py
-        ├── ports.py
-        └── services.py
+│       ├── list_repository.py   # Implements ListRepository Protocol
+│       ├── chore_repository.py  # Implements ChoreRepository Protocol
+│       └── reward_repository.py # Implements RewardRepository Protocol
 ```
 
-**Migration strategy:**
-1. Initialize Alembic: `alembic init migrations`
-2. Create initial schema (lists, items)
-3. Generate first migration: `alembic revision --autogenerate -m "initial"`
-4. Apply: `alembic upgrade head`
-5. Volume-mount `data/dashy.db` in Docker for persistence
+**Migration strategy for new tables:**
+1. Add SQLModel ORM models to `persistence/models.py`
+2. Generate migration: `alembic revision --autogenerate -m "add lists"`
+3. Apply: `alembic upgrade head`
 
 **Cross-referencing example:**
 ```python

@@ -91,18 +91,73 @@ All four must pass before you tell the user the task is complete.
 
 ## 7. Code style
 
-- Match the existing file’s style, naming, and comment density.
+- Match the existing file's style, naming, and comment density.
 - Minimal changes. No opportunistic refactors.
 - ESLint and Prettier rules are enforced via pre-commit hooks; `make lint` must pass.
 - No `console.log` except `console.warn`/`console.error`.
 
-## 8. Deployment flow
+## 8. Universal coding standards
+
+These standards apply to **all code** in the project, regardless of language or framework. Every agent must follow them.
+
+### Documentation
+
+- **Every** public module, class, function, and method must have proper documentation
+- **Python backend:** Google-style docstrings (enforced via ruff `pydocstyle` with `convention = "google"`)
+- **TypeScript frontend:** JSDoc comments on exported functions, components, hooks, and types
+- Private helpers get documentation when the logic is non-obvious
+- Documentation is for humans — write it to be read, not to satisfy a linter
+
+### Readable code
+
+- Code is read far more often than it is written — optimize for readability
+- Descriptive names over comments — if you need a comment to explain what code does, rename it
+- Small, focused functions — one job per function
+- No magic numbers or strings — use named constants
+- Consistent patterns within a file and across the project
+
+### Naming conventions
+
+**Python (backend):**
+- Files/modules: `snake_case.py` (e.g., `weather_service.py`)
+- Classes: `PascalCase` (e.g., `WeatherProvider`)
+- Functions/methods: `snake_case` (e.g., `get_weather()`)
+- Variables: `snake_case` (e.g., `api_key`)
+- Constants: `UPPER_SNAKE_CASE` (e.g., `MAX_RETRIES`)
+- Private members: `_prefixed` (e.g., `_fetch_internal()`)
+- Directories: `snake_case/` (e.g., `domain/weather/`)
+
+**TypeScript (frontend):**
+- Files (components): `PascalCase.tsx` (e.g., `WeatherCard.tsx`)
+- Files (hooks/utils): `camelCase.ts` (e.g., `useWeather.ts`)
+- Components: `PascalCase` (e.g., `WeatherCard`)
+- Functions/variables: `camelCase` (e.g., `getWeather()`)
+- Types/interfaces: `PascalCase` (e.g., `WeatherResponse`)
+- Constants: `UPPER_SNAKE_CASE` or `camelCase` (e.g., `MAX_RETRIES` or `apiUrl`)
+- Directories: `camelCase/` or `kebab-case/` (e.g., `components/`, `hooks/`)
+
+**General rules (all languages):**
+- **Files:** Names should describe what's in them — `weather_service.py` not `svc.py`
+- **Directories:** Group by domain/concern — `domain/weather/` not `stuff/`
+- **Functions:** Verb + noun — `fetch_weather()`, `parse_event()`, `convert_temperature()`
+- **Booleans:** Prefix with `is_`, `has_`, `should_`, `can_` — `is_valid`, `has_error`
+- **Collections:** Pluralize — `members`, `events`, `daily_forecasts`
+- **No abbreviations** unless universally understood (`id`, `url`, `api`, `tz`)
+- **No single-letter variables** except loop indices (`i`, `j`) or math (`x`, `y`)
+
+### Enforcement
+
+- Linters and formatters enforce these automatically — `make lint` must pass
+- Code review (human or agent) catches what linters miss
+- All new code must comply; existing code upgraded during migration phases
+
+## 9. Deployment flow
 
 - Normal production deploy: commit to `main`, push, let GitHub Actions deploy.
 - Manual Pi deploy only when explicitly requested: `make deploy-pi`.
 - Do not run `docker compose` directly on the Pi unless the Makefile target does so for you.
 - Do not deploy if CI is failing on `main`.
 
-## 9. When in doubt
+## 10. When in doubt
 
 If you are about to run a command and are unsure whether it violates the Docker-first rule, stop and ask the user. It is better to confirm than to pollute the working tree.

@@ -93,7 +93,7 @@ export async function getCalendar(
   }
 
   const params = new URLSearchParams({ start_date: startDate, end_date: endDate })
-  const data = await fetchWithRetry<WeekCalendar>(`${API_BASE}/api/calendar?${params}`)
+  const data = await fetchWithRetry<WeekCalendar>(`${API_BASE}/api/v1/calendar?${params}`)
 
   calendarCache.set(cacheKey, {
     events: data.events,
@@ -111,9 +111,9 @@ export function clearCalendarCache(): void {
 }
 
 export async function getWeather(): Promise<WeatherResponse> {
-  return fetchWithRetry<WeatherResponse>(`${API_BASE}/api/weather`)
+  return fetchWithRetry<WeatherResponse>(`${API_BASE}/api/v1/weather`)
 }
 
 export async function getFamilyMembers(): Promise<FamilyMember[]> {
-  return fetchWithRetry<FamilyMember[]>(`${API_BASE}/api/family`)
+  return fetchWithRetry<FamilyMember[]>(`${API_BASE}/api/v1/family`)
 }
