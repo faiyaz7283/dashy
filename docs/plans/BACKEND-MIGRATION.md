@@ -80,6 +80,8 @@ From the Dashtam architecture, these patterns are adapted for Dashy's scale:
 | **Fail-Open Cache** | Cache failures fall through to API, never break the app |
 | **Defense-in-Depth Validation** | Config at startup, schema at boundary, domain in entities |
 | **RFC 9457 Error Handling** | Machine-readable error codes + human messages |
+| **Async-First Architecture** | All services async, sync boundaries handled via `run_in_executor` |
+| **Three-Tier Testing** | Unit (domain), Integration (real DB/cache), API (HTTP endpoints) |
 
 **Deliberately NOT borrowing** (overkill for Dashy):
 - CQRS (no write operations)
@@ -87,6 +89,269 @@ From the Dashtam architecture, these patterns are adapted for Dashy's scale:
 - SSE Registry (no real-time push needed)
 - Audit trail (no compliance requirements)
 - Immutable frozen dataclasses (Pydantic models are sufficient)
+
+---
+
+## Async-First Requirements
+
+**Rule**: All service methods, repository methods, and infrastructure adapters MUST be `async def`. Domain entities remain synchronous (pure logic, no I/O).
+
+### Sync/Async Boundary Handling
+
+**Problem**: Google Calendar API client is synchronous. We cannot block the event loop.
+
+**Solution**: Use `asyncio.to_thread()` or `loop.run_in_executor()` to offload sync calls to a thread pool.
+
+```python
+# infrastructure/calendar/google_adapter.py
+import asyncio
+from googleapiclient.discovery import build
+
+class GoogleCalendarAdapter:
+    async def fetch_events(self, member: FamilyMember, date_range: DateRange) -> list[CalendarEvent]:
+        # Offload sync Google API call to thread pool
+        loop = asyncio.get_running_loop()
+        events = await loop.run_in_executor(
+            None, 
+            self._fetch_events_sync, 
+            member, 
+            date_range
+        )
+        return events
+    
+    def _fetch_events_sync(self, member: FamilyMember, date_range: DateRange) -> list[CalendarEvent]:
+        # Synchronous Google API call (runs in thread pool)
+        service = build('calendar', 'v3', credentials=self._get_credentials())
+        # ... Google API calls ...
+        return parsed_events
+```
+
+### httpx Client Strategy
+
+**Dashtam pattern**: Per-request `httpx.AsyncClient` (no shared state, no connection pooling).
+
+**Dashy decision**: **Shared async client** with connection pooling. We have higher request frequency (weather refreshes every 10 minutes, calendar every 2 minutes). Connection pooling reduces latency.
+
+```python
+# infrastructure/weather/http_client.py
+import httpx
+from functools import lru_cache
+
+@lru_cache()
+def get_http_client() -> httpx.AsyncClient:
+    return httpx.AsyncClient(timeout=30.0, limits=httpx.Limits(max_connections=10))
+```
+
+### Async Checklist
+
+- [ ] All domain service methods: `async def`
+- [ ] All repository methods: `async def`
+- [ ] All infrastructure adapters: `async def`
+- [ ] Google Calendar API calls: wrapped in `run_in_executor`
+- [ ] httpx client: shared async client with connection pooling
+- [ ] Redis cache: `redis.asyncio` client
+- [ ] Database (future): `asyncpg` via SQLAlchemy async
+- [ ] Tests: `asyncio_mode = auto` in pytest config
+
+---
+
+## Testing Structure
+
+### Three-Tier Testing Strategy
+
+```
+tests/
+├── conftest.py                    # Shared fixtures, test config
+├── unit/                          # Domain logic tests (no I/O, no framework)
+│   ├── test_weather_models.py     # Value object tests
+│   ├── test_calendar_models.py    # Entity tests
+│   ├── test_weather_services.py   # Domain service tests (mocked repos)
+│   └── test_calendar_services.py  # Domain service tests (mocked repos)
+│
+├── integration/                   # Real infrastructure tests
+│   ├── test_owm_adapter.py        # Real HTTP calls to OWM (or pytest-httpx mocks)
+│   ├── test_google_adapter.py     # Real Google API calls (or mocked)
+│   ├── test_cache.py              # Real Redis tests
+│   └── test_repositories.py       # Real DB tests (future)
+│
+└── api/                           # HTTP endpoint tests
+    ├── test_weather_api.py        # Full request/response cycle
+    ├── test_calendar_api.py       # Full request/response cycle
+    └── test_family_api.py         # Full request/response cycle
+```
+
+### Pytest Configuration
+
+```toml
+# pyproject.toml
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
+testpaths = ["tests"]
+markers = [
+    "unit: Fast domain logic tests (no I/O)",
+    "integration: Tests with real infrastructure (Redis, DB)",
+    "api: HTTP endpoint tests",
+    "slow: Tests that take >1 second",
+]
+```
+
+### Shared Fixtures (conftest.py)
+
+```python
+# tests/conftest.py
+import pytest
+from unittest.mock import AsyncMock, Mock
+from app.core.config import Settings
+
+@pytest.fixture
+def test_settings() -> Settings:
+    """Load test configuration from .env.test"""
+    return Settings(_env_file=".env.test")
+
+@pytest.fixture
+def mock_weather_provider() -> AsyncMock:
+    """Mock weather provider for unit tests"""
+    provider = AsyncMock()
+    provider.get_current.return_value = WeatherCurrent(...)
+    provider.get_hourly.return_value = [...]
+    provider.get_daily.return_value = [...]
+    return provider
+
+@pytest.fixture
+def mock_calendar_provider() -> AsyncMock:
+    """Mock calendar provider for unit tests"""
+    provider = AsyncMock()
+    provider.fetch_events.return_value = [...]
+    return provider
+
+@pytest.fixture
+def mock_container(mock_weather_provider, mock_calendar_provider):
+    """Override DI container for unit tests"""
+    with patch("app.core.container.get_weather_provider", return_value=mock_weather_provider):
+        with patch("app.core.container.get_calendar_provider", return_value=mock_calendar_provider):
+            yield {
+                "weather_provider": mock_weather_provider,
+                "calendar_provider": mock_calendar_provider,
+            }
+```
+
+### Test Patterns by Layer
+
+**Unit Tests** (domain logic, no I/O):
+```python
+# tests/unit/test_calendar_services.py
+async def test_deduplicate_events_merges_shared_events():
+    # Arrange
+    events = [
+        CalendarEvent(id="123", title="Dentist", members=[member_a, member_b]),
+        CalendarEvent(id="123", title="Dentist", members=[member_b]),  # Same event, different calendar
+    ]
+    service = CalendarService(calendar_repo=AsyncMock())
+    
+    # Act
+    result = await service.deduplicate_events(events)
+    
+    # Assert
+    assert len(result) == 1
+    assert len(result[0].members) == 2
+```
+
+**Integration Tests** (real infrastructure):
+```python
+# tests/integration/test_cache.py
+async def test_cache_set_and_get(redis_client):
+    # Arrange
+    cache = RedisCache(redis_client)
+    
+    # Act
+    await cache.set("weather:imperial", WeatherResponse(...), ttl=600)
+    result = await cache.get("weather:imperial")
+    
+    # Assert
+    assert result is not None
+    assert result.current.temperature == 72.0
+```
+
+**API Tests** (HTTP endpoints):
+```python
+# tests/api/test_weather_api.py
+from httpx import AsyncClient, ASGITransport
+from app.main import app
+
+async def test_get_weather_returns_200(mock_container):
+    # Arrange
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as client:
+        # Act
+        response = await client.get("/api/v1/weather?units=imperial")
+        
+        # Assert
+        assert response.status_code == 200
+        data = response.json()
+        assert "current" in data
+        assert "forecast" in data
+```
+
+### Mocking Strategy
+
+| Layer | What to Mock | How |
+|-------|--------------|-----|
+| **Unit** | Repositories, external APIs | `AsyncMock()` for async, `Mock()` for sync |
+| **Integration** | External APIs (OWM, Google) | `pytest-httpx` for HTTP, real Redis/DB |
+| **API** | All dependencies | Override DI container via `app.dependency_overrides` |
+
+### HTTP Mocking with pytest-httpx
+
+```python
+# tests/integration/test_owm_adapter.py
+import pytest
+from httpx import AsyncClient
+
+@pytest.mark.asyncio
+async def test_owm_adapter_parses_current_weather(httpx_mock):
+    # Arrange
+    httpx_mock.add_response(
+        url="https://api.openweathermap.org/data/4.0/onecall/current",
+        json={"current": {"temp": 22.5, "weather": [{"main": "Clear"}]}},
+    )
+    adapter = OWMWeatherAdapter(api_key="test", lat=40.7, lon=-73.5)
+    
+    # Act
+    result = await adapter.get_current(units="metric")
+    
+    # Assert
+    assert result.temperature.value == 22.5
+    assert result.condition == "Clear"
+```
+
+### Test Execution
+
+```bash
+# Run all tests
+make test-backend
+
+# Run by layer
+pytest tests/unit/           # Fast, no I/O
+pytest tests/integration/    # Needs Redis/DB
+pytest tests/api/            # Needs app setup
+
+# Run with coverage
+pytest --cov=app --cov-report=html
+```
+
+### Testing Checklist
+
+- [ ] `conftest.py` with shared fixtures
+- [ ] Unit tests for all domain services
+- [ ] Unit tests for all value objects and entities
+- [ ] Integration tests for all infrastructure adapters
+- [ ] Integration tests for cache (Redis)
+- [ ] API tests for all endpoints
+- [ ] Registry compliance tests (verify all providers implement protocols)
+- [ ] `pytest-httpx` for HTTP mocking
+- [ ] Coverage reporting configured
+- [ ] CI runs all three test tiers
 
 ---
 
@@ -166,12 +431,20 @@ Fix the easy bugs. No restructuring. Everything stays in place.
 | Step | What | Why |
 |------|------|-----|
 | B1.1 | Fix Python version mismatch | `.python-version`, Dockerfile, ruff target → all 3.13 |
-| B1.2 | Add structured logging | Replace all `print()` with `logging` or `structlog` |
+| B1.2 | Add structured logging | Replace all `print()` with `structlog` |
 | B1.3 | Add custom exception hierarchy | `DashyError` base → `WeatherApiError`, `CalendarApiError`, `ConfigError` |
 | B1.4 | Add RFC 9457 error responses | Machine-readable error codes + human messages |
 | B1.5 | Add API versioning | `/api/v1/...` prefix on all routes |
 | B1.6 | Move CORS origins to config | Remove hardcoded list from `main.py` |
 | B1.7 | Remove dead code | `_fetch_cancelled_instances` or wire it up, remove `GOOGLE_CALENDAR_ID` |
+| B1.8 | Set up test infrastructure | `conftest.py`, pytest config, `pytest-httpx`, test directory structure |
+
+**Testing for B1:**
+- [ ] Create `tests/conftest.py` with shared fixtures
+- [ ] Create `tests/unit/`, `tests/integration/`, `tests/api/` directories
+- [ ] Update pytest config: `asyncio_mode = "auto"`, markers
+- [ ] Add `pytest-httpx` to dev dependencies
+- [ ] Migrate existing tests to new structure (no behavior changes)
 
 **Verification:** `make lint && make typecheck && make test && make build` — all pass. No behavior changes.
 
@@ -193,6 +466,13 @@ Extract business logic into a framework-free domain layer.
 
 **Key rule:** Domain layer has ZERO imports from FastAPI, httpx, or any framework. Pure Python only.
 
+**Testing for B2:**
+- [ ] Unit tests for all value objects (Temperature, WindSpeed, etc.)
+- [ ] Unit tests for domain services (with mocked repositories)
+- [ ] Test deduplication logic thoroughly
+- [ ] Test unit conversion functions
+- [ ] All domain tests are synchronous (no I/O)
+
 **Verification:** Domain tests pass without any framework imports. Existing service tests still pass.
 
 ---
@@ -205,12 +485,20 @@ Move external integrations behind protocol interfaces.
 |------|------|-----|
 | B3.1 | Create shared `http_client.py` | Single `httpx.AsyncClient` with connection pooling, retry, timeout |
 | B3.2 | Create `owm_adapter.py` | Implements `WeatherProvider` — moves HTTP logic from `weather_service.py` |
-| B3.3 | Create `google_adapter.py` | Implements `CalendarProvider` — moves Google API logic, make it **async** |
+| B3.3 | Create `google_adapter.py` | Implements `CalendarProvider` — moves Google API logic, make it **async** via `run_in_executor` |
 | B3.4 | Create `mock_adapter.py` for weather | Implements `WeatherProvider` — moves mock generation |
 | B3.5 | Create `mock_adapter.py` for calendar | Implements `CalendarProvider` — moves mock generation |
 | B3.6 | Create `family_config.py` | Implements `FamilyRepository` — parses `FAMILY_MEMBERS` JSON from config |
 
 **Key rule:** Each adapter is independently testable. Mock adapters are first-class, not afterthoughts.
+
+**Testing for B3:**
+- [ ] Integration tests for OWM adapter using `pytest-httpx`
+- [ ] Integration tests for Google adapter (mock the sync Google API calls)
+- [ ] Unit tests for mock adapters (verify they return correct shapes)
+- [ ] Test connection pooling and retry logic
+- [ ] Test `run_in_executor` wrapping for Google API
+- [ ] All adapter tests are async
 
 **Verification:** Each adapter has unit tests. Swapping `WEATHER_PROVIDER=mock|owm` works via env var.
 
@@ -245,6 +533,12 @@ def weather_provider() -> WeatherProvider:
     return get_weather_provider()
 ```
 
+**Testing for B4:**
+- [ ] Registry compliance tests (verify all providers implement protocols)
+- [ ] Test container wiring (verify correct provider returned based on env)
+- [ ] Test `Depends()` overrides work correctly
+- [ ] Mock container in unit tests
+
 **Verification:** Registry compliance tests pass. Adding a new provider requires only: write adapter + add registry entry.
 
 ---
@@ -255,7 +549,7 @@ Add caching to avoid burning API quotas.
 
 | Step | What | What |
 |------|------|------|
-| B5.1 | Create `core/cache.py` | TTL cache with fail-open design |
+| B5.1 | Create `core/cache.py` | TTL cache with fail-open design using `redis.asyncio` |
 | B5.2 | Add caching to weather service | 10-minute TTL (matches frontend refresh interval) |
 | B5.3 | Add caching to calendar service | 2-minute TTL |
 | B5.4 | Add cache health to `/health` | Report cache hit/miss stats |
@@ -276,6 +570,13 @@ async def get_weather(units: str) -> WeatherResponse:
         return get_mock_weather(units)
 ```
 
+**Testing for B5:**
+- [ ] Integration tests for Redis cache (real Redis in Docker)
+- [ ] Test TTL expiration
+- [ ] Test fail-open behavior (cache failure falls through to API)
+- [ ] Test cache hit/miss stats
+- [ ] All cache tests are async
+
 **Verification:** Second request within TTL returns cached data. Cache failure falls through to API.
 
 ---
@@ -291,6 +592,13 @@ Final polish on the HTTP layer.
 | B6.3 | Fix family endpoint | Return real config data via `FamilyRepository`, not mock |
 | B6.4 | Add request validation | Proper query param validation with helpful error messages |
 | B6.5 | Add `conftest.py` with test fixtures | Shared fixtures, container override for testing |
+
+**Testing for B6:**
+- [ ] API tests for all endpoints (weather, calendar, family)
+- [ ] Test request validation (invalid units, bad dates)
+- [ ] Test RFC 9457 error responses
+- [ ] Test family endpoint returns real config data
+- [ ] All API tests use `httpx.AsyncClient` with `ASGITransport`
 
 **Verification:** Full quality gate passes. API docs at `/docs` are accurate.
 
@@ -356,6 +664,7 @@ infrastructure/persistence/
 |---------|---------|-------|
 | `structlog` | Structured logging | B1 |
 | `redis` | Redis client for caching | B5 |
+| `pytest-httpx` | HTTP mocking for integration tests | B1 |
 | `sqlmodel` | Pydantic + SQLAlchemy hybrid ORM | B7 (future) |
 | `alembic` | Database migrations | B7 (future) |
 
