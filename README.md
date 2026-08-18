@@ -220,6 +220,15 @@ Children (Arya, 8 and Raya, 4) are not in v1 calendar scope but the system suppo
 - **Service Account:** `dashy-calendar@dashy-504518.iam.gserviceaccount.com`
 - **Week view:** ISO week (Mon–Sun)
 
+### Credentials
+
+**Production (Pi):** Google Calendar credentials file is stored in the Pi home directory:
+- **Location:** `/home/rpi4_main/dashy-504518-355c1ee5c25b.json`
+- **Mounted to container:** `/app/credentials/dashy-504518-355c1ee5c25b.json`
+- **Why outside repo:** Credentials are gitignored and were being lost during git operations. Storing in home directory prevents this.
+
+**Development:** Uses mock data by default (`CALENDAR_USE_MOCK=true` in `.env.dev`). No credentials needed.
+
 ### Weather
 
 - **Location:** Levittown, NY 11756 (lat: 40.715401, lon: -73.512924)
