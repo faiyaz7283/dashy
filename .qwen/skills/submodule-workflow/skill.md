@@ -92,9 +92,9 @@ If you need to make coordinated changes across frontend and backend:
 
 | Task | Command |
 |------|---------|
+| Sync all repos + submodules | `make sync` |
 | Update all submodules | `make submodule-update` |
 | Check submodule status | `git submodule status` |
-| Initialize submodules (after clone) | `git submodule update --init --recursive` |
 | Enter a submodule | `cd dashy-kiosk/` or `cd dashy-api/` |
 
 ## Important Notes

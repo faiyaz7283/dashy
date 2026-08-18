@@ -12,7 +12,7 @@ Production deployment to the Pi kiosk at `r4pi`.
 - SSH access to `r4pi` must be configured (key at `~/.ssh/id_ed25519`)
 - Working directory is the Dashy orchestrator root
 - You are on the `development` branch (deploy switches to `main` automatically)
-- Submodules are initialized (`git submodule update --init --recursive`)
+- Submodules are initialized (run `make sync` to ensure everything is up to date)
 - Dev environment does NOT need to be running
 
 ## Submodule Workflow
