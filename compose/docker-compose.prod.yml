@@ -68,7 +68,7 @@ services:
       - "8000"
     volumes:
       - backend-data:/app/data
-      - ../dashy-api/credentials:/app/credentials:ro
+      - /home/rpi4_main/dashy-504518-355c1ee5c25b.json:/app/credentials/dashy-504518-355c1ee5c25b.json:ro
     environment:
       - REDIS_URL=redis://redis:6379
       - DATABASE_URL=sqlite+aiosqlite:////app/data/dashy.db
