@@ -102,6 +102,9 @@ ssh r4pi "pkill -9 chromium; sleep 2; sudo systemctl restart lightdm"
 ### First deploy
 On first deploy, `.last-deployed-commit` does not exist on the Pi. The script detects this and does a full rebuild of all services.
 
+### Credentials location
+Google Calendar credentials are stored in the Pi home directory (`/home/rpi4_main/dashy-504518-355c1ee5c25b.json`), not in the repo. This prevents them from being lost during git operations. The production compose file mounts this file directly into the backend container.
+
 ## Other Deploy Commands
 
 | Command | What it does |
