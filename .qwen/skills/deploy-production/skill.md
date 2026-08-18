@@ -19,41 +19,49 @@ Say "deploy to production" or invoke `/deploy-production`.
 
 ### Step 1: Detect Changes
 
-Check which repos have uncommitted changes:
+Check which repos have uncommitted changes OR have development ahead of main:
 
 ```bash
 # Orchestrator
 git status --short
+git log main..development --oneline
 
 # dashy-kiosk
-cd dashy-kiosk && git status --short && cd ..
+cd dashy-kiosk && git status --short && git log main..development --oneline && cd ..
 
 # dashy-api
-cd dashy-api && git status --short && cd ..
+cd dashy-api && git status --short && git log main..development --oneline && cd ..
 ```
 
 **Logic:**
-- If no changes anywhere → abort with "nothing to deploy"
-- Track which repos changed: `KIOSK_CHANGED`, `API_CHANGED`, `ORCH_CHANGED`
-- These flags control which steps run
+- Track two types of changes for each repo:
+  - `KIOSK_UNCOMMITTED` / `KIOSK_AHEAD_OF_MAIN`
+  - `API_UNCOMMITTED` / `API_AHEAD_OF_MAIN`
+  - `ORCH_UNCOMMITTED` / `ORCH_AHEAD_OF_MAIN`
+- If any flag is true → proceed with deployment
+- If all flags are false → abort with "nothing to deploy"
+- Uncommitted changes need quality gates and commits
+- Changes already on development (ahead of main) skip quality gates and commits, go straight to merge
 
-### Step 2: Quality Gates (changed repos only)
+### Step 2: Quality Gates (uncommitted changes only)
 
-**If dashy-kiosk has changes:**
+**Only run quality gates if there are uncommitted changes. Skip if changes are already committed to development.**
+
+**If dashy-kiosk has uncommitted changes:**
 ```bash
 cd dashy-kiosk
 pnpm lint && pnpm typecheck && pnpm test && pnpm build
 cd ..
 ```
 
-**If dashy-api has changes:**
+**If dashy-api has uncommitted changes:**
 ```bash
 cd dashy-api
 uv run ruff check app/ tests/ && uv run python -m compileall app/ && uv run pytest tests/ -v
 cd ..
 ```
 
-**If orchestrator has changes:**
+**If orchestrator has uncommitted changes:**
 ```bash
 make lint && make typecheck && make test && make build
 ```
@@ -72,11 +80,13 @@ curl -sk https://dashy.local -o /dev/null -w "%{http_code}"
 
 **Abort if verification fails.**
 
-### Step 4: Commit and Push (in correct order)
+### Step 4: Commit and Push (uncommitted changes only)
+
+**Only commit if there are uncommitted changes. Skip if changes are already on development.**
 
 **Order matters:** Submodules first, then orchestrator.
 
-**If dashy-kiosk has changes:**
+**If dashy-kiosk has uncommitted changes:**
 ```bash
 cd dashy-kiosk
 git add .
@@ -85,7 +95,7 @@ git push origin development
 cd ..
 ```
 
-**If dashy-api has changes:**
+**If dashy-api has uncommitted changes:**
 ```bash
 cd dashy-api
 git add .
@@ -94,7 +104,7 @@ git push origin development
 cd ..
 ```
 
-**If orchestrator has changes OR submodules were updated:**
+**If orchestrator has uncommitted changes OR submodules were updated:**
 ```bash
 # Update submodule refs if submodules changed
 git add dashy-kiosk/ dashy-api/
@@ -122,7 +132,9 @@ gh run watch <run-id>
 
 ### Step 6: Merge to Main
 
-**If dashy-kiosk was updated:**
+**Merge any repo where development is ahead of main.**
+
+**If dashy-kiosk development is ahead of main:**
 ```bash
 cd dashy-kiosk
 git checkout main && git pull origin main
@@ -132,7 +144,7 @@ git checkout development
 cd ..
 ```
 
-**If dashy-api was updated:**
+**If dashy-api development is ahead of main:**
 ```bash
 cd dashy-api
 git checkout main && git pull origin main
@@ -142,7 +154,7 @@ git checkout development
 cd ..
 ```
 
-**If orchestrator was updated:**
+**If orchestrator development is ahead of main:**
 ```bash
 git checkout main && git pull origin main
 git merge development --no-edit
@@ -162,7 +174,7 @@ This handles: pull main on Pi, update submodules, detect changes, selective rebu
 
 The skill stops immediately at any of these:
 
-1. **No changes detected** — nothing to deploy
+1. **No changes detected** — no uncommitted changes and development is not ahead of main in any repo
 2. **Quality gate fails** — fix issues, re-run
 3. **Local verification fails** — debug locally, re-run
 4. **CI fails** — fix issues, push, re-run
@@ -171,25 +183,36 @@ The skill stops immediately at any of these:
 
 ## Examples
 
-### Only kiosk changed
+### Only kiosk changed (uncommitted)
 - Quality gate: kiosk only
 - Commit: kiosk → orchestrator (refs update)
 - CI → merge kiosk + orchestrator → deploy
 
-### Only api changed
+### Only api changed (uncommitted)
 - Quality gate: api only
 - Commit: api → orchestrator (refs update)
 - CI → merge api + orchestrator → deploy
 
-### Only orchestrator changed
+### Only orchestrator changed (uncommitted)
 - Quality gate: orchestrator only
 - Commit: orchestrator
 - CI → merge orchestrator → deploy
 
-### All three changed
+### All three changed (uncommitted)
 - Quality gate: all three
 - Commit: kiosk → api → orchestrator (refs + changes)
 - CI → merge all three → deploy
+
+### Changes already on development (ahead of main)
+- No quality gates needed (already passed)
+- No commits needed (already pushed)
+- Skip to CI check → merge → deploy
+
+### Mixed: some uncommitted, some ahead of main
+- Quality gates: only for repos with uncommitted changes
+- Commits: only for repos with uncommitted changes
+- CI: wait for all repos
+- Merge: all repos where development is ahead of main
 
 ## Integration with Other Skills
 
