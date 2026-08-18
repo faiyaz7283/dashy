@@ -16,6 +16,11 @@ jobs:
         with:
           submodules: recursive
 
+      - name: Create dummy env files for validation
+        run: |
+          cp env/.env.dev.example env/.env.dev
+          cp env/.env.prod.example env/.env.prod
+
       - name: Validate dev compose
         run: docker compose -f compose/docker-compose.dev.yml config > /dev/null
 
