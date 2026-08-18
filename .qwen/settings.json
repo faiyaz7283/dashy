@@ -11,7 +11,8 @@
       "Agent(Explore)",
       "send_message",
       "Skill(deploy-production)",
-      "Bash(git log *)"
+      "Bash(git log *)",
+      "Agent(general-purpose)"
     ]
   },
   "$version": 4
