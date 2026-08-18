@@ -14,12 +14,12 @@ services:
     restart: unless-stopped
     command: redis-server --appendonly yes
 
-  # Frontend (React + Vite)
-  frontend:
+  # Kiosk (React + Vite)
+  kiosk:
     build:
       context: ../dashy-kiosk
       dockerfile: Dockerfile.dev
-    container_name: dashy-dev-frontend
+    container_name: dashy-dev-kiosk
     expose:
       - "3000"
     volumes:
@@ -32,26 +32,26 @@ services:
       - traefik-public
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.dashy-dev-frontend.rule=Host(`dashy.local`)"
-      - "traefik.http.routers.dashy-dev-frontend.entrypoints=websecure"
-      - "traefik.http.routers.dashy-dev-frontend.tls=true"
-      - "traefik.http.routers.dashy-dev-frontend.service=dashy-dev-frontend"
-      - "traefik.http.services.dashy-dev-frontend.loadbalancer.server.port=3000"
+      - "traefik.http.routers.dashy-dev-kiosk.rule=Host(`dashy.local`)"
+      - "traefik.http.routers.dashy-dev-kiosk.entrypoints=websecure"
+      - "traefik.http.routers.dashy-dev-kiosk.tls=true"
+      - "traefik.http.routers.dashy-dev-kiosk.service=dashy-dev-kiosk"
+      - "traefik.http.services.dashy-dev-kiosk.loadbalancer.server.port=3000"
     restart: unless-stopped
 
-  # Backend (FastAPI + UV)
-  backend:
+  # API (FastAPI + UV)
+  api:
     build:
       context: ../dashy-api
       dockerfile: Dockerfile.dev
-    container_name: dashy-dev-backend
+    container_name: dashy-dev-api
     env_file:
       - ../env/.env.dev
     expose:
       - "8000"
     volumes:
       - ../dashy-api:/app
-      - backend-data:/app/data
+      - api-data:/app/data
     environment:
       - PYTHONUNBUFFERED=1
       - REDIS_URL=redis://redis:6379
@@ -63,11 +63,11 @@ services:
       - traefik-public
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.dashy-dev-backend.rule=Host(`api.dashy.local`)"
-      - "traefik.http.routers.dashy-dev-backend.entrypoints=websecure"
-      - "traefik.http.routers.dashy-dev-backend.tls=true"
-      - "traefik.http.routers.dashy-dev-backend.service=dashy-dev-backend"
-      - "traefik.http.services.dashy-dev-backend.loadbalancer.server.port=8000"
+      - "traefik.http.routers.dashy-dev-api.rule=Host(`api.dashy.local`)"
+      - "traefik.http.routers.dashy-dev-api.entrypoints=websecure"
+      - "traefik.http.routers.dashy-dev-api.tls=true"
+      - "traefik.http.routers.dashy-dev-api.service=dashy-dev-api"
+      - "traefik.http.services.dashy-dev-api.loadbalancer.server.port=8000"
     restart: unless-stopped
 
 networks:
@@ -78,4 +78,4 @@ networks:
 
 volumes:
   redis-data:
-  backend-data:
+  api-data:

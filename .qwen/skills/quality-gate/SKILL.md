@@ -35,8 +35,8 @@ make build
 
 ## What each step checks
 
-| Step | Frontend (dashy-kiosk) | Backend (dashy-api) |
-|------|------------------------|---------------------|
+| Step | Kiosk (dashy-kiosk) | API (dashy-api) |
+|------|---------------------|-----------------|
 | `make lint` | ESLint (`pnpm run lint`) | Ruff check (`ruff check app/ tests/`) |
 | `make typecheck` | TypeScript (`pnpm run typecheck`) | N/A (Python uses runtime types) |
 | `make test` | Vitest + Testing Library (jsdom) | pytest + pytest-asyncio |
@@ -46,7 +46,7 @@ make build
 
 If you're working exclusively in one submodule, you can run its standalone quality-gate:
 
-**Frontend only** (from `dashy-kiosk/` directory):
+**Kiosk only** (from `dashy-kiosk/` directory):
 ```bash
 cd dashy-kiosk/
 pnpm lint
@@ -55,7 +55,7 @@ pnpm test
 pnpm build
 ```
 
-**Backend only** (from `dashy-api/` directory):
+**API only** (from `dashy-api/` directory):
 ```bash
 cd dashy-api/
 uv run ruff check app/ tests/
@@ -67,23 +67,23 @@ uv run pytest tests/ -v
 
 ## After a change
 
-If you made changes to both frontend and backend, all four steps still apply — the Makefile targets handle both. You do not need to run `lint-frontend` and `lint-backend` separately unless you want to isolate a failure.
+If you made changes to both kiosk and API, all four steps still apply — the Makefile targets handle both. You do not need to run `lint-kiosk` and `lint-api` separately unless you want to isolate a failure.
 
 ## Granular checks (for faster feedback)
 
 When working on only one side, you can run side-specific targets for faster iteration:
 
-**Backend only:**
+**API only:**
 ```bash
-make lint-backend
-make test-backend
+make lint-api
+make test-api
 ```
 
-**Frontend only:**
+**Kiosk only:**
 ```bash
-make lint-frontend
-make typecheck-frontend
-make test-frontend
+make lint-kiosk
+make typecheck-kiosk
+make test-kiosk
 ```
 
 **Note:** Always run the full quality gate (`make lint && make typecheck && make test && make build`) before committing or declaring work complete, even if you've been using granular checks during development.
@@ -91,17 +91,17 @@ make test-frontend
 ## Common failure patterns
 
 - **Lint failures after adding a component**: Missing barrel export (`index.ts`), unused imports, or `console.log` statements (use `console.warn`/`console.error` only)
-- **Typecheck failures**: Type mismatch between frontend `types/index.ts` and backend `models.py` — the data models must stay in sync (see `sync-types` skill)
-- **Test failures**: Frontend tests use `vi.fn()` for mocks; backend tests use `pytest.mark.asyncio` with `asyncio_mode = "auto"`
-- **Build failures**: Frontend build fails on TypeScript errors; backend build fails on import errors or syntax issues
+- **Typecheck failures**: Type mismatch between kiosk `types/index.ts` and API `models.py` — the data models must stay in sync (see `sync-types` skill)
+- **Test failures**: Kiosk tests use `vi.fn()` for mocks; API tests use `pytest.mark.asyncio` with `asyncio_mode = "auto"`
+- **Build failures**: Kiosk build fails on TypeScript errors; API build fails on import errors or syntax issues
 - **Submodule not committed**: If you changed files in `dashy-kiosk/` or `dashy-api/` but didn't commit in the submodule, the orchestrator won't see the changes. Use the `submodule-workflow` skill.
 
 ## Cross-Repo Coordination
 
-When making API changes that affect both frontend and backend:
+When making API changes that affect both kiosk and API:
 
-1. Update backend models first
-2. Update frontend types to match
+1. Update API models first
+2. Update kiosk types to match
 3. Run full quality gate from orchestrator
 4. Commit in both submodules
 5. Update orchestrator submodule refs

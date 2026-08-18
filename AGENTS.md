@@ -37,20 +37,20 @@ Use these `make` targets instead:
 | Task | Command |
 |------|---------|
 | Sync all repos + submodules | `make sync` |
-| Install frontend deps | `make install-frontend` |
-| Install backend deps | `make install-backend` |
-| Add frontend package | `make add-frontend PACKAGE=<name>` |
-| Add backend package | `make add-backend PACKAGE=<name>` |
-| Remove frontend package | `make remove-frontend PACKAGE=<name>` |
-| Remove backend package | `make remove-backend PACKAGE=<name>` |
+| Install kiosk deps | `make install-kiosk` |
+| Install API deps | `make install-api` |
+| Add kiosk package | `make add-kiosk PACKAGE=<name>` |
+| Add API package | `make add-api PACKAGE=<name>` |
+| Remove kiosk package | `make remove-kiosk PACKAGE=<name>` |
+| Remove API package | `make remove-api PACKAGE=<name>` |
 | Lint everything | `make lint` |
-| Lint frontend only | `make lint-frontend` |
-| Lint backend only | `make lint-backend` |
+| Lint kiosk only | `make lint-kiosk` |
+| Lint API only | `make lint-api` |
 | Format everything | `make format` |
-| Type check frontend | `make typecheck` / `make typecheck-frontend` |
+| Type check kiosk | `make typecheck` / `make typecheck-kiosk` |
 | Run all tests | `make test` |
-| Run frontend tests | `make test-frontend` |
-| Run backend tests | `make test-backend` |
+| Run kiosk tests | `make test-kiosk` |
+| Run API tests | `make test-api` |
 | Production build | `make build` |
 | Start dev environment | `make dev-up` |
 | Update submodules | `make submodule-update` |
@@ -59,7 +59,7 @@ If a command you want is missing from the Makefile, add a target there — do no
 
 ## 3. Verify before declaring done
 
-For any frontend or backend change:
+For any kiosk or API change:
 
 1. `make lint`
 2. `make typecheck`

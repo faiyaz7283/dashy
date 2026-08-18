@@ -14,8 +14,8 @@ A DIY family command center dashboard inspired by [Skylight Calendar](https://my
 - **Submodules:**
   - `dashy-kiosk/` → `git@github.com:faiyaz7283/dashy-kiosk.git`
   - `dashy-api/` → `git@github.com:faiyaz7283/dashy-api.git`
-- **Local Dev URLs:** https://dashy.local (frontend), https://api.dashy.local (backend)
-- **Pi URLs:** https://dashy.local (frontend), https://api.dashy.local (backend)
+- **Local Dev URLs:** https://dashy.local (kiosk), https://api.dashy.local (API)
+- **Pi URLs:** https://dashy.local (kiosk), https://api.dashy.local (API)
 - **API Services:** Google Calendar + OpenWeatherMap (falls back to mock data when credentials are missing)
 - **Kiosk:** Chromium auto-starts on boot, displays the dashboard with real calendar data
 - **Views:** Day, Week, Month, Year with navigation and auto-refresh
@@ -41,7 +41,7 @@ A DIY family command center dashboard inspired by [Skylight Calendar](https://my
 | **Logging** | structlog | Structured JSON logging |
 | **Reverse Proxy** | Traefik (shared infrastructure) | v3.7.10 |
 | **Containerization** | Docker + Docker Compose | Docker 29.7, Compose v5.4 |
-| **Package Management** | pnpm (frontend), UV (backend) | — |
+| **Package Management** | pnpm (kiosk), UV (API) | — |
 | **Build Automation** | Makefile (Docker-first) | — |
 | **Pi OS** | Raspberry Pi OS 64-bit (Trixie) | Debian 13, kernel 6.18 |
 
@@ -123,12 +123,12 @@ make dev-up     # Start development environment
 make dev-down   # Stop development environment
 make dev-logs   # View logs (follow mode)
 make dev-shell  # Shell into backend container
-make dev-shell-frontend  # Shell into frontend container
+make dev-shell-kiosk     # Shell into kiosk container
 make dev-restart  # Restart environment
 make dev-rebuild  # Rebuild containers (no cache)
 
-make lint       # Lint both frontend + backend
-make format     # Format both frontend + backend
+make lint       # Lint both kiosk + API
+make format     # Format both kiosk + API
 make typecheck  # TypeScript type check
 make test       # Run all tests
 make build      # Production builds
@@ -156,7 +156,7 @@ Each repo has independent CI. The orchestrator validates compose files and build
 
 **`dashy` (orchestrator) CI:**
 - Validates `docker-compose.dev.yml` and `docker-compose.prod.yml`
-- Builds frontend and backend Docker images
+- Builds kiosk and API Docker images
 - Triggers on push/PR to `development` or `main`
 
 **`dashy-kiosk` (frontend) CI:**
@@ -543,7 +543,7 @@ This intelligent deployment command:
 4. Configures Chromium kiosk (copies wrapper script and autostart config).
 5. Rebuilds only what changed (dashy-kiosk/dashy-api/infrastructure).
 6. Restarts affected services only.
-7. Verifies deployment (checks frontend and backend accessibility).
+7. Verifies deployment (checks kiosk and API accessibility).
 8. Records deployment commit on Pi.
 9. Syncs branches (merges main into development).
 
@@ -562,17 +562,17 @@ This intelligent deployment command:
 ### Docker Compose Project Naming
 
 - **Project name:** `dashy-dev` (set in `compose/docker-compose.dev.yml`)
-- **Container names:** `dashy-dev-frontend`, `dashy-dev-backend`, `dashy-dev-redis`
+- **Container names:** `dashy-dev-kiosk`, `dashy-dev-api`, `dashy-dev-redis`
 - **Pattern:** `{project}-{service}`
-- **Services:** Frontend (React + Vite), Backend (FastAPI + UV), Redis (cache layer)
+- **Services:** Kiosk (React + Vite), API (FastAPI + UV), Redis (cache layer)
 
 ### Local Domain Routing
 
 | Service | Domain | Traefik Router |
 |---------|--------|----------------|
-| Frontend | `dashy.local` | `dashy-dev-frontend` |
-| Backend API | `api.dashy.local` | `dashy-dev-backend` |
-| API Docs | `api.dashy.local/docs` | (same as backend) |
+| Kiosk | `dashy.local` | `dashy-dev-kiosk` |
+| API | `api.dashy.local` | `dashy-dev-api` |
+| API Docs | `api.dashy.local/docs` | (same as API) |
 
 ### Environment Variables
 

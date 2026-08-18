@@ -1,33 +1,33 @@
 # Sync Types
 
-Detect and resolve drift between frontend TypeScript types and backend API models.
+Detect and resolve drift between kiosk TypeScript types and API models.
 
 ## When to Use
 
 - After adding or modifying API endpoints
-- When frontend types don't match backend responses
+- When kiosk types don't match API responses
 - Periodically to ensure type consistency across repos
-- Before deploying API changes that affect frontend
+- Before deploying API changes that affect kiosk
 
 ## Current State
 
 **Manual sync with drift detection** (as per repo split plan).
 
-Frontend types live in `dashy-kiosk/src/types/index.ts`.
-Backend models live in `dashy-api/app/api/models/`.
+Kiosk types live in `dashy-kiosk/src/types/index.ts`.
+API models live in `dashy-api/app/api/models/`.
 
 ## Drift Detection
 
-### 1. Check Backend API Schema
+### 1. Check API Schema
 
-Generate OpenAPI spec from backend:
+Generate OpenAPI spec from API:
 
 ```bash
 cd dashy-api/
 uv run python -c "from app.main import app; import json; print(json.dumps(app.openapi()))" > /tmp/openapi.json
 ```
 
-### 2. Compare with Frontend Types
+### 2. Compare with Kiosk Types
 
 Manually review `dashy-kiosk/src/types/index.ts` against the OpenAPI spec.
 
@@ -38,10 +38,10 @@ Key types to check:
 
 ### 3. Automated Check (Future)
 
-Add a CI test that compares frontend types against backend OpenAPI spec:
+Add a CI test that compares kiosk types against API OpenAPI spec:
 
 ```python
-# backend/tests/test_type_sync.py
+# api/tests/test_type_sync.py
 import httpx
 import json
 
@@ -54,26 +54,26 @@ def test_openapi_spec_generation():
     assert "schemas" in spec["components"]
 ```
 
-Frontend could have a test that fetches the spec and validates type structure.
+Kiosk could have a test that fetches the spec and validates type structure.
 
 ## Updating Types
 
-### When Backend Changes
+### When API Changes
 
-1. **Update backend models** in `dashy-api/app/api/models/`
-2. **Run backend tests** to ensure models are correct
-3. **Update frontend types** in `dashy-kiosk/src/types/index.ts` to match
-4. **Run frontend tests** to ensure type compatibility
+1. **Update API models** in `dashy-api/app/api/models/`
+2. **Run API tests** to ensure models are correct
+3. **Update kiosk types** in `dashy-kiosk/src/types/index.ts` to match
+4. **Run kiosk tests** to ensure type compatibility
 5. **Commit in both repos**:
    ```bash
-   # Backend
+   # API
    cd dashy-api/
    git add . && git commit -m "feat: update API models"
    git push origin development
 
-   # Frontend
+   # Kiosk
    cd ../dashy-kiosk/
-   git add . && git commit -m "feat: sync types with backend API"
+   git add . && git commit -m "feat: sync types with API"
    git push origin development
 
    # Orchestrator
@@ -83,18 +83,18 @@ Frontend could have a test that fetches the spec and validates type structure.
    git commit -m "chore: sync types across repos"
    ```
 
-### When Frontend Needs New Fields
+### When Kiosk Needs New Fields
 
-1. **Add field to backend model** first
-2. **Update backend adapter** to populate the field
-3. **Add backend tests** for the new field
-4. **Update frontend type** to include the field
-5. **Update frontend components** to use the field
+1. **Add field to API model** first
+2. **Update API adapter** to populate the field
+3. **Add API tests** for the new field
+4. **Update kiosk type** to include the field
+5. **Update kiosk components** to use the field
 6. **Commit in both repos** (see workflow above)
 
 ## Type Mapping Reference
 
-| Backend (Python) | Frontend (TypeScript) |
+| API (Python) | Kiosk (TypeScript) |
 |------------------|----------------------|
 | `str` | `string` |
 | `int` | `number` |
@@ -110,8 +110,8 @@ Frontend could have a test that fetches the spec and validates type structure.
 
 If drift becomes painful, upgrade to automated codegen:
 
-1. **Backend generates OpenAPI spec** in CI
-2. **Frontend consumes spec** via a tool like `openapi-typescript-codegen`
+1. **API generates OpenAPI spec** in CI
+2. **Kiosk consumes spec** via a tool like `openapi-typescript-codegen`
 3. **Types are auto-generated** in `dashy-kiosk/src/types/generated/`
 4. **Manual types** live alongside generated ones for custom logic
 
@@ -121,8 +121,8 @@ For now, manual sync is sufficient given the small API surface (3 endpoints).
 
 When making API changes:
 
-1. **Backend skill**: Use `add-api-endpoint` in dashy-api
-2. **Frontend skill**: Use `add-api-contract` in dashy-kiosk to wire up the new endpoint
+1. **API skill**: Use `add-api-endpoint` in dashy-api
+2. **Kiosk skill**: Use `add-api-contract` in dashy-kiosk to wire up the new endpoint
 3. **This skill**: Use `sync-types` to ensure types match
 
-The `add-weather-field` skill in dashy-api also notes when frontend types need updating.
+The `add-weather-field` skill in dashy-api also notes when kiosk types need updating.

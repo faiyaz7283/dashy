@@ -1,6 +1,6 @@
 # Submodule Workflow
 
-Guide for working across the orchestrator and its submodules (frontend and backend).
+Guide for working across the orchestrator and its submodules (kiosk and API).
 
 ## When to Use
 
@@ -52,7 +52,7 @@ Or manually:
 
 ```bash
 git add dashy-kiosk/  # or dashy-api/
-git commit -m "chore: update frontend submodule"
+git commit -m "chore: update kiosk submodule"
 git push origin development
 ```
 
@@ -66,14 +66,14 @@ The deploy script automatically pulls the latest submodule commits.
 
 ## Workflow: Updating Multiple Submodules
 
-If you need to make coordinated changes across frontend and backend:
+If you need to make coordinated changes across kiosk and API:
 
-1. **Update backend first** (if API changes):
+1. **Update API first** (if API changes):
    - Make changes in `dashy-api/`
    - Commit and push
    - Update orchestrator: `git add dashy-api/ && git commit`
 
-2. **Update frontend second** (to consume new API):
+2. **Update kiosk second** (to consume new API):
    - Make changes in `dashy-kiosk/`
    - Commit and push
    - Update orchestrator: `git add dashy-kiosk/ && git commit`
@@ -114,7 +114,7 @@ git status    # see what changed
 git add . && git commit -m "wip: uncommitted changes"
 cd ..
 git add dashy-kiosk/
-git commit -m "chore: update frontend submodule"
+git commit -m "chore: update kiosk submodule"
 ```
 
 ### Submodule is behind remote
@@ -131,5 +131,5 @@ git checkout feature-branch
 # make changes, commit, push
 cd ..
 git add dashy-kiosk/
-git commit -m "chore: update frontend to feature-branch"
+git commit -m "chore: update kiosk to feature-branch"
 ```

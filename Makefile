@@ -1,11 +1,11 @@
 .PHONY: help \
         sync \
-        dev-up dev-down dev-logs dev-shell dev-shell-frontend dev-restart dev-build dev-rebuild \
-        test test-frontend test-backend \
-        lint lint-frontend lint-backend format format-frontend format-backend \
-        typecheck typecheck-frontend \
-        build build-frontend build-backend \
-        install-frontend install-backend add-frontend add-backend remove-frontend remove-backend \
+        dev-up dev-down dev-logs dev-shell dev-shell-kiosk dev-restart dev-build dev-rebuild \
+        test test-kiosk test-api \
+        lint lint-kiosk lint-api format format-kiosk format-api \
+        typecheck typecheck-kiosk \
+        build build-kiosk build-api \
+        install-kiosk install-api add-kiosk add-api remove-kiosk remove-api \
         deploy deploy-status deploy-logs deploy-down deploy-restart \
         submodule-update \
         clean setup
@@ -19,7 +19,7 @@
 help:
 	@echo "Dashy - Family Calendar Dashboard (Orchestrator)"
 	@echo ""
-	@echo "This is the orchestrator repo. Frontend and backend are git submodules:"
+	@echo "This is the orchestrator repo. Kiosk and API are git submodules:"
 	@echo "  - dashy-kiosk/ → dashy-kiosk (React + Vite)"
 	@echo "  - dashy-api/   → dashy-api (FastAPI)"
 	@echo ""
@@ -35,38 +35,38 @@ help:
 	@echo "  make dev-up              - Start development environment"
 	@echo "  make dev-down            - Stop development environment"
 	@echo "  make dev-logs            - View development logs (follow)"
-	@echo "  make dev-shell           - Shell into backend container"
-	@echo "  make dev-shell-frontend  - Shell into frontend container"
+	@echo "  make dev-shell           - Shell into API container"
+	@echo "  make dev-shell-kiosk     - Shell into kiosk container"
 	@echo "  make dev-restart         - Restart development environment"
 	@echo "  make dev-build           - Build development containers"
 	@echo "  make dev-rebuild         - Rebuild containers (no cache)"
 	@echo ""
 	@echo "🧪 Testing:"
 	@echo "  make test                - Run all tests"
-	@echo "  make test-frontend       - Run frontend tests"
-	@echo "  make test-backend        - Run backend tests"
+	@echo "  make test-kiosk          - Run kiosk tests"
+	@echo "  make test-api            - Run API tests"
 	@echo ""
 	@echo "✨ Code Quality:"
-	@echo "  make lint                - Lint both frontend + backend"
-	@echo "  make lint-frontend       - Lint frontend (ESLint)"
-	@echo "  make lint-backend        - Lint backend (Ruff)"
-	@echo "  make format              - Format both frontend + backend"
-	@echo "  make format-frontend     - Format frontend (Prettier)"
-	@echo "  make format-backend      - Format backend (Ruff)"
+	@echo "  make lint                - Lint both kiosk + API"
+	@echo "  make lint-kiosk          - Lint kiosk (ESLint)"
+	@echo "  make lint-api            - Lint API (Ruff)"
+	@echo "  make format              - Format both kiosk + API"
+	@echo "  make format-kiosk        - Format kiosk (Prettier)"
+	@echo "  make format-api          - Format API (Ruff)"
 	@echo "  make typecheck           - TypeScript type check"
 	@echo ""
 	@echo "📦 Build:"
 	@echo "  make build               - Production build both"
-	@echo "  make build-frontend      - Production build frontend"
-	@echo "  make build-backend       - Production build backend"
+	@echo "  make build-kiosk         - Production build kiosk"
+	@echo "  make build-api           - Production build API"
 	@echo ""
 	@echo "📦 Package Management:"
-	@echo "  make install-frontend    - Install frontend dependencies (pnpm install)"
-	@echo "  make install-backend     - Install backend dependencies (uv sync)"
-	@echo "  make add-frontend PACKAGE=<name>  - Add frontend package"
-	@echo "  make add-backend PACKAGE=<name>   - Add backend package"
-	@echo "  make remove-frontend PACKAGE=<name>  - Remove frontend package"
-	@echo "  make remove-backend PACKAGE=<name>   - Remove backend package"
+	@echo "  make install-kiosk       - Install kiosk dependencies (pnpm install)"
+	@echo "  make install-api         - Install API dependencies (uv sync)"
+	@echo "  make add-kiosk PACKAGE=<name>  - Add kiosk package"
+	@echo "  make add-api PACKAGE=<name>    - Add API package"
+	@echo "  make remove-kiosk PACKAGE=<name>  - Remove kiosk package"
+	@echo "  make remove-api PACKAGE=<name>    - Remove API package"
 	@echo ""
 	@echo "🚀 Deployment:"
 	@echo "  make deploy              - Deploy to Raspberry Pi (via GitHub Actions)"
@@ -139,9 +139,9 @@ dev-up: _check-traefik
 	@echo "✅ Development services started!"
 	@echo ""
 	@echo " Access (HTTPS via Traefik):"
-	@echo "   Frontend:  https://dashy.local"
-	@echo "   Backend:   https://api.dashy.local"
-	@echo "   API Docs:  https://api.dashy.local/docs"
+	@echo "   Kiosk:   https://dashy.local"
+	@echo "   API:     https://api.dashy.local"
+	@echo "   API Docs: https://api.dashy.local/docs"
 	@echo ""
 	@echo " Commands:"
 	@echo "   Logs:  make dev-logs"
@@ -156,10 +156,10 @@ dev-logs:
 	@docker compose -f compose/docker-compose.dev.yml logs -f
 
 dev-shell:
-	@docker compose -f compose/docker-compose.dev.yml exec backend /bin/bash
+	@docker compose -f compose/docker-compose.dev.yml exec api /bin/bash
 
-dev-shell-frontend:
-	@docker compose -f compose/docker-compose.dev.yml exec frontend /bin/sh
+dev-shell-kiosk:
+	@docker compose -f compose/docker-compose.dev.yml exec kiosk /bin/sh
 
 dev-restart: dev-down dev-up
 
@@ -180,121 +180,121 @@ dev-rebuild:
 
 test:
 	@echo "🧪 Running all tests..."
-	@$(MAKE) test-frontend
-	@$(MAKE) test-backend
+	@$(MAKE) test-kiosk
+	@$(MAKE) test-api
 
-test-frontend:
-	@echo "🧪 Running frontend tests..."
-	@docker compose -f compose/docker-compose.dev.yml exec -T frontend pnpm run test
+test-kiosk:
+	@echo "🧪 Running kiosk tests..."
+	@docker compose -f compose/docker-compose.dev.yml exec -T kiosk pnpm run test
 
-test-backend:
-	@echo "🧪 Running backend tests..."
-	@docker compose -f compose/docker-compose.dev.yml exec -T backend uv run pytest tests/ -v
+test-api:
+	@echo "🧪 Running API tests..."
+	@docker compose -f compose/docker-compose.dev.yml exec -T api uv run pytest tests/ -v
 
 # ==============================================================================
 # CODE QUALITY
 # ==============================================================================
 
 lint:
-	@$(MAKE) lint-frontend
-	@$(MAKE) lint-backend
+	@$(MAKE) lint-kiosk
+	@$(MAKE) lint-api
 
-lint-frontend:
-	@echo "🔍 Linting frontend..."
-	@docker compose -f compose/docker-compose.dev.yml exec -T frontend pnpm run lint
+lint-kiosk:
+	@echo "🔍 Linting kiosk..."
+	@docker compose -f compose/docker-compose.dev.yml exec -T kiosk pnpm run lint
 
-lint-backend:
-	@echo "🔍 Linting backend..."
-	@docker compose -f compose/docker-compose.dev.yml exec -T backend uv run ruff check app/ tests/
+lint-api:
+	@echo "🔍 Linting API..."
+	@docker compose -f compose/docker-compose.dev.yml exec -T api uv run ruff check app/ tests/
 
 format:
-	@$(MAKE) format-frontend
-	@$(MAKE) format-backend
+	@$(MAKE) format-kiosk
+	@$(MAKE) format-api
 
-format-frontend:
-	@echo "✨ Formatting frontend..."
-	@docker compose -f compose/docker-compose.dev.yml exec -T frontend pnpm run format
+format-kiosk:
+	@echo "✨ Formatting kiosk..."
+	@docker compose -f compose/docker-compose.dev.yml exec -T kiosk pnpm run format
 
-format-backend:
-	@echo "✨ Formatting backend..."
-	@docker compose -f compose/docker-compose.dev.yml exec -T backend uv run ruff format app/ tests/
-	@docker compose -f compose/docker-compose.dev.yml exec -T backend uv run ruff check --fix app/ tests/
+format-api:
+	@echo "✨ Formatting API..."
+	@docker compose -f compose/docker-compose.dev.yml exec -T api uv run ruff format app/ tests/
+	@docker compose -f compose/docker-compose.dev.yml exec -T api uv run ruff check --fix app/ tests/
 
 typecheck:
-	@$(MAKE) typecheck-frontend
+	@$(MAKE) typecheck-kiosk
 
-typecheck-frontend:
+typecheck-kiosk:
 	@echo "🔍 TypeScript type check..."
-	@docker compose -f compose/docker-compose.dev.yml exec -T frontend pnpm run typecheck
+	@docker compose -f compose/docker-compose.dev.yml exec -T kiosk pnpm run typecheck
 
 # ==============================================================================
 # BUILD
 # ==============================================================================
 
 build:
-	@$(MAKE) build-frontend
-	@$(MAKE) build-backend
+	@$(MAKE) build-kiosk
+	@$(MAKE) build-api
 
-build-frontend:
-	@echo " Building frontend for production..."
-	@docker compose -f compose/docker-compose.dev.yml exec -T frontend pnpm run build
-	@echo "✅ Frontend built"
+build-kiosk:
+	@echo " Building kiosk for production..."
+	@docker compose -f compose/docker-compose.dev.yml exec -T kiosk pnpm run build
+	@echo "✅ Kiosk built"
 
-build-backend:
-	@echo "📦 Building backend for production..."
-	@docker compose -f compose/docker-compose.dev.yml exec -T backend uv run python -m compileall app/
-	@echo "✅ Backend built"
+build-api:
+	@echo "📦 Building API for production..."
+	@docker compose -f compose/docker-compose.dev.yml exec -T api uv run python -m compileall app/
+	@echo "✅ API built"
 
 # ==============================================================================
 # PACKAGE MANAGEMENT
 # ==============================================================================
 
-install-frontend:
-	@echo "📦 Installing frontend dependencies..."
-	@docker compose -f compose/docker-compose.dev.yml exec -T frontend pnpm install
-	@echo "✅ Frontend dependencies installed"
+install-kiosk:
+	@echo "📦 Installing kiosk dependencies..."
+	@docker compose -f compose/docker-compose.dev.yml exec -T kiosk pnpm install
+	@echo "✅ Kiosk dependencies installed"
 
-install-backend:
-	@echo " Installing backend dependencies..."
-	@docker compose -f compose/docker-compose.dev.yml exec -T backend uv sync
-	@echo "✅ Backend dependencies installed"
+install-api:
+	@echo " Installing API dependencies..."
+	@docker compose -f compose/docker-compose.dev.yml exec -T api uv sync
+	@echo "✅ API dependencies installed"
 
-lock-backend:
-	@echo "🔒 Generating backend lockfile..."
-	@docker compose -f compose/docker-compose.dev.yml exec -T backend uv lock
-	@echo "✅ Backend lockfile generated"
+lock-api:
+	@echo "🔒 Generating API lockfile..."
+	@docker compose -f compose/docker-compose.dev.yml exec -T api uv lock
+	@echo "✅ API lockfile generated"
 
-add-frontend:
+add-kiosk:
 ifndef PACKAGE
-	$(error PACKAGE is required. Usage: make add-frontend PACKAGE=<package-name>)
+	$(error PACKAGE is required. Usage: make add-kiosk PACKAGE=<package-name>)
 endif
-	@echo "📦 Adding $(PACKAGE) to frontend..."
-	@docker compose -f compose/docker-compose.dev.yml exec -T frontend pnpm add $(PACKAGE)
-	@echo "✅ Added $(PACKAGE) to frontend"
+	@echo "📦 Adding $(PACKAGE) to kiosk..."
+	@docker compose -f compose/docker-compose.dev.yml exec -T kiosk pnpm add $(PACKAGE)
+	@echo "✅ Added $(PACKAGE) to kiosk"
 
-add-backend:
+add-api:
 ifndef PACKAGE
-	$(error PACKAGE is required. Usage: make add-backend PACKAGE=<package-name>)
+	$(error PACKAGE is required. Usage: make add-api PACKAGE=<package-name>)
 endif
-	@echo "📦 Adding $(PACKAGE) to backend..."
-	@docker compose -f compose/docker-compose.dev.yml exec -T backend uv add $(PACKAGE)
-	@echo "✅ Added $(PACKAGE) to backend"
+	@echo "📦 Adding $(PACKAGE) to API..."
+	@docker compose -f compose/docker-compose.dev.yml exec -T api uv add $(PACKAGE)
+	@echo "✅ Added $(PACKAGE) to API"
 
-remove-frontend:
+remove-kiosk:
 ifndef PACKAGE
-	$(error PACKAGE is required. Usage: make remove-frontend PACKAGE=<package-name>)
+	$(error PACKAGE is required. Usage: make remove-kiosk PACKAGE=<package-name>)
 endif
-	@echo "🗑️  Removing $(PACKAGE) from frontend..."
-	@docker compose -f compose/docker-compose.dev.yml exec -T frontend pnpm remove $(PACKAGE)
-	@echo "✅ Removed $(PACKAGE) from frontend"
+	@echo "🗑️  Removing $(PACKAGE) from kiosk..."
+	@docker compose -f compose/docker-compose.dev.yml exec -T kiosk pnpm remove $(PACKAGE)
+	@echo "✅ Removed $(PACKAGE) from kiosk"
 
-remove-backend:
+remove-api:
 ifndef PACKAGE
-	$(error PACKAGE is required. Usage: make remove-backend PACKAGE=<package-name>)
+	$(error PACKAGE is required. Usage: make remove-api PACKAGE=<package-name>)
 endif
-	@echo "🗑️  Removing $(PACKAGE) from backend..."
-	@docker compose -f compose/docker-compose.dev.yml exec -T backend uv remove $(PACKAGE)
-	@echo "✅ Removed $(PACKAGE) from backend"
+	@echo "🗑️  Removing $(PACKAGE) from API..."
+	@docker compose -f compose/docker-compose.dev.yml exec -T api uv remove $(PACKAGE)
+	@echo "✅ Removed $(PACKAGE) from API"
 
 # ==============================================================================
 # DEPLOYMENT
@@ -344,16 +344,16 @@ deploy-pi:
 			exit 0; \
 		fi; \
 		INFRA_CHANGED=$$(echo "$$CHANGED" | grep -E "^(compose/|\.env|Makefile|scripts/)" || true); \
-		FRONTEND_CHANGED=$$(echo "$$CHANGED" | grep -E "^dashy-kiosk/" || true); \
-		BACKEND_CHANGED=$$(echo "$$CHANGED" | grep -E "^dashy-api/" || true); \
+		KIOSK_CHANGED=$$(echo "$$CHANGED" | grep -E "^dashy-kiosk/" || true); \
+		API_CHANGED=$$(echo "$$CHANGED" | grep -E "^dashy-api/" || true); \
 		if [ -n "$$INFRA_CHANGED" ]; then \
 			echo "🏗️  Infrastructure changes detected - full rebuild required"; \
 			CHANGED="all"; \
 		else \
 			echo "📝 Changed files:"; \
 			echo "$$CHANGED" | sed 's/^/   /'; \
-			[ -n "$$FRONTEND_CHANGED" ] && echo "   → Frontend will be rebuilt"; \
-			[ -n "$$BACKEND_CHANGED" ] && echo "   → Backend will be rebuilt"; \
+			[ -n "$$KIOSK_CHANGED" ] && echo "   → Kiosk will be rebuilt"; \
+			[ -n "$$API_CHANGED" ] && echo "   → API will be rebuilt"; \
 		fi; \
 fi; \
 	echo "🔄 Pushing to Pi..."; \
@@ -364,33 +364,33 @@ fi; \
 	if [ "$$CHANGED" = "all" ]; then \
 		echo "🔄 Stopping all containers..."; \
 		ssh $(PI_HOST) "cd $(PI_DIR) && docker compose -f compose/docker-compose.prod.yml down"; \
-		echo "🔨 Building frontend..."; \
-		ssh $(PI_HOST) "cd $(PI_DIR) && docker compose -f compose/docker-compose.prod.yml build --no-cache frontend"; \
-		echo "🔨 Building backend..."; \
-		ssh $(PI_HOST) "cd $(PI_DIR) && docker compose -f compose/docker-compose.prod.yml build backend"; \
+		echo "🔨 Building kiosk..."; \
+		ssh $(PI_HOST) "cd $(PI_DIR) && docker compose -f compose/docker-compose.prod.yml build --no-cache kiosk"; \
+		echo "🔨 Building API..."; \
+		ssh $(PI_HOST) "cd $(PI_DIR) && docker compose -f compose/docker-compose.prod.yml build api"; \
 		echo "🚀 Starting all containers..."; \
 		ssh $(PI_HOST) "cd $(PI_DIR) && docker compose -f compose/docker-compose.prod.yml up -d"; \
 		echo "🔄 Restarting Chromium kiosk..."; \
 		ssh $(PI_HOST) "pkill -9 chromium; sleep 2; sudo systemctl restart lightdm"; \
 	else \
-		if [ -n "$$FRONTEND_CHANGED" ]; then \
-			echo "🔨 Rebuilding frontend..."; \
-			ssh $(PI_HOST) "cd $(PI_DIR) && docker compose -f compose/docker-compose.prod.yml build --no-cache frontend"; \
-			echo "🚀 Restarting frontend..."; \
-			ssh $(PI_HOST) "cd $(PI_DIR) && docker compose -f compose/docker-compose.prod.yml up -d frontend"; \
+		if [ -n "$$KIOSK_CHANGED" ]; then \
+			echo "🔨 Rebuilding kiosk..."; \
+			ssh $(PI_HOST) "cd $(PI_DIR) && docker compose -f compose/docker-compose.prod.yml build --no-cache kiosk"; \
+			echo "🚀 Restarting kiosk..."; \
+			ssh $(PI_HOST) "cd $(PI_DIR) && docker compose -f compose/docker-compose.prod.yml up -d kiosk"; \
 			echo "🔄 Restarting Chromium kiosk..."; \
 			ssh $(PI_HOST) "pkill -9 chromium; sleep 2; sudo systemctl restart lightdm"; \
 		fi; \
-		if [ -n "$$BACKEND_CHANGED" ]; then \
-			echo "🔨 Rebuilding backend..."; \
-			ssh $(PI_HOST) "cd $(PI_DIR) && docker compose -f compose/docker-compose.prod.yml build backend"; \
-			echo "🚀 Restarting backend..."; \
-			ssh $(PI_HOST) "cd $(PI_DIR) && docker compose -f compose/docker-compose.prod.yml up -d backend"; \
+		if [ -n "$$API_CHANGED" ]; then \
+			echo "🔨 Rebuilding API..."; \
+			ssh $(PI_HOST) "cd $(PI_DIR) && docker compose -f compose/docker-compose.prod.yml build api"; \
+			echo "🚀 Restarting API..."; \
+			ssh $(PI_HOST) "cd $(PI_DIR) && docker compose -f compose/docker-compose.prod.yml up -d api"; \
 		fi; \
 	fi; \
 	echo "🔍 Verifying deployment..."; \
-	ssh $(PI_HOST) "curl -sk https://dashy.local > /dev/null && echo '✅ Frontend accessible' || echo '❌ Frontend failed'"; \
-	ssh $(PI_HOST) "curl -sk https://api.dashy.local/health > /dev/null && echo '✅ Backend accessible' || echo '❌ Backend failed'"; \
+	ssh $(PI_HOST) "curl -sk https://dashy.local > /dev/null && echo '✅ Kiosk accessible' || echo '❌ Kiosk failed'"; \
+	ssh $(PI_HOST) "curl -sk https://api.dashy.local/health > /dev/null && echo '✅ API accessible' || echo '❌ API failed'"; \
 	CURRENT_COMMIT=$$(git rev-parse HEAD); \
 	ssh $(PI_HOST) "echo $$CURRENT_COMMIT > $(PI_DIR)/.last-deployed-commit"; \
 	echo "💾 Recorded deployment commit: $$CURRENT_COMMIT"
@@ -400,9 +400,9 @@ fi; \
 	@git merge origin/main --no-edit
 	@git push origin development
 	@echo "✅ Deployment complete!"
-	@echo "   Frontend: https://dashy.local"
-	@echo "   Backend:  https://api.dashy.local"
-	@echo "   Traefik:  https://traefik.local:8080"
+	@echo "   Kiosk: https://dashy.local"
+	@echo "   API:   https://api.dashy.local"
+	@echo "   Traefik: https://traefik.local:8080"
 
 deploy-logs:
 	@ssh $(PI_HOST) "cd $(PI_DIR) && docker compose -f compose/docker-compose.prod.yml logs -f"

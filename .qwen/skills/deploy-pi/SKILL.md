@@ -52,8 +52,8 @@ This single command handles the entire deployment. Here is what it does step by 
 ### 2. Change detection
 The deploy is **selective** — it only rebuilds what changed:
 - **Infrastructure changes** (`compose/`, `.env`): full rebuild of everything
-- **Frontend changes** (`dashy-kiosk/`): rebuild frontend only
-- **Backend changes** (`dashy-api/`): rebuild backend only
+- **Kiosk changes** (`dashy-kiosk/`): rebuild kiosk only
+- **API changes** (`dashy-api/`): rebuild API only
 - **No changes**: skips deployment entirely
 
 ### 3. Push to Pi
@@ -65,15 +65,15 @@ The deploy is **selective** — it only rebuilds what changed:
 - Copies `scripts/chromium-kiosk.desktop` to `~/.config/autostart/`
 
 ### 5. Selective rebuild
-- For full rebuilds: stops all containers, builds with `--no-cache` for frontend, builds backend, starts all
+- For full rebuilds: stops all containers, builds with `--no-cache` for kiosk, builds API, starts all
 - For partial rebuilds: only rebuilds and restarts the changed service
 
 ### 6. Chromium restart
 - Kills Chromium (`pkill -9 chromium`), waits 2 seconds, restarts lightdm
-- This is needed because Chromium caches the frontend aggressively
+- This is needed because Chromium caches the kiosk aggressively
 
 ### 7. Health verification
-- Curls `https://dashy.local` (frontend) and `https://api.dashy.local/health` (backend) from the Pi
+- Curls `https://dashy.local` (kiosk) and `https://api.dashy.local/health` (API) from the Pi
 - Reports success/failure for each
 
 ### 8. Branch sync
@@ -83,8 +83,8 @@ The deploy is **selective** — it only rebuilds what changed:
 
 ## Known Gotchas
 
-### Frontend build cache
-Frontend builds use `--no-cache` because Docker layer caching can serve stale assets. If the Pi shows an old version after deploy, this is usually why.
+### Kiosk build cache
+Kiosk builds use `--no-cache` because Docker layer caching can serve stale assets. If the Pi shows an old version after deploy, this is usually why.
 
 ### Hostname collision
 Both Mac dev and Pi production resolve to `dashy.local`. When you browse to `https://dashy.local` on your Mac, you see the LOCAL dev instance, not the Pi. To verify production:
@@ -94,7 +94,7 @@ ssh r4pi "curl -sk https://api.dashy.local/health"
 ```
 
 ### Kiosk caching
-Chromium on the Pi aggressively caches. If the UI looks stale after a frontend deploy:
+Chromium on the Pi aggressively caches. If the UI looks stale after a kiosk deploy:
 ```bash
 ssh r4pi "pkill -9 chromium; sleep 2; sudo systemctl restart lightdm"
 ```
@@ -103,7 +103,7 @@ ssh r4pi "pkill -9 chromium; sleep 2; sudo systemctl restart lightdm"
 On first deploy, `.last-deployed-commit` does not exist on the Pi. The script detects this and does a full rebuild of all services.
 
 ### Credentials location
-Google Calendar credentials are stored in the Pi home directory (`/home/rpi4_main/dashy-504518-355c1ee5c25b.json`), not in the repo. This prevents them from being lost during git operations. The production compose file mounts this file directly into the backend container.
+Google Calendar credentials are stored in the Pi home directory (`/home/rpi4_main/dashy-504518-355c1ee5c25b.json`), not in the repo. This prevents them from being lost during git operations. The production compose file mounts this file directly into the API container.
 
 ## Other Deploy Commands
 

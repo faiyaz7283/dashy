@@ -22,9 +22,9 @@ The `dev-up` command checks for this automatically and will fail with instructio
 ```bash
 make dev-up
 ```
-Builds and starts both frontend and backend containers. Access:
-- Frontend: https://dashy.local
-- Backend API: https://api.dashy.local
+Builds and starts both kiosk and API containers. Access:
+- Kiosk: https://dashy.local
+- API: https://api.dashy.local
 - API Docs (Swagger): https://api.dashy.local/docs
 
 ### Stop
@@ -57,16 +57,16 @@ Follows logs from both containers.
 
 ### Shell access
 ```bash
-make dev-shell            # Backend container (Python)
-make dev-shell-frontend   # Frontend container (Node)
+make dev-shell        # API container (Python)
+make dev-shell-kiosk  # Kiosk container (Node)
 ```
 
 ## Architecture
 
 | Service | Base Image | Dev Server | Network |
 |---------|-----------|------------|---------|
-| Frontend | node:24-alpine | Vite dev server on port 3000 | traefik-public |
-| Backend | python:3.13-slim | uvicorn with --reload | traefik-public |
+| Kiosk | node:24-alpine | Vite dev server on port 3000 | traefik-public |
+| API | python:3.13-slim | uvicorn with --reload | traefik-public |
 
 Both containers volume-mount source code for hot reload.
 
@@ -74,8 +74,8 @@ Both containers volume-mount source code for hot reload.
 
 Dev containers use the external `traefik-public` network. Traefik handles:
 - HTTPS with self-signed certificates
-- Routing `dashy.local` → frontend container
-- Routing `api.dashy.local` → backend container
+- Routing `dashy.local` → kiosk container
+- Routing `api.dashy.local` → API container
 
 ## Troubleshooting
 
@@ -85,11 +85,11 @@ Start Traefik first: `cd ~/docker-services/traefik && make traefik-up`
 ### "traefik-public network not found"
 Same as above — Traefik creates this network on startup.
 
-### Stale frontend after dependency changes
+### Stale kiosk after dependency changes
 Run `make dev-rebuild` (no-cache rebuild). Docker layer caching can hide `package.json` changes.
 
-### Backend not reloading
-The backend uses `uvicorn --reload` which watches for file changes. If it stops reloading:
+### API not reloading
+The API uses `uvicorn --reload` which watches for file changes. If it stops reloading:
 1. Check the container is running: `docker compose -f compose/docker-compose.dev.yml ps`
 2. Restart: `make dev-restart`
 

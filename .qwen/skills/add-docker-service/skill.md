@@ -1,6 +1,6 @@
 ---
 name: add-docker-service
-description: Add a new infrastructure service to docker compose — configure networking, volumes, health checks, and backend integration.
+description: Add a new infrastructure service to docker compose — configure networking, volumes, health checks, and API integration.
 ---
 
 # Add Docker Service
@@ -17,7 +17,7 @@ Add a new infrastructure service (database, message queue, monitoring, etc.) to 
 ## When NOT to use
 
 - Adding Redis — already exists
-- Adding application services (backend/frontend) — those exist
+- Adding application services (API/kiosk) — those exist
 
 ## Prerequisites
 
@@ -36,7 +36,7 @@ Edit `compose/docker-compose.dev.yml`:
 name: dashy-dev
 
 services:
-  # ... existing services (redis, frontend, backend)
+  # ... existing services (redis, kiosk, api)
   
   # New service
   <service>:
@@ -98,13 +98,13 @@ volumes:
   <service>-data:  # New volume
 ```
 
-### 4. Update backend dependencies
+### 4. Update API dependencies
 
-If backend depends on the new service:
+If API depends on the new service:
 
 ```yaml
 services:
-  backend:
+  api:
     # ... existing config
     depends_on:
       redis:
@@ -117,11 +117,11 @@ services:
 
 ### 5. Add environment variables
 
-Add to backend environment:
+Add to API environment:
 
 ```yaml
 services:
-  backend:
+  api:
     environment:
       - <SERVICE>_URL=<service>://<service>:<port>
       - <SERVICE>_USERNAME=${<SERVICE>_USERNAME}
@@ -137,7 +137,7 @@ Add to `.env.example`:
 <SERVICE>_PASSWORD=secret
 ```
 
-### 6. Update backend code
+### 6. Update API code
 
 Add configuration to `app/config.py`:
 
@@ -196,14 +196,14 @@ docker compose -f compose/docker-compose.dev.yml ps
 # Check service logs
 docker compose -f compose/docker-compose.dev.yml logs <service>
 
-# Verify backend can connect
-docker compose -f compose/docker-compose.dev.yml exec backend \
+# Verify API can connect
+docker compose -f compose/docker-compose.dev.yml exec api \
   python -c "from app.config import settings; print(settings.<SERVICE>_URL)"
 ```
 
-### 8. Add health check to backend
+### 8. Add health check to API
 
-If backend depends on the service, add health check:
+If API depends on the service, add health check:
 
 ```python
 # app/main.py
@@ -251,7 +251,7 @@ Add to `README.md`:
 
 Dashy uses the following infrastructure services:
 
-- **Redis**: Cache backend (port 6379)
+- **Redis**: Cache layer (port 6379)
 - **<Service>**: <Purpose> (port <port>)
 
 All services are automatically started with `make dev-up`.
@@ -288,7 +288,7 @@ volumes:
   postgres-data:
 ```
 
-Backend configuration:
+API configuration:
 
 ```python
 # app/config.py
@@ -345,7 +345,7 @@ volumes:
 
 ## Networking patterns
 
-### Internal only (backend can access)
+### Internal only (API can access)
 
 ```yaml
 services:
@@ -375,9 +375,9 @@ services:
 - [ ] Service added to `docker-compose.dev.yml`
 - [ ] Service added to `docker-compose.prod.yml`
 - [ ] Volume defined for persistence
-- [ ] Backend `depends_on` updated (if needed)
+- [ ] API `depends_on` updated (if needed)
 - [ ] Environment variables added
-- [ ] Backend configuration updated
+- [ ] API configuration updated
 - [ ] Client/adapter created (if needed)
 - [ ] Service tested and accessible
 - [ ] Health check added to `/health` endpoint

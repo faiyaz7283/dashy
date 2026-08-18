@@ -36,38 +36,38 @@ services:
     restart: unless-stopped
     command: redis-server --appendonly yes
 
-  # Frontend (React + Vite built with Nginx)
-  frontend:
+  # Kiosk (React + Vite built with Nginx)
+  kiosk:
     build:
       context: ../dashy-kiosk
       dockerfile: Dockerfile
       args:
         VITE_API_URL: https://api.dashy.local
-    container_name: dashy-frontend
+    container_name: dashy-kiosk
     expose:
       - "80"
     networks:
       - dashy-network
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.dashy-frontend.rule=Host(`dashy.local`)"
-      - "traefik.http.routers.dashy-frontend.entrypoints=websecure"
-      - "traefik.http.routers.dashy-frontend.tls=true"
-      - "traefik.http.services.dashy-frontend.loadbalancer.server.port=80"
+      - "traefik.http.routers.dashy-kiosk.rule=Host(`dashy.local`)"
+      - "traefik.http.routers.dashy-kiosk.entrypoints=websecure"
+      - "traefik.http.routers.dashy-kiosk.tls=true"
+      - "traefik.http.services.dashy-kiosk.loadbalancer.server.port=80"
     restart: unless-stopped
 
-  # Backend (FastAPI + UV)
-  backend:
+  # API (FastAPI + UV)
+  api:
     build:
       context: ../dashy-api
       dockerfile: Dockerfile
-    container_name: dashy-backend
+    container_name: dashy-api
     env_file:
       - ../env/.env.prod
     expose:
       - "8000"
     volumes:
-      - backend-data:/app/data
+      - api-data:/app/data
       - /home/rpi4_main/dashy-504518-355c1ee5c25b.json:/app/credentials/dashy-504518-355c1ee5c25b.json:ro
     environment:
       - REDIS_URL=redis://redis:6379
@@ -78,10 +78,10 @@ services:
       - dashy-network
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.dashy-backend.rule=Host(`api.dashy.local`)"
-      - "traefik.http.routers.dashy-backend.entrypoints=websecure"
-      - "traefik.http.routers.dashy-backend.tls=true"
-      - "traefik.http.services.dashy-backend.loadbalancer.server.port=8000"
+      - "traefik.http.routers.dashy-api.rule=Host(`api.dashy.local`)"
+      - "traefik.http.routers.dashy-api.entrypoints=websecure"
+      - "traefik.http.routers.dashy-api.tls=true"
+      - "traefik.http.services.dashy-api.loadbalancer.server.port=8000"
     restart: unless-stopped
 
 networks:
@@ -90,4 +90,4 @@ networks:
 
 volumes:
   redis-data:
-  backend-data:
+  api-data:

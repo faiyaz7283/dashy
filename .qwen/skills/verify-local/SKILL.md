@@ -22,11 +22,11 @@ Verify that code changes work correctly in the local development environment bef
 # Verify all containers are running
 docker compose -f compose/docker-compose.dev.yml ps
 
-# Check backend logs for errors
-docker compose -f compose/docker-compose.dev.yml logs backend --tail 50
+# Check API logs for errors
+docker compose -f compose/docker-compose.dev.yml logs api --tail 50
 
-# Check frontend logs for errors
-docker compose -f compose/docker-compose.dev.yml logs frontend --tail 50
+# Check kiosk logs for errors
+docker compose -f compose/docker-compose.dev.yml logs kiosk --tail 50
 ```
 
 ### 2. Test API Endpoints
@@ -57,7 +57,7 @@ curl -sk https://api.dashy.local/api/v1/weather
 - `CALENDAR_USE_MOCK=false` → real Google Calendar API
 - Database: SQLite at `/app/data/dashy.db` (prod volume, persistent)
 
-### 4. Test Frontend
+### 4. Test Kiosk
 
 Open browser to `https://dashy.local` and verify:
 - Dashboard loads without errors
@@ -85,7 +85,7 @@ curl -sk -X DELETE https://api.dashy.local/api/v1/family/test
 
 ### Database Not Initialized
 **Symptom**: API returns 500 errors, logs show "no such table"
-**Fix**: Check that entrypoint.sh ran migrations. Restart backend container.
+**Fix**: Check that entrypoint.sh ran migrations. Restart API container.
 
 ### Mock Data Not Showing
 **Symptom**: Calendar/weather endpoints return empty data
@@ -95,9 +95,9 @@ curl -sk -X DELETE https://api.dashy.local/api/v1/family/test
 **Symptom**: Calendar shows no events even with mock data
 **Fix**: Database may be empty. Check if seeder ran on startup. Manually add members via API or check `.env.dev` FAMILY_MEMBERS config.
 
-### Frontend Not Loading
+### Kiosk Not Loading
 **Symptom**: Browser shows blank page or errors
-**Fix**: Check frontend container logs. Verify Vite dev server is running. Check for TypeScript errors.
+**Fix**: Check kiosk container logs. Verify Vite dev server is running. Check for TypeScript errors.
 
 ## Success Criteria
 
@@ -106,7 +106,7 @@ curl -sk -X DELETE https://api.dashy.local/api/v1/family/test
 - [ ] Family members endpoint returns data
 - [ ] Calendar endpoint returns events (mock or real based on environment)
 - [ ] Weather endpoint returns data (mock or real based on environment)
-- [ ] Frontend loads without console errors
+- [ ] Kiosk loads without console errors
 - [ ] CRUD operations work (if tested)
 
 ## Integration with Workflow
