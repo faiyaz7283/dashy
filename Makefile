@@ -368,8 +368,8 @@ deploy-pi:
 			exit 0; \
 		fi; \
 		INFRA_CHANGED=$$(echo "$$CHANGED" | grep -E "^(compose/|\.env|Makefile|scripts/)" || true); \
-		KIOSK_CHANGED=$$(echo "$$CHANGED" | grep -E "^dashy-kiosk/" || true); \
-		API_CHANGED=$$(echo "$$CHANGED" | grep -E "^dashy-api/" || true); \
+		KIOSK_CHANGED=$$(echo "$$CHANGED" | grep -E "^dashy-kiosk(/|$$)" || true); \
+		API_CHANGED=$$(echo "$$CHANGED" | grep -E "^dashy-api(/|$$)" || true); \
 		if [ -n "$$INFRA_CHANGED" ]; then \
 			echo "🏗️  Infrastructure changes detected - full rebuild required"; \
 			CHANGED="all"; \
