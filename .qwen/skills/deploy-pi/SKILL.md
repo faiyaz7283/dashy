@@ -15,6 +15,23 @@ Production deployment to the Pi kiosk at `r4pi`.
 - Submodules are initialized (run `make sync` to ensure everything is up to date)
 - Dev environment does NOT need to be running
 
+## First-Time Setup
+
+### NTP Time Synchronization
+
+For time-based auto theme mode to work correctly, the Pi's clock must be accurate. Run the NTP setup script once on the Pi:
+
+```bash
+ssh r4pi "bash ~/dashy/scripts/setup-ntp.sh"
+```
+
+This script:
+- Installs and enables `systemd-timesyncd`
+- Configures NTP servers (Google, Cloudflare, pool.ntp.org)
+- Ensures the system clock stays synchronized
+
+The `start-chromium-kiosk.sh` script also checks NTP status on every boot and logs a warning if NTP is not active.
+
 ## Submodule Workflow
 
 Before deploying, ensure submodule changes are committed and pushed:

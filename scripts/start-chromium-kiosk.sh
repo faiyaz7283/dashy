@@ -1,5 +1,16 @@
 #!/bin/bash
 
+# Ensure time is synced via NTP before starting kiosk
+# This is critical for time-based auto theme mode
+if command -v timedatectl &> /dev/null; then
+    # Check if NTP is available and try to sync time
+    if timedatectl status | grep -q "NTP service: active"; then
+        echo "NTP service is active, time should be synced"
+    else
+        echo "Warning: NTP service not active, time may drift"
+    fi
+fi
+
 # Wait for X display to be ready
 for i in {1..30}; do
     if DISPLAY=:0 xset q >/dev/null 2>&1; then

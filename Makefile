@@ -5,7 +5,7 @@
         lint lint-kiosk lint-api format format-kiosk format-api \
         typecheck typecheck-kiosk \
         build build-kiosk build-api \
-        install-kiosk install-api add-kiosk add-api remove-kiosk remove-api \
+        install-kiosk install-api add-kiosk add-kiosk-dev add-api remove-kiosk remove-kiosk-dev remove-api fix-kiosk-store \
         deploy deploy-status deploy-logs deploy-down deploy-restart \
         submodule-update \
         clean setup
@@ -63,10 +63,13 @@ help:
 	@echo "📦 Package Management:"
 	@echo "  make install-kiosk       - Install kiosk dependencies (pnpm install)"
 	@echo "  make install-api         - Install API dependencies (uv sync)"
-	@echo "  make add-kiosk PACKAGE=<name>  - Add kiosk package"
-	@echo "  make add-api PACKAGE=<name>    - Add API package"
-	@echo "  make remove-kiosk PACKAGE=<name>  - Remove kiosk package"
-	@echo "  make remove-api PACKAGE=<name>    - Remove API package"
+	@echo "  make add-kiosk PACKAGE=<name>      - Add kiosk production dependency"
+	@echo "  make add-kiosk-dev PACKAGE=<name>  - Add kiosk dev dependency"
+	@echo "  make add-api PACKAGE=<name>        - Add API package"
+	@echo "  make remove-kiosk PACKAGE=<name>   - Remove kiosk production dependency"
+	@echo "  make remove-kiosk-dev PACKAGE=<name> - Remove kiosk dev dependency"
+	@echo "  make remove-api PACKAGE=<name>     - Remove API package"
+	@echo "  make fix-kiosk-store   - Fix pnpm store mismatch (if add-kiosk fails)"
 	@echo ""
 	@echo "🚀 Deployment:"
 	@echo "  make deploy              - Deploy to Raspberry Pi (via GitHub Actions)"
@@ -272,6 +275,14 @@ endif
 	@docker compose -f compose/docker-compose.dev.yml exec -T kiosk pnpm add $(PACKAGE)
 	@echo "✅ Added $(PACKAGE) to kiosk"
 
+add-kiosk-dev:
+ifndef PACKAGE
+	$(error PACKAGE is required. Usage: make add-kiosk-dev PACKAGE=<package-name>)
+endif
+	@echo "📦 Adding $(PACKAGE) to kiosk (dev)..."
+	@docker compose -f compose/docker-compose.dev.yml exec -T kiosk pnpm add -D $(PACKAGE)
+	@echo "✅ Added $(PACKAGE) to kiosk (dev)"
+
 add-api:
 ifndef PACKAGE
 	$(error PACKAGE is required. Usage: make add-api PACKAGE=<package-name>)
@@ -288,6 +299,14 @@ endif
 	@docker compose -f compose/docker-compose.dev.yml exec -T kiosk pnpm remove $(PACKAGE)
 	@echo "✅ Removed $(PACKAGE) from kiosk"
 
+remove-kiosk-dev:
+ifndef PACKAGE
+	$(error PACKAGE is required. Usage: make remove-kiosk-dev PACKAGE=<package-name>)
+endif
+	@echo "🗑️  Removing $(PACKAGE) from kiosk (dev)..."
+	@docker compose -f compose/docker-compose.dev.yml exec -T kiosk pnpm remove $(PACKAGE)
+	@echo "✅ Removed $(PACKAGE) from kiosk (dev)"
+
 remove-api:
 ifndef PACKAGE
 	$(error PACKAGE is required. Usage: make remove-api PACKAGE=<package-name>)
@@ -295,6 +314,11 @@ endif
 	@echo "🗑️  Removing $(PACKAGE) from API..."
 	@docker compose -f compose/docker-compose.dev.yml exec -T api uv remove $(PACKAGE)
 	@echo "✅ Removed $(PACKAGE) from API"
+
+fix-kiosk-store:
+	@echo "🔧 Fixing kiosk pnpm store mismatch..."
+	@docker compose -f compose/docker-compose.dev.yml exec -T kiosk sh -c "rm -rf node_modules/.pnpm && pnpm install"
+	@echo "✅ Kiosk pnpm store fixed"
 
 # ==============================================================================
 # DEPLOYMENT

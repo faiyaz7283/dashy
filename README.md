@@ -25,6 +25,7 @@ A DIY family command center dashboard inspired by [Skylight Calendar](https://my
 - **Frontend:** Unified event architecture — `EventItem` (card/strip/block) + `useEventInteraction` across all views; see `dashy-kiosk/src/docs/event-architecture-analysis.md`
 - **Event interactions:** Uniform across views — hover event = popup, click event = modal, click day = drill down (year view is navigation-only)
 - **Layout:** Fluid full-viewport — all views fill available width and height. On monitors wider than 1920 CSS px the whole UI scales up uniformly via CSS `zoom` on the app root (`useUiScale`); it never scales down, so 1080p-class displays keep a constant design-size text. Popups/modals portal to `body` and apply the same scale factor to their content only.
+- **Theming:** Dark/light/auto mode with CSS custom properties. Auto mode switches based on sunrise/sunset times from weather API (no extra API calls). Theme toggle in status bar.
 
 ---
 
@@ -65,6 +66,7 @@ dashy/                              # Orchestrator repo (this repo)
 ├── scripts/                        # Deployment and utility scripts
 │   ├── start-chromium-kiosk.sh     # Wrapper script with retry logic
 │   ├── chromium-kiosk.desktop      # Autostart configuration
+│   ├── setup-ntp.sh                # NTP time sync setup (one-time)
 │   ├── f5_fix_imports.py           # Import fix utility
 │   ├── f5_migrate.py               # Migration utility
 │   └── sync-memory.sh              # Memory sync utility
@@ -341,6 +343,31 @@ ssh r4pi "XDG_RUNTIME_DIR=/run/user/1000 WAYLAND_DISPLAY=wayland-0 wlr-randr --o
 - **TV native resolution:** 1360×768 landscape (768×1360 portrait).
 - **Not persistent:** reboots and lightdm restarts (including `make deploy-pi`) reset to landscape. To make portrait permanent, add the rotate command to `scripts/start-chromium-kiosk.sh` before the Chromium launch.
 - **The app adapts automatically** — viewport-based detection (`useOrientation`): portrait grids, compacted header, UI zoom stays 1.0.
+
+### NTP Time Synchronization
+
+The Pi uses `systemd-timesyncd` for NTP time synchronization, which is critical for time-based features like auto theme mode (dark/light switching based on sunrise/sunset).
+
+**One-time setup** (run after initial Pi setup):
+```bash
+ssh r4pi "bash ~/dashy/scripts/setup-ntp.sh"
+```
+
+This script:
+- Installs and enables `systemd-timesyncd`
+- Configures NTP servers (Google, Cloudflare, pool.ntp.org)
+- Ensures the system clock stays synchronized
+
+**Verification:**
+```bash
+# Check NTP status
+ssh r4pi "timedatectl status"
+
+# Check current time
+ssh r4pi "date"
+```
+
+The `start-chromium-kiosk.sh` script also checks NTP status on every boot and logs a warning if NTP is not active.
 
 ---
 
