@@ -9,7 +9,9 @@
       "mcp__context7__query-docs",
       "WebFetch(openweathermap.org)",
       "Agent(Explore)",
-      "send_message"
+      "send_message",
+      "Skill(deploy-production)",
+      "Bash(git log *)"
     ]
   },
   "$version": 4
