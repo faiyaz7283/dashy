@@ -11,8 +11,8 @@ Every code change in Dashy must pass all four steps before it can be considered 
 
 Dashy uses a multi-repo structure with submodules:
 - **Orchestrator** (this repo): compose files, deployment scripts, docs
-- **frontend/**: dashy-kiosk submodule (React + TypeScript)
-- **backend/**: dashy-api submodule (FastAPI + Python)
+- **dashy-kiosk/**: dashy-kiosk submodule (React + TypeScript)
+- **dashy-api/**: dashy-api submodule (FastAPI + Python)
 
 Each submodule has its own quality-gate skill for standalone work. This skill runs the full gate across both.
 
@@ -46,18 +46,18 @@ make build
 
 If you're working exclusively in one submodule, you can run its standalone quality-gate:
 
-**Frontend only** (from `frontend/` directory):
+**Frontend only** (from `dashy-kiosk/` directory):
 ```bash
-cd frontend/
+cd dashy-kiosk/
 pnpm lint
 pnpm typecheck
 pnpm test
 pnpm build
 ```
 
-**Backend only** (from `backend/` directory):
+**Backend only** (from `dashy-api/` directory):
 ```bash
-cd backend/
+cd dashy-api/
 uv run ruff check app/ tests/
 uv run python -m compileall app/
 uv run pytest tests/ -v
@@ -94,7 +94,7 @@ make test-frontend
 - **Typecheck failures**: Type mismatch between frontend `types/index.ts` and backend `models.py` — the data models must stay in sync (see `sync-types` skill)
 - **Test failures**: Frontend tests use `vi.fn()` for mocks; backend tests use `pytest.mark.asyncio` with `asyncio_mode = "auto"`
 - **Build failures**: Frontend build fails on TypeScript errors; backend build fails on import errors or syntax issues
-- **Submodule not committed**: If you changed files in `frontend/` or `backend/` but didn't commit in the submodule, the orchestrator won't see the changes. Use the `submodule-workflow` skill.
+- **Submodule not committed**: If you changed files in `dashy-kiosk/` or `dashy-api/` but didn't commit in the submodule, the orchestrator won't see the changes. Use the `submodule-workflow` skill.
 
 ## Cross-Repo Coordination
 

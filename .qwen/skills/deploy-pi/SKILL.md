@@ -20,8 +20,8 @@ Production deployment to the Pi kiosk at `r4pi`.
 Before deploying, ensure submodule changes are committed and pushed:
 
 ```bash
-# If you made changes in frontend/ or backend/:
-cd frontend/  # or backend/
+# If you made changes in dashy-kiosk/ or dashy-api/:
+cd dashy-kiosk/  # or dashy-api/
 git add .
 git commit -m "feat: your changes"
 git push origin development
@@ -29,7 +29,7 @@ git push origin development
 # Return to orchestrator and update refs
 cd ..
 make submodule-update
-git add frontend/ backend/
+git add dashy-kiosk/ dashy-api/
 git commit -m "chore: update submodule refs"
 git push origin development
 ```
@@ -52,8 +52,8 @@ This single command handles the entire deployment. Here is what it does step by 
 ### 2. Change detection
 The deploy is **selective** — it only rebuilds what changed:
 - **Infrastructure changes** (`compose/`, `.env`): full rebuild of everything
-- **Frontend changes** (`frontend/`): rebuild frontend only
-- **Backend changes** (`backend/`): rebuild backend only
+- **Frontend changes** (`dashy-kiosk/`): rebuild frontend only
+- **Backend changes** (`dashy-api/`): rebuild backend only
 - **No changes**: skips deployment entirely
 
 ### 3. Push to Pi

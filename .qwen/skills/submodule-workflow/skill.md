@@ -10,8 +10,8 @@ When making changes that span the orchestrator and submodules, or when you need 
 
 ```
 dashy/                    # Orchestrator (this repo)
-├── frontend/             # Submodule → dashy-kiosk
-├── backend/              # Submodule → dashy-api
+├── dashy-kiosk/          # Submodule → dashy-kiosk
+├── dashy-api/            # Submodule → dashy-api
 ├── compose/              # Docker compose files
 ├── scripts/              # Deployment scripts
 └── docs/                 # Documentation
@@ -22,7 +22,7 @@ dashy/                    # Orchestrator (this repo)
 ### 1. Work Inside the Submodule
 
 ```bash
-cd frontend/  # or cd backend/
+cd dashy-kiosk/  # or cd dashy-api/
 ```
 
 The submodule is a full git repo with its own history.
@@ -51,7 +51,7 @@ make submodule-update
 Or manually:
 
 ```bash
-git add frontend/  # or backend/
+git add dashy-kiosk/  # or dashy-api/
 git commit -m "chore: update frontend submodule"
 git push origin development
 ```
@@ -69,14 +69,14 @@ The deploy script automatically pulls the latest submodule commits.
 If you need to make coordinated changes across frontend and backend:
 
 1. **Update backend first** (if API changes):
-   - Make changes in `backend/`
+   - Make changes in `dashy-api/`
    - Commit and push
-   - Update orchestrator: `git add backend/ && git commit`
+   - Update orchestrator: `git add dashy-api/ && git commit`
 
 2. **Update frontend second** (to consume new API):
-   - Make changes in `frontend/`
+   - Make changes in `dashy-kiosk/`
    - Commit and push
-   - Update orchestrator: `git add frontend/ && git commit`
+   - Update orchestrator: `git add dashy-kiosk/ && git commit`
 
 3. **Push orchestrator**:
    ```bash
@@ -95,11 +95,11 @@ If you need to make coordinated changes across frontend and backend:
 | Update all submodules | `make submodule-update` |
 | Check submodule status | `git submodule status` |
 | Initialize submodules (after clone) | `git submodule update --init --recursive` |
-| Enter a submodule | `cd frontend/` or `cd backend/` |
+| Enter a submodule | `cd dashy-kiosk/` or `cd dashy-api/` |
 
 ## Important Notes
 
-- **Submodules have independent git history** — commits in `frontend/` don't affect the orchestrator until you `git add frontend/`
+- **Submodules have independent git history** — commits in `dashy-kiosk/` don't affect the orchestrator until you `git add dashy-kiosk/`
 - **Always commit in the submodule first**, then update the orchestrator
 - **The orchestrator pins specific submodule commits** — updating the orchestrator records which submodule commits are in use
 - **Deploy pulls the latest** — `make deploy-pi` runs `git submodule update --init --remote` to get the latest submodule commits
@@ -109,11 +109,11 @@ If you need to make coordinated changes across frontend and backend:
 ### Submodule shows "dirty" or modified
 
 ```bash
-cd frontend/  # or backend/
+cd dashy-kiosk/  # or dashy-api/
 git status    # see what changed
 git add . && git commit -m "wip: uncommitted changes"
 cd ..
-git add frontend/
+git add dashy-kiosk/
 git commit -m "chore: update frontend submodule"
 ```
 
@@ -126,10 +126,10 @@ make submodule-update
 ### Need to switch submodule to a different branch
 
 ```bash
-cd frontend/
+cd dashy-kiosk/
 git checkout feature-branch
 # make changes, commit, push
 cd ..
-git add frontend/
+git add dashy-kiosk/
 git commit -m "chore: update frontend to feature-branch"
 ```

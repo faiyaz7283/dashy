@@ -38,8 +38,8 @@ jobs:
       - name: Build frontend image
         uses: docker/build-push-action@v5
         with:
-          context: ./frontend
-          file: ./frontend/Dockerfile
+          context: ./dashy-kiosk
+          file: ./dashy-kiosk/Dockerfile
           push: false
           load: true
           tags: dashy-frontend:test
@@ -62,8 +62,8 @@ jobs:
       - name: Build backend image
         uses: docker/build-push-action@v5
         with:
-          context: ./backend
-          file: ./backend/Dockerfile
+          context: ./dashy-api
+          file: ./dashy-api/Dockerfile
           push: false
           load: true
           tags: dashy-backend:test

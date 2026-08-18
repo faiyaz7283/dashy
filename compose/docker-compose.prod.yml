@@ -39,7 +39,7 @@ services:
   # Frontend (React + Vite built with Nginx)
   frontend:
     build:
-      context: ../frontend
+      context: ../dashy-kiosk
       dockerfile: Dockerfile
       args:
         VITE_API_URL: https://api.dashy.local
@@ -59,7 +59,7 @@ services:
   # Backend (FastAPI + UV)
   backend:
     build:
-      context: ../backend
+      context: ../dashy-api
       dockerfile: Dockerfile
     container_name: dashy-backend
     env_file:
@@ -68,7 +68,7 @@ services:
       - "8000"
     volumes:
       - backend-data:/app/data
-      - ../backend/credentials:/app/credentials:ro
+      - ../dashy-api/credentials:/app/credentials:ro
     environment:
       - REDIS_URL=redis://redis:6379
       - DATABASE_URL=sqlite+aiosqlite:////app/data/dashy.db

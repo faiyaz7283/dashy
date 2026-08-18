@@ -17,13 +17,13 @@ services:
   # Frontend (React + Vite)
   frontend:
     build:
-      context: ../frontend
+      context: ../dashy-kiosk
       dockerfile: Dockerfile.dev
     container_name: dashy-dev-frontend
     expose:
       - "3000"
     volumes:
-      - ../frontend:/app
+      - ../dashy-kiosk:/app
       - /app/node_modules
     environment:
       - VITE_API_URL=https://api.dashy.local
@@ -42,7 +42,7 @@ services:
   # Backend (FastAPI + UV)
   backend:
     build:
-      context: ../backend
+      context: ../dashy-api
       dockerfile: Dockerfile.dev
     container_name: dashy-dev-backend
     env_file:
@@ -50,7 +50,7 @@ services:
     expose:
       - "8000"
     volumes:
-      - ../backend:/app
+      - ../dashy-api:/app
       - backend-data:/app/data
     environment:
       - PYTHONUNBUFFERED=1

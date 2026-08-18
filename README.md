@@ -12,8 +12,8 @@ A DIY family command center dashboard inspired by [Skylight Calendar](https://my
 - **Pi:** Raspberry Pi 4 (4GB), Raspberry Pi OS 64-bit (Trixie/Debian 13), SSH accessible at `rpi4_main@dashy.local` (192.168.1.194), booting from an NVMe SSD (WD Blue SN500 500 GB via Realtek RTL9210 USB bridge). Original 64 GB microSD preserved as rollback.
 - **Repo:** `git@github.com:faiyaz7283/dashy.git` (orchestrator)
 - **Submodules:**
-  - `frontend/` → `git@github.com:faiyaz7283/dashy-kiosk.git`
-  - `backend/` → `git@github.com:faiyaz7283/dashy-api.git`
+  - `dashy-kiosk/` → `git@github.com:faiyaz7283/dashy-kiosk.git`
+  - `dashy-api/` → `git@github.com:faiyaz7283/dashy-api.git`
 - **Local Dev URLs:** https://dashy.local (frontend), https://api.dashy.local (backend)
 - **Pi URLs:** https://dashy.local (frontend), https://api.dashy.local (backend)
 - **API Services:** Google Calendar + OpenWeatherMap (falls back to mock data when credentials are missing)
@@ -22,7 +22,7 @@ A DIY family command center dashboard inspired by [Skylight Calendar](https://my
 - **Weather integration:** Current conditions and forecasts displayed across all views with 1:1 OWM condition icons (15 unique SVG icons with day/night variants), detailed hover tooltips with value-aware metric icons
 - **Header:** Auto-hiding (proximity-based), single row, responsive compaction tiers; no logo/hamburger
 - **Backend:** Domain-driven architecture with dependency injection, protocol-based adapters, Redis caching, SQLite persistence, structured logging, and API versioning (`/api/v1/`)
-- **Frontend:** Unified event architecture — `EventItem` (card/strip/block) + `useEventInteraction` across all views; see `frontend/src/docs/event-architecture-analysis.md`
+- **Frontend:** Unified event architecture — `EventItem` (card/strip/block) + `useEventInteraction` across all views; see `dashy-kiosk/src/docs/event-architecture-analysis.md`
 - **Event interactions:** Uniform across views — hover event = popup, click event = modal, click day = drill down (year view is navigation-only)
 - **Layout:** Fluid full-viewport — all views fill available width and height. On monitors wider than 1920 CSS px the whole UI scales up uniformly via CSS `zoom` on the app root (`useUiScale`); it never scales down, so 1080p-class displays keep a constant design-size text. Popups/modals portal to `body` and apply the same scale factor to their content only.
 
@@ -62,21 +62,28 @@ dashy/                              # Orchestrator repo (this repo)
 │           ├── _wildcard.local-key.pem
 │           ├── _wildcard.local.pem
 │           └── tls.yml
-├── scripts/                        # Deployment scripts
+├── scripts/                        # Deployment and utility scripts
 │   ├── start-chromium-kiosk.sh     # Wrapper script with retry logic
-│   └── chromium-kiosk.desktop      # Autostart configuration
+│   ├── chromium-kiosk.desktop      # Autostart configuration
+│   ├── f5_fix_imports.py           # Import fix utility
+│   ├── f5_migrate.py               # Migration utility
+│   └── sync-memory.sh              # Memory sync utility
 ├── env/                            # Environment variables
-│   ├── .env.dev.example            # Template (committed)
-│   └── .env.dev                    # Actual values (gitignored)
-├── docs/                           # Plans, guides, architecture docs
-├── mockups/                        # Approved HTML mockups (design reference)
-├── frontend/                       # → submodule (dashy-kiosk)
+│   ├── .env.dev.example            # Development template (committed)
+│   ├── .env.dev                    # Development values (gitignored)
+│   ├── .env.prod.example           # Production template (committed)
+│   ├── .env.test                   # Test values (gitignored)
+│   └── .env.test.example           # Test template (committed)
+├── docs/                           # Plans and architecture docs
+│   └── plans/                      # Migration and implementation plans
+├── dashy-kiosk/                    # → submodule (dashy-kiosk)
 │   ├── src/                        # React + TypeScript + Vite + Tailwind
+│   ├── mockups/                    # Approved HTML mockups (design reference)
 │   ├── Dockerfile                  # Production build
 │   ├── Dockerfile.dev              # Development with HMR
 │   ├── AGENTS.md                   # Frontend agent rules
 │   └── README.md                   # Frontend docs
-├── backend/                        # → submodule (dashy-api)
+├── dashy-api/                      # → submodule (dashy-api)
 │   ├── app/                        # FastAPI application
 │   ├── tests/                      # pytest suite
 │   ├── alembic/                    # Database migrations
@@ -85,6 +92,7 @@ dashy/                              # Orchestrator repo (this repo)
 │   ├── AGENTS.md                   # Backend agent rules
 │   └── README.md                   # Backend docs
 ├── Makefile                        # All commands (Docker-first, includes deploy-pi)
+├── GITHUB_ACTIONS_SETUP.md         # GitHub Actions configuration guide
 ├── .gitignore
 ├── AGENTS.md                       # AI agent behavior rules (orchestrator)
 └── README.md                       # This file
@@ -164,7 +172,7 @@ Each repo has independent CI. The orchestrator validates compose files and build
 **CI Gate:** GitHub Actions must pass on `main` before deploying to the Pi.
 
 **Submodule workflow:**
-1. Commit changes in submodules first (`frontend/`, `backend/`)
+1. Commit changes in submodules first (`dashy-kiosk/`, `dashy-api/`)
 2. Push submodule changes to their respective repos
 3. Update submodule refs in orchestrator: `make submodule-update`
 4. Commit and push orchestrator changes
@@ -182,8 +190,8 @@ make deploy-pi
 1. Pulls latest `main` and updates submodules (`git submodule update --init --remote`).
 2. Detects changes between the last deployed commit and current HEAD.
 3. Categorizes changes:
-   - `frontend/**` changes → rebuild frontend only.
-   - `backend/**` changes → rebuild backend only.
+   - `dashy-kiosk/**` changes → rebuild frontend only.
+   - `dashy-api/**` changes → rebuild backend only.
    - `compose/`, `.env`, `Makefile`, `scripts/` changes → full infrastructure rebuild.
 4. Deploys only what changed, restarts affected services, and updates kiosk config if scripts changed.
 5. Verifies deployment.
@@ -199,8 +207,8 @@ Family members are configurable via `.env`, not hardcoded:
 
 ```env
 FAMILY_MEMBERS=[
-  {"name": "Faiyaz", "calendar_id": "faiyaz@gmail.com", "color": "#4A90E2"},
-  {"name": "Trisha", "calendar_id": "trisha@gmail.com", "color": "#E24A8D"}
+  {"name": "Faiyaz", "email": "faiyaz@gmail.com", "color": "#4A90E2"},
+  {"name": "Trisha", "email": "trisha@gmail.com", "color": "#E24A8D"}
 ]
 ```
 
@@ -524,7 +532,7 @@ This intelligent deployment command:
 2. Syncs local `main` branch.
 3. Pushes to Pi (git pull on Pi).
 4. Configures Chromium kiosk (copies wrapper script and autostart config).
-5. Rebuilds only what changed (frontend/backend/infrastructure).
+5. Rebuilds only what changed (dashy-kiosk/dashy-api/infrastructure).
 6. Restarts affected services only.
 7. Verifies deployment (checks frontend and backend accessibility).
 8. Records deployment commit on Pi.

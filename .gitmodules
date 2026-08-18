@@ -1,6 +1,6 @@
-[submodule "frontend"]
-	path = frontend
+[submodule "dashy-kiosk"]
+	path = dashy-kiosk
 	url = git@github.com:faiyaz7283/dashy-kiosk.git
-[submodule "backend"]
-	path = backend
+[submodule "dashy-api"]
+	path = dashy-api
 	url = git@github.com:faiyaz7283/dashy-api.git

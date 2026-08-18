@@ -7,12 +7,12 @@ It contains **hard behavior rules**, not project background. For project knowled
 
 Dashy is an **orchestrator repo** with git submodules:
 
-- `frontend/` → `dashy-kiosk` (React + Vite + TypeScript)
-- `backend/` → `dashy-api` (FastAPI + Python)
+- `dashy-kiosk/` → `dashy-kiosk` (React + Vite + TypeScript)
+- `dashy-api/` → `dashy-api` (FastAPI + Python)
 
 **Code standards for each submodule live in their own repos:**
-- Frontend: `frontend/AGENTS.md` (TypeScript, pnpm, TSDoc, testing)
-- Backend: `backend/AGENTS.md` (Python, UV, Google docstrings, testing)
+- Frontend: `dashy-kiosk/AGENTS.md` (TypeScript, pnpm, TSDoc, testing)
+- Backend: `dashy-api/AGENTS.md` (Python, UV, Google docstrings, testing)
 
 **This file covers orchestrator-specific rules only.**
 
@@ -79,9 +79,9 @@ All four must pass before you tell the user the task is complete.
 
 When making changes to frontend or backend:
 
-1. **Work inside the submodule** — `cd frontend/` or `cd backend/`
+1. **Work inside the submodule** — `cd dashy-kiosk/` or `cd dashy-api/`
 2. **Commit in the submodule first** — submodule repos have their own git history
-3. **Update the submodule ref in the orchestrator** — `make submodule-update` or manually `git add frontend/ backend/`
+3. **Update the submodule ref in the orchestrator** — `make submodule-update` or manually `git add dashy-kiosk/ dashy-api/`
 4. **Commit the orchestrator** — this records which submodule commits are pinned
 
 **Never commit submodule changes without updating the orchestrator's submodule refs.**
@@ -168,10 +168,10 @@ These standards apply to **all code** in the project, regardless of language or 
 
 When deploying with submodule changes:
 
-1. **Commit in submodules first** — `cd frontend/ && git add . && git commit`
-2. **Push submodule changes** — `cd frontend/ && git push origin development`
+1. **Commit in submodules first** — `cd dashy-kiosk/ && git add . && git commit`
+2. **Push submodule changes** — `cd dashy-kiosk/ && git push origin development`
 3. **Update orchestrator refs** — `make submodule-update`
-4. **Commit orchestrator** — `git add frontend/ backend/ && git commit`
+4. **Commit orchestrator** — `git add dashy-kiosk/ dashy-api/ && git commit`
 5. **Push orchestrator** — `git push origin development`
 6. **Deploy** — `make deploy-pi` (pulls latest submodule commits automatically)
 

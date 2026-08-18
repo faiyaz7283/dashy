@@ -1,0 +1,1 @@
+export { FamilyPills } from './FamilyPills'

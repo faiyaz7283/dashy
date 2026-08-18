@@ -19,8 +19,8 @@ help:
 	@echo "Dashy - Family Calendar Dashboard (Orchestrator)"
 	@echo ""
 	@echo "This is the orchestrator repo. Frontend and backend are git submodules:"
-	@echo "  - frontend/ → dashy-kiosk (React + Vite)"
-	@echo "  - backend/  → dashy-api (FastAPI)"
+	@echo "  - dashy-kiosk/ → dashy-kiosk (React + Vite)"
+	@echo "  - dashy-api/   → dashy-api (FastAPI)"
 	@echo ""
 	@echo "📋 Quick Start:"
 	@echo "  1. Setup:           make setup"
@@ -281,7 +281,7 @@ deploy:
 	@echo "   Push to 'main' branch to trigger automatic deployment."
 	@echo ""
 	@echo "📋 Steps:"
-	@echo "   1. Commit changes in submodules (frontend/, backend/) first"
+	@echo "   1. Commit changes in submodules (dashy-kiosk/, dashy-api/) first"
 	@echo "   2. Update submodule refs in orchestrator: make submodule-update"
 	@echo "   3. git add . && git commit -m 'your message'"
 	@echo "   4. git push origin main"
@@ -313,8 +313,8 @@ deploy-pi:
 			exit 0; \
 		fi; \
 		INFRA_CHANGED=$$(echo "$$CHANGED" | grep -E "^(compose/|\.env|Makefile|scripts/)" || true); \
-		FRONTEND_CHANGED=$$(echo "$$CHANGED" | grep -E "^frontend/" || true); \
-		BACKEND_CHANGED=$$(echo "$$CHANGED" | grep -E "^backend/" || true); \
+		FRONTEND_CHANGED=$$(echo "$$CHANGED" | grep -E "^dashy-kiosk/" || true); \
+		BACKEND_CHANGED=$$(echo "$$CHANGED" | grep -E "^dashy-api/" || true); \
 		if [ -n "$$INFRA_CHANGED" ]; then \
 			echo "🏗️  Infrastructure changes detected - full rebuild required"; \
 			CHANGED="all"; \

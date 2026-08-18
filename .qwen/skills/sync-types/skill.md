@@ -23,18 +23,18 @@ Backend models live in `dashy-api/app/api/models/`.
 Generate OpenAPI spec from backend:
 
 ```bash
-cd backend/
+cd dashy-api/
 uv run python -c "from app.main import app; import json; print(json.dumps(app.openapi()))" > /tmp/openapi.json
 ```
 
 ### 2. Compare with Frontend Types
 
-Manually review `frontend/src/types/index.ts` against the OpenAPI spec.
+Manually review `dashy-kiosk/src/types/index.ts` against the OpenAPI spec.
 
 Key types to check:
-- `WeatherResponse` — matches `backend/app/api/models/weather.py`
-- `WeekCalendar` — matches `backend/app/api/models/calendar.py`
-- `FamilyMember` — matches `backend/app/api/models/family.py`
+- `WeatherResponse` — matches `dashy-api/app/api/models/weather.py`
+- `WeekCalendar` — matches `dashy-api/app/api/models/calendar.py`
+- `FamilyMember` — matches `dashy-api/app/api/models/family.py`
 
 ### 3. Automated Check (Future)
 
@@ -60,26 +60,26 @@ Frontend could have a test that fetches the spec and validates type structure.
 
 ### When Backend Changes
 
-1. **Update backend models** in `backend/app/api/models/`
+1. **Update backend models** in `dashy-api/app/api/models/`
 2. **Run backend tests** to ensure models are correct
-3. **Update frontend types** in `frontend/src/types/index.ts` to match
+3. **Update frontend types** in `dashy-kiosk/src/types/index.ts` to match
 4. **Run frontend tests** to ensure type compatibility
 5. **Commit in both repos**:
    ```bash
    # Backend
-   cd backend/
+   cd dashy-api/
    git add . && git commit -m "feat: update API models"
    git push origin development
-   
+
    # Frontend
-   cd ../frontend/
+   cd ../dashy-kiosk/
    git add . && git commit -m "feat: sync types with backend API"
    git push origin development
-   
+
    # Orchestrator
    cd ..
    make submodule-update
-   git add frontend/ backend/
+   git add dashy-kiosk/ dashy-api/
    git commit -m "chore: sync types across repos"
    ```
 
@@ -112,7 +112,7 @@ If drift becomes painful, upgrade to automated codegen:
 
 1. **Backend generates OpenAPI spec** in CI
 2. **Frontend consumes spec** via a tool like `openapi-typescript-codegen`
-3. **Types are auto-generated** in `frontend/src/types/generated/`
+3. **Types are auto-generated** in `dashy-kiosk/src/types/generated/`
 4. **Manual types** live alongside generated ones for custom logic
 
 For now, manual sync is sufficient given the small API surface (3 endpoints).
