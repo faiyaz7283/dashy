@@ -36,6 +36,7 @@ Use these `make` targets instead:
 
 | Task | Command |
 |------|---------|
+| Sync all repos + submodules | `make sync` |
 | Install frontend deps | `make install-frontend` |
 | Install backend deps | `make install-backend` |
 | Add frontend package | `make add-frontend PACKAGE=<name>` |
