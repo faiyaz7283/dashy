@@ -44,23 +44,21 @@ make build
 
 ## Working in Submodules
 
-If you're working exclusively in one submodule, you can run its standalone quality-gate:
+If you're working exclusively in one submodule, you can run its standalone quality-gate via Makefile targets:
 
-**Kiosk only** (from `dashy-kiosk/` directory):
+**Kiosk only** (from orchestrator root):
 ```bash
-cd dashy-kiosk/
-pnpm lint
-pnpm typecheck
-pnpm test
-pnpm build
+make lint-kiosk
+make typecheck-kiosk
+make test-kiosk
+make build-kiosk
 ```
 
-**API only** (from `dashy-api/` directory):
+**API only** (from orchestrator root):
 ```bash
-cd dashy-api/
-uv run ruff check app/ tests/
-uv run python -m compileall app/
-uv run pytest tests/ -v
+make lint-api
+make test-api
+make build-api
 ```
 
 **Note:** Always run the full orchestrator quality gate (`make lint && make typecheck && make test && make build`) before committing to the orchestrator, even if you've been using submodule-specific checks during development.

@@ -47,18 +47,16 @@ cd dashy-api && git status --short && git log main..development --oneline && cd 
 
 **Only run quality gates if there are uncommitted changes. Skip if changes are already committed to development.**
 
+**All quality gates run via Makefile targets in Docker containers. Never run pnpm, uv, pytest, or other tools directly on the host.**
+
 **If dashy-kiosk has uncommitted changes:**
 ```bash
-cd dashy-kiosk
-pnpm lint && pnpm typecheck && pnpm test && pnpm build
-cd ..
+make lint-kiosk && make typecheck && make test-kiosk && make build-kiosk
 ```
 
 **If dashy-api has uncommitted changes:**
 ```bash
-cd dashy-api
-uv run ruff check app/ tests/ && uv run python -m compileall app/ && uv run pytest tests/ -v
-cd ..
+make lint-api && make test-api && make build-api
 ```
 
 **If orchestrator has uncommitted changes:**
