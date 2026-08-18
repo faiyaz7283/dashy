@@ -1,4 +1,5 @@
 .PHONY: help \
+        sync \
         dev-up dev-down dev-logs dev-shell dev-shell-frontend dev-restart dev-build dev-rebuild \
         test test-frontend test-backend \
         lint lint-frontend lint-backend format format-frontend format-backend \
@@ -24,11 +25,13 @@ help:
 	@echo ""
 	@echo "📋 Quick Start:"
 	@echo "  1. Setup:           make setup"
-	@echo "  2. Start dev:       make dev-up"
-	@echo "  3. View app:        https://dashy.local"
-	@echo "  4. API docs:        https://api.dashy.local/docs"
+	@echo "  2. Sync repos:      make sync"
+	@echo "  3. Start dev:       make dev-up"
+	@echo "  4. View app:        https://dashy.local"
+	@echo "  5. API docs:        https://api.dashy.local/docs"
 	@echo ""
 	@echo "🔧 Development:"
+	@echo "  make sync                - Sync all repos (main + development, all submodules)"
 	@echo "  make dev-up              - Start development environment"
 	@echo "  make dev-down            - Stop development environment"
 	@echo "  make dev-logs            - View development logs (follow)"
@@ -96,6 +99,34 @@ setup:
 	fi
 	@echo ""
 	@echo "✅ Setup complete!"
+
+# ==============================================================================
+# SYNC
+# ==============================================================================
+
+sync:
+	@echo "🔄 Syncing all repositories..."
+	@echo ""
+	@echo "📦 Syncing orchestrator (dashy)..."
+	@git checkout main 2>/dev/null && git pull origin main || echo "  ⚠️  main branch not available, skipping"
+	@git checkout development 2>/dev/null && git pull origin development || echo "  ⚠️  development branch not available, skipping"
+	@echo ""
+	@echo "📦 Syncing dashy-kiosk submodule..."
+	@cd dashy-kiosk && git checkout main 2>/dev/null && git pull origin main || echo "  ⚠️  main branch not available, skipping"
+	@cd dashy-kiosk && git checkout development 2>/dev/null && git pull origin development || echo "  ⚠️  development branch not available, skipping"
+	@cd dashy-kiosk && git restore . 2>/dev/null && echo "  ✅ Restored any missing files" || true
+	@echo ""
+	@echo "📦 Syncing dashy-api submodule..."
+	@cd dashy-api && git checkout main 2>/dev/null && git pull origin main || echo "  ⚠️  main branch not available, skipping"
+	@cd dashy-api && git checkout development 2>/dev/null && git pull origin development || echo "  ⚠️  development branch not available, skipping"
+	@cd dashy-api && git restore . 2>/dev/null && echo "  ✅ Restored any missing files" || true
+	@echo ""
+	@echo "🔗 Updating submodule references..."
+	@git submodule update --init --remote
+	@echo ""
+	@echo "✅ All repos synced to latest (main + development)"
+	@echo ""
+	@echo "💡 Next step: make dev-up"
 
 # ==============================================================================
 # DEVELOPMENT ENVIRONMENT
