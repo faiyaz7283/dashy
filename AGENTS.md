@@ -18,42 +18,76 @@ Dashy is an **orchestrator repo** with git submodules:
 
 ## 2. Docker-first development (NON-NEGOTIABLE)
 
-Dashy is a Dockerized project. **Every** package-management, linting, type-checking, testing, and formatting command must run through `make` commands that execute inside the development containers.
+Dashy is a Dockerized project. **Never run development tools directly on the host machine.** All package management, linting, type-checking, testing, formatting, and execution must happen inside Docker containers via Makefile targets or `docker compose exec`.
 
 ### Forbidden on the host
 
-Never run these directly on the local machine, even if they appear to "work" or the container command fails:
+Never run these directly on the local machine, even if they appear to "work":
 
-- `npm`, `npx`, `pnpm`, `yarn`, `node`
+**Frontend tools:**
+- `pnpm`, `npm`, `yarn`, `node`, `npx`
+
+**Backend tools:**
 - `uv` (except `uv` itself as a system tool; never `uv pip install`, `uv run`, `uv sync` against the local filesystem)
 - `pip`, `pip3`, `python`, `python3`
 - `ruff`, `pytest`, `mypy`
-- Ad-hoc `docker compose exec ...` should only be used inside the provided Makefile targets
+
+**One-off commands:** Use `docker compose exec` or add a Makefile target. Never develop or test locally unless there's a documented edge case.
 
 ### Approved commands
 
-Use these `make` targets instead:
+Use these `make` targets (all run inside containers):
 
 | Task | Command |
 |------|---------|
+| **Setup & Sync** | |
+| First-time setup | `make setup` |
 | Sync all repos + submodules | `make sync` |
+| Update submodule refs | `make submodule-update` |
+| **Development Environment** | |
+| Start dev environment | `make dev-up` |
+| Stop dev environment | `make dev-down` |
+| View dev logs | `make dev-logs` |
+| Shell into API container | `make dev-shell` |
+| Shell into kiosk container | `make dev-shell-kiosk` |
+| Restart dev environment | `make dev-restart` |
+| Build dev containers | `make dev-build` |
+| Rebuild dev containers (no cache) | `make dev-rebuild` |
+| **Package Management** | |
 | Install kiosk deps | `make install-kiosk` |
 | Install API deps | `make install-api` |
 | Add kiosk package | `make add-kiosk PACKAGE=<name>` |
+| Add kiosk dev package | `make add-kiosk-dev PACKAGE=<name>` |
 | Add API package | `make add-api PACKAGE=<name>` |
 | Remove kiosk package | `make remove-kiosk PACKAGE=<name>` |
+| Remove kiosk dev package | `make remove-kiosk-dev PACKAGE=<name>` |
 | Remove API package | `make remove-api PACKAGE=<name>` |
+| Fix pnpm store mismatch | `make fix-kiosk-store` |
+| Generate API lockfile | `make lock-api` |
+| **Code Quality** | |
 | Lint everything | `make lint` |
 | Lint kiosk only | `make lint-kiosk` |
 | Lint API only | `make lint-api` |
 | Format everything | `make format` |
+| Format kiosk only | `make format-kiosk` |
+| Format API only | `make format-api` |
 | Type check kiosk | `make typecheck` / `make typecheck-kiosk` |
+| **Testing** | |
 | Run all tests | `make test` |
 | Run kiosk tests | `make test-kiosk` |
 | Run API tests | `make test-api` |
-| Production build | `make build` |
-| Start dev environment | `make dev-up` |
-| Update submodules | `make submodule-update` |
+| **Build** | |
+| Production build (both) | `make build` |
+| Production build kiosk | `make build-kiosk` |
+| Production build API | `make build-api` |
+| **Deployment** | |
+| Deploy to Pi (production) | `make deploy-pi` |
+| Check deploy status | `make deploy-status` |
+| View deploy logs | `make deploy-logs` |
+| Stop Pi deployment | `make deploy-down` |
+| Restart Pi deployment | `make deploy-restart` |
+| **Utilities** | |
+| Clean all environments | `make clean` |
 
 If a command you want is missing from the Makefile, add a target there — do not bypass it.
 
@@ -74,7 +108,7 @@ All four must pass before you tell the user the task is complete.
 - Do not run `git commit`, `git push`, `git reset`, `git rebase`, or other git mutations unless the user explicitly asks.
 - Ask for confirmation before each git mutation, even if confirmed earlier in the conversation.
 - Keep commits atomic and write messages that describe "why," not just "what."
-- Include `Co-Authored-By: Oz <oz-agent@warp.dev>` in AI-assisted commits.
+- Include `Co-Authored-By: Qwen <noreply@qwen.ai>` in AI-assisted commits.
 
 ### Submodule workflow
 
@@ -100,7 +134,8 @@ When making changes to frontend or backend:
 
 - Match the existing file's style, naming, and comment density.
 - Minimal changes. No opportunistic refactors.
-- ESLint and Prettier rules are enforced via pre-commit hooks; `make lint` must pass.
+- **Frontend:** ESLint + Prettier enforced via `make lint` / `make format`.
+- **Backend:** Ruff enforced via `make lint` / `make format`.
 - No `console.log` except `console.warn`/`console.error`.
 
 ## 7. Universal coding standards
@@ -160,7 +195,7 @@ These standards apply to **all code** in the project, regardless of language or 
 
 ## 8. Deployment flow
 
-- Normal production deploy: commit to `main`, push, let GitHub Actions deploy.
+- Use the `deploy-production` skill for full production deploys — it handles quality gates, CI checks, submodule commits, merge to main, and Pi deployment in one flow.
 - Manual Pi deploy only when explicitly requested: `make deploy-pi`.
 - Do not run `docker compose` directly on the Pi unless the Makefile target does so for you.
 - Do not deploy if CI is failing on `main`.
@@ -176,6 +211,28 @@ When deploying with submodule changes:
 5. **Push orchestrator** — `git push origin development`
 6. **Deploy** — `make deploy-pi` (pulls latest submodule commits automatically)
 
-## 9. When in doubt
+## 9. Cross-repo feature orchestration
+
+When a feature touches multiple repos (orchestrator + kiosk + api), use the **plan → delegate → integrate** pattern:
+
+1. **Plan at orchestrator level** — break the feature into per-repo tasks with dependencies and ordering
+2. **Delegate submodule work to subagents** — use the `agent` tool with `working_dir` pointed at the submodule (`dashy-kiosk/` or `dashy-api/`). Subagents inherit the submodule's `.qwen/skills/` and code conventions automatically
+3. **Integrate at orchestrator level** — the main agent handles cross-cutting concerns: orchestrator-level changes (compose, Makefile, env), submodule ref updates, quality gates, and deployment
+
+### Rules
+
+- **Never delegate planning** — the main agent owns the plan and presents it to the user for approval before any delegation
+- **Subagents are scoped** — each subagent works in exactly one repo. Do not give a subagent cross-repo tasks
+- **Subagents get explicit prompts** — include the file paths, constraints, and what "done" looks like. Do not write vague prompts like "implement the feature"
+- **Main agent verifies** — after subagents complete, the main agent runs `make lint`, `make typecheck`, `make test`, `make build` from the orchestrator
+- **User stays in one session** — the user interacts only with the main orchestrator session. Subagents are invisible implementation detail
+
+### When NOT to delegate
+
+- Single-repo changes (e.g., only frontend) — just do it directly, no need for subagent overhead
+- Orchestrator-only changes (compose, Makefile, deploy scripts) — handle in main session
+- Quick fixes or bug fixes that touch one file — just fix it
+
+## 10. When in doubt
 
 If you are about to run a command and are unsure whether it violates the Docker-first rule, stop and ask the user. It is better to confirm than to pollute the working tree.
