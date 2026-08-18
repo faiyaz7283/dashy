@@ -7,6 +7,15 @@ description: Run the full Dashy quality gate — lint, typecheck, test, build �
 
 Every code change in Dashy must pass all four steps before it can be considered done. No exceptions.
 
+## Repository Structure
+
+Dashy uses a multi-repo structure with submodules:
+- **Orchestrator** (this repo): compose files, deployment scripts, docs
+- **frontend/**: dashy-kiosk submodule (React + TypeScript)
+- **backend/**: dashy-api submodule (FastAPI + Python)
+
+Each submodule has its own quality-gate skill for standalone work. This skill runs the full gate across both.
+
 ## Steps (in order)
 
 ```bash
@@ -26,12 +35,35 @@ make build
 
 ## What each step checks
 
-| Step | Frontend | Backend |
-|------|----------|---------|
+| Step | Frontend (dashy-kiosk) | Backend (dashy-api) |
+|------|------------------------|---------------------|
 | `make lint` | ESLint (`pnpm run lint`) | Ruff check (`ruff check app/ tests/`) |
 | `make typecheck` | TypeScript (`pnpm run typecheck`) | N/A (Python uses runtime types) |
 | `make test` | Vitest + Testing Library (jsdom) | pytest + pytest-asyncio |
 | `make build` | Vite production build | `python -m compileall app/` |
+
+## Working in Submodules
+
+If you're working exclusively in one submodule, you can run its standalone quality-gate:
+
+**Frontend only** (from `frontend/` directory):
+```bash
+cd frontend/
+pnpm lint
+pnpm typecheck
+pnpm test
+pnpm build
+```
+
+**Backend only** (from `backend/` directory):
+```bash
+cd backend/
+uv run ruff check app/ tests/
+uv run python -m compileall app/
+uv run pytest tests/ -v
+```
+
+**Note:** Always run the full orchestrator quality gate (`make lint && make typecheck && make test && make build`) before committing to the orchestrator, even if you've been using submodule-specific checks during development.
 
 ## After a change
 
@@ -59,6 +91,20 @@ make test-frontend
 ## Common failure patterns
 
 - **Lint failures after adding a component**: Missing barrel export (`index.ts`), unused imports, or `console.log` statements (use `console.warn`/`console.error` only)
-- **Typecheck failures**: Type mismatch between frontend `types/index.ts` and backend `models.py` — the data models must stay in sync
+- **Typecheck failures**: Type mismatch between frontend `types/index.ts` and backend `models.py` — the data models must stay in sync (see `sync-types` skill)
 - **Test failures**: Frontend tests use `vi.fn()` for mocks; backend tests use `pytest.mark.asyncio` with `asyncio_mode = "auto"`
 - **Build failures**: Frontend build fails on TypeScript errors; backend build fails on import errors or syntax issues
+- **Submodule not committed**: If you changed files in `frontend/` or `backend/` but didn't commit in the submodule, the orchestrator won't see the changes. Use the `submodule-workflow` skill.
+
+## Cross-Repo Coordination
+
+When making API changes that affect both frontend and backend:
+
+1. Update backend models first
+2. Update frontend types to match
+3. Run full quality gate from orchestrator
+4. Commit in both submodules
+5. Update orchestrator submodule refs
+6. Run quality gate again from orchestrator to verify integration
+
+See the `submodule-workflow` and `sync-types` skills for detailed guidance.

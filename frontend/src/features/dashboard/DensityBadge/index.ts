@@ -1,1 +1,0 @@
-export { DensityBadge } from './DensityBadge'

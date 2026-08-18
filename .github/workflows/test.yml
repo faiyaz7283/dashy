@@ -1,133 +1,36 @@
-name: Test Suite
+name: CI
 
 on:
   push:
-    branches: [ development, main ]
+    branches: [development, main]
   pull_request:
-    branches: [ development, main ]
+    branches: [development, main]
 
 jobs:
-  changes:
-    name: Detect Changes
+  compose-validation:
+    name: Compose Validation
     runs-on: ubuntu-latest
-    outputs:
-      frontend: ${{ steps.filter.outputs.frontend }}
-      backend: ${{ steps.filter.outputs.backend }}
     steps:
-      - name: Checkout code
+      - name: Checkout code (with submodules)
         uses: actions/checkout@v4
-
-      - name: Detect changes
-        uses: dorny/paths-filter@v3
-        id: filter
         with:
-          filters: |
-            frontend:
-              - 'frontend/**'
-            backend:
-              - 'backend/**'
-            infra:
-              - 'compose/**'
-              - 'Makefile'
-              - '.env*'
+          submodules: recursive
 
-  test-frontend:
-    name: Frontend Tests
-    runs-on: ubuntu-latest
-    needs: changes
-    if: needs.changes.outputs.frontend == 'true'
+      - name: Validate dev compose
+        run: docker compose -f compose/docker-compose.dev.yml config > /dev/null
 
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '24'
-
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v4
-        with:
-          version: 10.17.1
-
-      - name: Get pnpm store directory
-        id: pnpm-cache
-        shell: bash
-        run: |
-          echo "STORE_PATH=$(pnpm store path)" >> $GITHUB_OUTPUT
-
-      - name: Setup pnpm cache
-        uses: actions/cache@v4
-        with:
-          path: ${{ steps.pnpm-cache.outputs.STORE_PATH }}
-          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
-          restore-keys: |
-            ${{ runner.os }}-pnpm-store-
-
-      - name: Install dependencies
-        working-directory: ./frontend
-        run: pnpm install --frozen-lockfile
-
-      - name: Run linting
-        working-directory: ./frontend
-        run: pnpm run lint
-
-      - name: Run type check
-        working-directory: ./frontend
-        run: pnpm run typecheck
-
-      - name: Run tests
-        working-directory: ./frontend
-        run: pnpm test
-        env:
-          VITE_API_URL: https://api.dashy.local
-
-  test-backend:
-    name: Backend Tests
-    runs-on: ubuntu-latest
-    needs: changes
-    if: needs.changes.outputs.backend == 'true'
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Setup Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.14'
-
-      - name: Install uv
-        run: pip install uv
-
-      - name: Prepare test environment configuration
-        run: |
-          cp env/.env.test.example env/.env.test
-          cp env/.env.test backend/.env
-          echo "✅ Test environment configuration prepared"
-
-      - name: Install dependencies
-        working-directory: ./backend
-        run: uv sync --frozen
-
-      - name: Run linting
-        working-directory: ./backend
-        run: uv run ruff check app/ tests/
-
-      - name: Run tests
-        working-directory: ./backend
-        run: uv run pytest tests/ -v
+      - name: Validate prod compose
+        run: docker compose -f compose/docker-compose.prod.yml config > /dev/null
 
   build-frontend:
     name: Build Frontend Image
     runs-on: ubuntu-latest
-    needs: [changes, test-frontend]
-    if: needs.changes.outputs.frontend == 'true'
-
+    needs: compose-validation
     steps:
-      - name: Checkout code
+      - name: Checkout code (with submodules)
         uses: actions/checkout@v4
+        with:
+          submodules: recursive
 
       - name: Setup Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -140,16 +43,18 @@ jobs:
           push: false
           load: true
           tags: dashy-frontend:test
+          build-args: |
+            VITE_API_URL=https://api.dashy.local
 
   build-backend:
     name: Build Backend Image
     runs-on: ubuntu-latest
-    needs: [changes, test-backend]
-    if: needs.changes.outputs.backend == 'true'
-
+    needs: compose-validation
     steps:
-      - name: Checkout code
+      - name: Checkout code (with submodules)
         uses: actions/checkout@v4
+        with:
+          submodules: recursive
 
       - name: Setup Docker Buildx
         uses: docker/setup-buildx-action@v3

@@ -8,9 +8,12 @@ A DIY family command center dashboard inspired by [Skylight Calendar](https://my
 
 ## Current Status
 
-- **Phase:** Backend migration complete (B1-B6). Frontend migration and repo split pending.
+- **Phase:** Repo split complete — orchestrator + submodules pattern (following dashtam model).
 - **Pi:** Raspberry Pi 4 (4GB), Raspberry Pi OS 64-bit (Trixie/Debian 13), SSH accessible at `rpi4_main@dashy.local` (192.168.1.194), booting from an NVMe SSD (WD Blue SN500 500 GB via Realtek RTL9210 USB bridge). Original 64 GB microSD preserved as rollback.
-- **Repo:** `git@github.com:faiyaz7283/dashy.git`
+- **Repo:** `git@github.com:faiyaz7283/dashy.git` (orchestrator)
+- **Submodules:**
+  - `frontend/` → `git@github.com:faiyaz7283/dashy-kiosk.git`
+  - `backend/` → `git@github.com:faiyaz7283/dashy-api.git`
 - **Local Dev URLs:** https://dashy.local (frontend), https://api.dashy.local (backend)
 - **Pi URLs:** https://dashy.local (frontend), https://api.dashy.local (backend)
 - **API Services:** Google Calendar + OpenWeatherMap (falls back to mock data when credentials are missing)
@@ -38,7 +41,7 @@ A DIY family command center dashboard inspired by [Skylight Calendar](https://my
 | **Logging** | structlog | Structured JSON logging |
 | **Reverse Proxy** | Traefik (shared infrastructure) | v3.7.10 |
 | **Containerization** | Docker + Docker Compose | Docker 29.7, Compose v5.4 |
-| **Package Management** | npm (frontend), UV (backend) | — |
+| **Package Management** | pnpm (frontend), UV (backend) | — |
 | **Build Automation** | Makefile (Docker-first) | — |
 | **Pi OS** | Raspberry Pi OS 64-bit (Trixie) | Debian 13, kernel 6.18 |
 
@@ -47,65 +50,44 @@ A DIY family command center dashboard inspired by [Skylight Calendar](https://my
 ## Project Structure
 
 ```
-dashy/
-├── compose/               # Docker Compose files
+dashy/                              # Orchestrator repo (this repo)
+├── .gitmodules                     # Submodule definitions
+├── compose/                        # Docker Compose files
 │   ├── docker-compose.dev.yml      # Development environment
 │   ├── docker-compose.prod.yml     # Production environment
 │   ├── docker-compose.prod.yml.example  # Production template
-│   └── traefik/           # Traefik config files (copied to Pi)
+│   └── traefik/                    # Traefik config files (copied to Pi)
 │       ├── traefik.yml
 │       └── certs/
 │           ├── _wildcard.local-key.pem
 │           ├── _wildcard.local.pem
 │           └── tls.yml
-├── scripts/               # Deployment scripts
-│   ├── start-chromium-kiosk.sh    # Wrapper script with retry logic
-│   └── chromium-kiosk.desktop     # Autostart configuration
-├── env/                   # Environment variables
-│   ├── .env.dev.example   # Template (committed)
-│   └── .env.dev           # Actual values (gitignored)
-├── frontend/              # React + TypeScript + Vite + Tailwind
-│   ├── src/
-│   │   ├── docs/          # Architecture analysis and design documents
-│   │   ├── components/    # One component per folder with barrel export
-│   │   ├── hooks/         # Custom hooks
-│   │   ├── services/      # API service layer (api.ts with retry + cache)
-│   │   ├── types/         # TypeScript type definitions
-│   │   ├── theme/         # Design tokens (colors, spacing, typography)
-│   │   ├── utils/         # Date formatting, density, recurrence utils
-│   │   ├── test/          # Test setup
-│   │   ├── App.tsx
-│   │   └── main.tsx
-│   ├── .husky/            # Git pre-commit hooks
-│   ├── eslint.config.js
-│   ├── vitest.config.ts
-│   ├── vite.config.ts
-│   ├── package.json
-│   ├── Dockerfile         # Production build (with VITE_API_URL build arg)
-│   ├── Dockerfile.dev     # Development with HMR
-│   └── nginx.conf         # Production nginx config (with cache-busting headers)
-├── backend/               # Python FastAPI + UV
-│   ├── app/
-│   │   ├── core/          # Cross-cutting concerns (config, DI container, logging, cache, database)
-│   │   ├── domain/        # Pure business logic (weather, calendar, family)
-│   │   ├── infrastructure/ # Adapters (OWM, Google Calendar, SQLite, mock providers)
-│   │   ├── api/           # HTTP layer (routes, models, deps)
-│   │   ├── services/      # Service orchestration layer
-│   │   └── main.py        # FastAPI app entry point
-│   ├── tests/
-│   │   ├── unit/          # Domain logic tests (no I/O)
-│   │   ├── integration/   # Infrastructure tests (cache, adapters)
-│   │   └── api/           # HTTP endpoint tests
-│   ├── alembic/           # Database migrations
-│   ├── pyproject.toml     # UV dependencies
-│   ├── uv.lock            # Locked dependencies (committed)
-│   ├── Dockerfile         # Production build
-│   └── Dockerfile.dev     # Development with reload
-├── mockups/               # Approved HTML mockups (design reference)
-├── Makefile               # All commands (Docker-first, includes deploy-pi)
+├── scripts/                        # Deployment scripts
+│   ├── start-chromium-kiosk.sh     # Wrapper script with retry logic
+│   └── chromium-kiosk.desktop      # Autostart configuration
+├── env/                            # Environment variables
+│   ├── .env.dev.example            # Template (committed)
+│   └── .env.dev                    # Actual values (gitignored)
+├── docs/                           # Plans, guides, architecture docs
+├── mockups/                        # Approved HTML mockups (design reference)
+├── frontend/                       # → submodule (dashy-kiosk)
+│   ├── src/                        # React + TypeScript + Vite + Tailwind
+│   ├── Dockerfile                  # Production build
+│   ├── Dockerfile.dev              # Development with HMR
+│   ├── AGENTS.md                   # Frontend agent rules
+│   └── README.md                   # Frontend docs
+├── backend/                        # → submodule (dashy-api)
+│   ├── app/                        # FastAPI application
+│   ├── tests/                      # pytest suite
+│   ├── alembic/                    # Database migrations
+│   ├── Dockerfile                  # Production build
+│   ├── Dockerfile.dev              # Development with reload
+│   ├── AGENTS.md                   # Backend agent rules
+│   └── README.md                   # Backend docs
+├── Makefile                        # All commands (Docker-first, includes deploy-pi)
 ├── .gitignore
-├── AGENTS.md              # AI agent behavior rules
-└── README.md              # This file
+├── AGENTS.md                       # AI agent behavior rules (orchestrator)
+└── README.md                       # This file
 ```
 
 ---
@@ -162,37 +144,50 @@ See `AGENTS.md` for the hard rule that no `npm`, `pip`, `uv`, or similar command
 
 ### CI/CD Workflow
 
-GitHub Actions uses intelligent change detection:
+Each repo has independent CI. The orchestrator validates compose files and builds Docker images.
 
-- `frontend/**` changes → run frontend tests + build frontend image.
-- `backend/**` changes → run backend tests + build backend image.
-- No code changes → skip all tests and builds.
-- Both changed → run everything.
+**`dashy` (orchestrator) CI:**
+- Validates `docker-compose.dev.yml` and `docker-compose.prod.yml`
+- Builds frontend and backend Docker images
+- Triggers on push/PR to `development` or `main`
 
-Implementation uses `dorny/paths-filter` with separate jobs for frontend and backend.
+**`dashy-kiosk` (frontend) CI:**
+- Lint (ESLint), typecheck (TypeScript), test (vitest), build (Vite + Docker)
+- Uses pnpm with frozen lockfile
+
+**`dashy-api` (backend) CI:**
+- Lint (Ruff), typecheck (compileall), test (pytest), build (Docker)
+- Uses UV with frozen lockfile
 
 ### Deployment Workflow
 
 **CI Gate:** GitHub Actions must pass on `main` before deploying to the Pi.
 
+**Submodule workflow:**
+1. Commit changes in submodules first (`frontend/`, `backend/`)
+2. Push submodule changes to their respective repos
+3. Update submodule refs in orchestrator: `make submodule-update`
+4. Commit and push orchestrator changes
+5. Deploy: `make deploy-pi`
+
 ```bash
 # 1. Verify CI passed on main
 gh run list --limit 1 --branch main
 
-# 2. Deploy to Pi
+# 2. Deploy to Pi (pulls latest submodule commits automatically)
 make deploy-pi
 ```
 
 `make deploy-pi`:
-1. Detects changes between the last deployed commit and current HEAD.
-2. Categorizes changes:
+1. Pulls latest `main` and updates submodules (`git submodule update --init --remote`).
+2. Detects changes between the last deployed commit and current HEAD.
+3. Categorizes changes:
    - `frontend/**` changes → rebuild frontend only.
    - `backend/**` changes → rebuild backend only.
-   - `compose/` or `.env` changes → full infrastructure rebuild.
-   - Other changes (Makefile, scripts, etc.) → no rebuilds needed.
-3. Deploys only what changed, restarts affected services, and updates kiosk config if scripts changed.
-4. Verifies deployment.
-5. Syncs branches by merging `main` into `development` and pushing.
+   - `compose/`, `.env`, `Makefile`, `scripts/` changes → full infrastructure rebuild.
+4. Deploys only what changed, restarts affected services, and updates kiosk config if scripts changed.
+5. Verifies deployment.
+6. Syncs branches by merging `main` into `development` and pushing.
 
 ---
 

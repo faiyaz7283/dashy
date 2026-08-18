@@ -1,1 +1,0 @@
-"""Dashy backend application package."""

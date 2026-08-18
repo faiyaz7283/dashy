@@ -10,9 +10,29 @@ Production deployment to the Pi kiosk at `r4pi`.
 ## Prerequisites
 
 - SSH access to `r4pi` must be configured (key at `~/.ssh/id_ed25519`)
-- Working directory is the Dashy project root
+- Working directory is the Dashy orchestrator root
 - You are on the `development` branch (deploy switches to `main` automatically)
+- Submodules are initialized (`git submodule update --init --recursive`)
 - Dev environment does NOT need to be running
+
+## Submodule Workflow
+
+Before deploying, ensure submodule changes are committed and pushed:
+
+```bash
+# If you made changes in frontend/ or backend/:
+cd frontend/  # or backend/
+git add .
+git commit -m "feat: your changes"
+git push origin development
+
+# Return to orchestrator and update refs
+cd ..
+make submodule-update
+git add frontend/ backend/
+git commit -m "chore: update submodule refs"
+git push origin development
+```
 
 ## The Deploy Command
 
@@ -26,6 +46,7 @@ This single command handles the entire deployment. Here is what it does step by 
 
 ### 1. Local git operations
 - Checks out `main` and pulls latest
+- Updates submodules to their pinned commits (`git submodule update --init`)
 - Detects changes since last deploy (stored in `.last-deployed-commit` on Pi)
 
 ### 2. Change detection
@@ -37,6 +58,7 @@ The deploy is **selective** — it only rebuilds what changed:
 
 ### 3. Push to Pi
 - SSHs to `r4pi` and pulls `main` into `~/dashy`
+- Updates submodules on Pi (`git submodule update --init`)
 
 ### 4. Chromium kiosk configuration
 - Copies `scripts/start-chromium-kiosk.sh` to Pi home directory

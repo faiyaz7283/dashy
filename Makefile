@@ -6,6 +6,7 @@
         build build-frontend build-backend \
         install-frontend install-backend add-frontend add-backend remove-frontend remove-backend \
         deploy deploy-status deploy-logs deploy-down deploy-restart \
+        submodule-update \
         clean setup
 
 # ==============================================================================
@@ -15,15 +16,19 @@
 .DEFAULT_GOAL := help
 
 help:
-	@echo " Dashy - Family Calendar Dashboard"
+	@echo "Dashy - Family Calendar Dashboard (Orchestrator)"
+	@echo ""
+	@echo "This is the orchestrator repo. Frontend and backend are git submodules:"
+	@echo "  - frontend/ → dashy-kiosk (React + Vite)"
+	@echo "  - backend/  → dashy-api (FastAPI)"
 	@echo ""
 	@echo "📋 Quick Start:"
 	@echo "  1. Setup:           make setup"
 	@echo "  2. Start dev:       make dev-up"
-	@echo "  3. View app:        http://localhost:3000"
-	@echo "  4. API docs:        http://localhost:8000/docs"
+	@echo "  3. View app:        https://dashy.local"
+	@echo "  4. API docs:        https://api.dashy.local/docs"
 	@echo ""
-	@echo " Development:"
+	@echo "🔧 Development:"
 	@echo "  make dev-up              - Start development environment"
 	@echo "  make dev-down            - Stop development environment"
 	@echo "  make dev-logs            - View development logs (follow)"
@@ -67,7 +72,10 @@ help:
 	@echo "  make deploy-down         - Stop Pi deployment"
 	@echo "  make deploy-restart      - Restart Pi deployment"
 	@echo ""
-	@echo " Utilities:"
+	@echo "🔧 Submodules:"
+	@echo "  make submodule-update    - Pull latest submodule commits"
+	@echo ""
+	@echo "🛠️  Utilities:"
 	@echo "  make setup               - First-time setup (create env files)"
 	@echo "  make clean               - Stop and clean all environments"
 
@@ -273,12 +281,14 @@ deploy:
 	@echo "   Push to 'main' branch to trigger automatic deployment."
 	@echo ""
 	@echo "📋 Steps:"
-	@echo "   1. git add . && git commit -m 'your message'"
-	@echo "   2. git push origin main"
-	@echo "   3. GitHub Actions will automatically deploy to Pi"
+	@echo "   1. Commit changes in submodules (frontend/, backend/) first"
+	@echo "   2. Update submodule refs in orchestrator: make submodule-update"
+	@echo "   3. git add . && git commit -m 'your message'"
+	@echo "   4. git push origin main"
+	@echo "   5. GitHub Actions will automatically deploy to Pi"
 	@echo ""
-	@echo " For local testing on Pi (development only):"
-	@ssh $(PI_HOST) "cd $(PI_DIR) && git pull origin development && docker compose -f compose/docker-compose.dev.yml up -d --build"
+	@echo "🔧 For local testing on Pi (development only):"
+	@ssh $(PI_HOST) "cd $(PI_DIR) && git pull origin development && git submodule update --init --remote && docker compose -f compose/docker-compose.dev.yml up -d --build"
 
 deploy-status:
 	@ssh $(PI_HOST) "cd $(PI_DIR) && docker compose -f compose/docker-compose.prod.yml ps"
@@ -288,6 +298,8 @@ deploy-pi:
 	@echo "📥 Pulling latest main branch locally..."
 	@git checkout main
 	@git pull origin main
+	@echo "🔄 Updating submodules..."
+	@git submodule update --init --remote
 	@echo "🔍 Detecting changes..."
 	@LAST_COMMIT=$$(ssh $(PI_HOST) "cat $(PI_DIR)/.last-deployed-commit 2>/dev/null || echo ''"); \
 	if [ -z "$$LAST_COMMIT" ]; then \
@@ -300,7 +312,7 @@ deploy-pi:
 			echo "✅ No changes detected - skipping deployment"; \
 			exit 0; \
 		fi; \
-		INFRA_CHANGED=$$(echo "$$CHANGED" | grep -E "^(compose/|\.env)" || true); \
+		INFRA_CHANGED=$$(echo "$$CHANGED" | grep -E "^(compose/|\.env|Makefile|scripts/)" || true); \
 		FRONTEND_CHANGED=$$(echo "$$CHANGED" | grep -E "^frontend/" || true); \
 		BACKEND_CHANGED=$$(echo "$$CHANGED" | grep -E "^backend/" || true); \
 		if [ -n "$$INFRA_CHANGED" ]; then \
@@ -314,7 +326,7 @@ deploy-pi:
 		fi; \
 fi; \
 	echo "🔄 Pushing to Pi..."; \
-	ssh $(PI_HOST) "cd $(PI_DIR) && git pull origin main"; \
+	ssh $(PI_HOST) "cd $(PI_DIR) && git pull origin main && git submodule update --init --remote"; \
 	echo "⚙️  Configuring Chromium kiosk..."; \
 	ssh $(PI_HOST) "cp $(PI_DIR)/scripts/start-chromium-kiosk.sh ~/start-chromium-kiosk.sh && chmod +x ~/start-chromium-kiosk.sh"; \
 	ssh $(PI_HOST) "mkdir -p ~/.config/autostart && cp $(PI_DIR)/scripts/chromium-kiosk.desktop ~/.config/autostart/"; \
@@ -369,6 +381,15 @@ deploy-down:
 
 deploy-restart:
 	@ssh $(PI_HOST) "cd $(PI_DIR) && docker compose -f compose/docker-compose.prod.yml restart"
+
+# ==============================================================================
+# SUBMODULES
+# ==============================================================================
+
+submodule-update:
+	@echo "🔄 Updating submodules..."
+	@git submodule update --remote --merge
+	@echo "✅ Submodules updated"
 
 # ==============================================================================
 # CLEAN

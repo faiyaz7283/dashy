@@ -1,1 +1,0 @@
-export { StickyArea } from './StickyArea'

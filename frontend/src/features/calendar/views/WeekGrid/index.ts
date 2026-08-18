@@ -1,1 +1,0 @@
-export { WeekGrid } from './WeekGrid'
