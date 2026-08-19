@@ -50,7 +50,8 @@ curl -sk https://api.dashy.local/api/v1/weather
 **Local Development** (`ENVIRONMENT=development`):
 - `WEATHER_USE_MOCK=true` → mock weather data
 - `CALENDAR_USE_MOCK=true` → mock calendar data
-- Database: SQLite at `/app/data/dashy.db` (dev volume)
+- Database: SQLite at `/app/data/dashy.db` (dev volume, persists across restarts)
+- Test database: Separate `test.db` (used by `make test-api`, isolated from dev data)
 
 **Production** (`ENVIRONMENT=production`):
 - `WEATHER_USE_MOCK=false` → real OpenWeatherMap API
@@ -85,7 +86,7 @@ curl -sk -X DELETE https://api.dashy.local/api/v1/family/test
 
 ### Database Not Initialized
 **Symptom**: API returns 500 errors, logs show "no such table"
-**Fix**: Check that entrypoint.sh ran migrations. Restart API container.
+**Fix**: Run `make migrate` to apply pending migrations. Check state with `make migrate-status`. If the database is in an inconsistent state, try `make migrate-rollback` then `make migrate`. Restart API container if needed.
 
 ### Mock Data Not Showing
 **Symptom**: Calendar/weather endpoints return empty data

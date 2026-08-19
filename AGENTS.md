@@ -76,6 +76,12 @@ Use these `make` targets (all run inside containers):
 | Run all tests | `make test` |
 | Run kiosk tests | `make test-kiosk` |
 | Run API tests | `make test-api` |
+| **Database Migrations** | |
+| Run pending migrations | `make migrate` |
+| Show migration state | `make migrate-status` |
+| Check models vs migrations | `make migrate-check` |
+| Rollback last migration | `make migrate-rollback` |
+| Create new migration | `make migrate-create MESSAGE=<msg>` |
 | **Build** | |
 | Production build (both) | `make build` |
 | Production build kiosk | `make build-kiosk` |
@@ -101,6 +107,8 @@ For any kiosk or API change:
 4. `make build`
 
 All four must pass before you tell the user the task is complete.
+
+**Test isolation:** API tests use a separate `test.db` database (not the dev `dashy.db`). This is configured via `DATABASE_URL` set before imports in `tests/conftest.py`. Tests never modify the development database.
 
 ## 4. Git workflow
 
@@ -233,6 +241,51 @@ When a feature touches multiple repos (orchestrator + kiosk + api), use the **pl
 - Orchestrator-only changes (compose, Makefile, deploy scripts) — handle in main session
 - Quick fixes or bug fixes that touch one file — just fix it
 
-## 10. When in doubt
+## 10. Database & migrations
+
+Dashy uses SQLite with Alembic for schema migrations. The database architecture is designed for isolation and persistence.
+
+### Migration automation
+
+- **`make dev-up`** runs `alembic upgrade head` automatically via `entrypoint.sh` — no manual step needed
+- **`make sync`** also applies pending migrations if the dev environment is already running
+- Migrations are idempotent — running `make migrate` multiple times is safe
+
+### Manual migration commands
+
+| Command | Purpose |
+|---------|---------|
+| `make migrate` | Run pending migrations without restart |
+| `make migrate-status` | Show current version + full history |
+| `make migrate-check` | Verify models match migrations (catch forgotten migrations) |
+| `make migrate-rollback` | Rollback last migration (`downgrade -1`) |
+| `make migrate-create MESSAGE="..."` | Generate new migration from model changes |
+
+### Workflow when adding a new model
+
+1. Edit SQLModel classes in `dashy-api/app/domain/.../models.py`
+2. Run `make migrate-create MESSAGE="add new_table"`
+3. Review generated migration in `dashy-api/alembic/versions/`
+4. Run `make migrate` to apply it
+5. Commit the migration file with your model changes
+
+### Database architecture
+
+- **Dev database:** SQLite at `/app/data/dashy.db` on Docker volume `api-data` (persists across restarts)
+- **Production database:** Separate SQLite file on Pi's Docker volume (persists independently)
+- **Test database:** Isolated `test.db` created by `tests/conftest.py` (never touches dev data)
+- **Not git-tracked:** `.gitignore` excludes `*.db` — database files never enter version control
+
+### uv run pattern
+
+All commands executed inside the API container must use `uv run` prefix:
+- `uv run pytest tests/ -v` (not `pytest`)
+- `uv run ruff check app/` (not `ruff check`)
+- `uv run alembic upgrade head` (not `alembic upgrade head`)
+- `uv run python -c "..."` (not `python -c "..."`)
+
+This ensures the correct Python environment and dependencies are used.
+
+## 11. When in doubt
 
 If you are about to run a command and are unsure whether it violates the Docker-first rule, stop and ask the user. It is better to confirm than to pollute the working tree.

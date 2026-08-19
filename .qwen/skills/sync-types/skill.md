@@ -23,7 +23,7 @@ API models live in `dashy-api/app/api/models/`.
 Generate OpenAPI spec from API (runs in Docker container):
 
 ```bash
-docker compose -f compose/docker-compose.dev.yml exec -T api python -c "from app.main import app; import json; print(json.dumps(app.openapi()))" > /tmp/openapi.json
+docker compose -f compose/docker-compose.dev.yml exec -T api uv run python -c "from app.main import app; import json; print(json.dumps(app.openapi()))" > /tmp/openapi.json
 ```
 
 ### 2. Compare with Kiosk Types

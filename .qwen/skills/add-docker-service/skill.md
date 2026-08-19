@@ -198,7 +198,7 @@ docker compose -f compose/docker-compose.dev.yml logs <service>
 
 # Verify API can connect
 docker compose -f compose/docker-compose.dev.yml exec api \
-  python -c "from app.config import settings; print(settings.<SERVICE>_URL)"
+  uv run python -c "from app.config import settings; print(settings.<SERVICE>_URL)"
 ```
 
 ### 8. Add health check to API
@@ -392,3 +392,5 @@ services:
 - Volume-mount data for persistence across restarts
 - Match dev and prod configurations
 - Test with `make dev-up` before committing
+- All `docker compose exec` commands for the API container must use `uv run` prefix (e.g., `uv run python -c "..."`)
+- If adding a new database, integrate with the existing Alembic migration system — see `make migrate-create` and the `add-db-migration` skill in dashy-api

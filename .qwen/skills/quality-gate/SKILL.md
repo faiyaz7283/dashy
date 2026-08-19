@@ -37,10 +37,12 @@ make build
 
 | Step | Kiosk (dashy-kiosk) | API (dashy-api) |
 |------|---------------------|-----------------|
-| `make lint` | ESLint (`pnpm run lint`) | Ruff check (`ruff check app/ tests/`) |
+| `make lint` | ESLint (`pnpm run lint`) | Ruff check (`uv run ruff check app/ tests/`) |
 | `make typecheck` | TypeScript (`pnpm run typecheck`) | N/A (Python uses runtime types) |
-| `make test` | Vitest + Testing Library (jsdom) | pytest + pytest-asyncio |
-| `make build` | Vite production build | `python -m compileall app/` |
+| `make test` | Vitest + Testing Library (jsdom) | pytest (`uv run pytest tests/ -v`) |
+| `make build` | Vite production build | `uv run python -m compileall app/` |
+
+**Note:** All API container commands use `uv run` prefix. Tests use an isolated `test.db` (not the dev database) — configured via `DATABASE_URL` in `conftest.py`.
 
 ## Working in Submodules
 

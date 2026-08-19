@@ -97,6 +97,8 @@ If you need to make coordinated changes across kiosk and API:
 | Check submodule status | `git submodule status` |
 | Enter a submodule | `cd dashy-kiosk/` or `cd dashy-api/` |
 
+**Note:** `make sync` also applies pending database migrations if the dev environment is running. If dev is stopped, migrations will apply on next `make dev-up`.
+
 ## Important Notes
 
 - **Submodules have independent git history** — commits in `dashy-kiosk/` don't affect the orchestrator until you `git add dashy-kiosk/`

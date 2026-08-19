@@ -12,7 +12,15 @@
       "send_message",
       "Skill(deploy-production)",
       "Bash(git log *)",
-      "Agent(general-purpose)"
+      "Agent(general-purpose)",
+      "Bash(docker compose exec *)",
+      "Bash(docker compose *)",
+      "Bash(cd *)",
+      "Bash(tail *)",
+      "Bash(grep *)",
+      "Bash(curl *)",
+      "Bash(jq *)",
+      "Bash(xargs *)"
     ]
   },
   "$version": 4

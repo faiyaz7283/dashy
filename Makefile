@@ -1,6 +1,7 @@
 .PHONY: help \
         sync \
         dev-up dev-down dev-logs dev-shell dev-shell-kiosk dev-restart dev-build dev-rebuild \
+        migrate migrate-status migrate-check migrate-rollback migrate-create \
         test test-kiosk test-api \
         lint lint-kiosk lint-api format format-kiosk format-api \
         typecheck typecheck-kiosk \
@@ -40,6 +41,13 @@ help:
 	@echo "  make dev-restart         - Restart development environment"
 	@echo "  make dev-build           - Build development containers"
 	@echo "  make dev-rebuild         - Rebuild containers (no cache)"
+	@echo ""
+	@echo "🗄️  Database Migrations:"
+	@echo "  make migrate             - Run pending migrations (also runs on dev-up)"
+	@echo "  make migrate-status      - Show current migration state"
+	@echo "  make migrate-check       - Check if models are in sync with migrations"
+	@echo "  make migrate-rollback    - Rollback last migration"
+	@echo "  make migrate-create MESSAGE=<msg> - Generate new migration from model changes"
 	@echo ""
 	@echo "🧪 Testing:"
 	@echo "  make test                - Run all tests"
@@ -129,7 +137,13 @@ sync:
 	@echo ""
 	@echo "✅ All repos synced to latest (main + development)"
 	@echo ""
-	@echo "💡 Next step: make dev-up"
+	@if docker compose -f compose/docker-compose.dev.yml ps --status running api 2>/dev/null | grep -q "dashy-dev-api"; then \
+		echo "🗄️  Dev environment is running — applying any new migrations..."; \
+		docker compose -f compose/docker-compose.dev.yml exec -T api uv run alembic upgrade head; \
+		echo "✅ Migrations applied"; \
+	else \
+		echo "💡 Dev environment not running — migrations will apply on next 'make dev-up'"; \
+	fi
 
 # ==============================================================================
 # DEVELOPMENT ENVIRONMENT
@@ -176,6 +190,45 @@ dev-rebuild:
 	@docker compose -f compose/docker-compose.dev.yml build --no-cache
 	@docker compose -f compose/docker-compose.dev.yml up -d --remove-orphans
 	@echo "✅ Development containers rebuilt"
+
+# ==============================================================================
+# DATABASE MIGRATIONS
+# ==============================================================================
+# Migrations run automatically on `make dev-up` via entrypoint.sh.
+# These targets are for manual control: checking status, rolling back,
+# or creating new migrations after model changes.
+
+migrate:
+	@echo "🗄️  Running database migrations..."
+	@docker compose -f compose/docker-compose.dev.yml exec -T api uv run alembic upgrade head
+	@echo "✅ Migrations complete"
+
+migrate-status:
+	@echo "🗄️  Current migration state..."
+	@docker compose -f compose/docker-compose.dev.yml exec -T api uv run alembic current
+	@echo ""
+	@echo "Migration history:"
+	@docker compose -f compose/docker-compose.dev.yml exec -T api uv run alembic history --verbose
+
+migrate-check:
+	@echo "🗄️  Checking if models are in sync with migrations..."
+	@docker compose -f compose/docker-compose.dev.yml exec -T api uv run alembic check
+	@echo "✅ Models and migrations are in sync"
+
+migrate-rollback:
+	@echo "⚠️  Rolling back last migration..."
+	@docker compose -f compose/docker-compose.dev.yml exec -T api uv run alembic downgrade -1
+	@echo "✅ Rollback complete"
+
+migrate-create:
+ifndef MESSAGE
+	$(error MESSAGE is required. Usage: make migrate-create MESSAGE="describe your changes")
+endif
+	@echo "🗄️  Creating new migration..."
+	@docker compose -f compose/docker-compose.dev.yml exec -T api uv run alembic revision --autogenerate -m "$(MESSAGE)"
+	@echo "✅ Migration created in dashy-api/alembic/versions/"
+	@echo ""
+	@echo "⚠️  Review the generated migration file before committing!"
 
 # ==============================================================================
 # TESTING

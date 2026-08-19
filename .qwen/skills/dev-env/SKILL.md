@@ -77,6 +77,37 @@ Dev containers use the external `traefik-public` network. Traefik handles:
 - Routing `dashy.local` → kiosk container
 - Routing `api.dashy.local` → API container
 
+## Database Migrations
+
+Migrations run **automatically** on `make dev-up` via `entrypoint.sh` — no manual step needed for normal development.
+
+`make sync` also applies pending migrations if the dev environment is already running.
+
+### Manual migration commands
+
+| Command | Purpose |
+|---------|---------|
+| `make migrate` | Run pending migrations without restart |
+| `make migrate-status` | Show current version + full history |
+| `make migrate-check` | Verify models match migrations |
+| `make migrate-rollback` | Rollback last migration |
+| `make migrate-create MESSAGE="..."` | Generate new migration from model changes |
+
+### Typical workflow when adding a new model
+
+1. Edit SQLModel classes in `dashy-api/app/domain/.../models.py`
+2. Run `make migrate-create MESSAGE="add new_table"`
+3. Review generated migration in `dashy-api/alembic/versions/`
+4. Run `make migrate` to apply it
+5. Commit the migration file with your model changes
+
+### Database architecture
+
+- SQLite database lives on Docker volume `api-data:/app/data/dashy.db`
+- Database files are **not** git-tracked (`.gitignore` excludes `*.db`)
+- Dev and production use separate databases on separate volumes
+- Tests use an isolated `test.db` (configured via `DATABASE_URL` in `conftest.py`)
+
 ## Troubleshooting
 
 ### "Traefik is not running"
@@ -95,6 +126,9 @@ The API uses `uvicorn --reload` which watches for file changes. If it stops relo
 
 ### Port conflicts
 Dev containers do not expose ports directly to the host — all traffic goes through Traefik. If you see port conflicts, something else is using the Traefik ports (443/80).
+
+### Migration errors ("table already exists")
+Check migration state: `make migrate-status`. If the database is out of sync, try `make migrate-rollback` then `make migrate`. Only delete the database as a last resort.
 
 ## Clean Slate
 ```bash
