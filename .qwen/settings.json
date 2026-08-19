@@ -20,7 +20,8 @@
       "Bash(grep *)",
       "Bash(curl *)",
       "Bash(jq *)",
-      "Bash(xargs *)"
+      "Bash(xargs *)",
+      "Bash(git status *)"
     ]
   },
   "$version": 4
