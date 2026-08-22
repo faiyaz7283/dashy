@@ -16,6 +16,29 @@ Dashy is an **orchestrator repo** with git submodules:
 
 **This file covers orchestrator-specific rules only.**
 
+### Environment Files
+
+**All `.env` files live in the `env/` directory at the orchestrator root:**
+
+| File | Purpose |
+|------|---------|
+| `env/.env.dev` | Development environment variables (API keys, mock toggles, family members) |
+| `env/.env.test` | Test environment variables (isolated test database) |
+| `env/.env.dev.example` | Template for `.env.dev` (safe to commit) |
+| `env/.env.test.example` | Template for `.env.test` (safe to commit) |
+
+**Never search for `.env` files in submodules or other locations.** The compose files reference `../env/.env.dev` and `../env/.env.test` explicitly.
+
+**Mock data toggles** (in `env/.env.dev`):
+- `WEATHER_USE_MOCK=true` — Use mock weather data (API rate limit protection)
+- `CALENDAR_USE_MOCK=true` — Use mock calendar data (API rate limit protection)
+- `CHORES_USE_MOCK=false` — Use real chores data from local database (no rate limit concerns)
+
+**After changing `.env.dev`, restart the API container** to pick up new values:
+```bash
+cd /Users/admin/dashy && docker compose -f compose/docker-compose.dev-v2.yml restart api
+```
+
 ## 2. Docker-first development (NON-NEGOTIABLE)
 
 Dashy is a Dockerized project. **Never run development tools directly on the host machine.** All package management, linting, type-checking, testing, formatting, and execution must happen inside Docker containers via Makefile targets or `docker compose exec`.

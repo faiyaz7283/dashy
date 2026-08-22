@@ -65,3 +65,6 @@ htmlcov/
 # Logs
 *.log
 backend/credentials/
+
+# TLS private keys (public certs are OK)
+compose/traefik/certs/*-key.pem

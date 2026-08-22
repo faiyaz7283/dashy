@@ -1,0 +1,189 @@
+@import 'tailwindcss';
+
+/* ---------------------------------------------------------------------------
+ * Dashy Design Tokens
+ *
+ * All --dt-* custom properties define the light/dark theme palette.
+ * The @theme block below maps them to Tailwind utility classes.
+ * --------------------------------------------------------------------------- */
+
+:root {
+  /* Colors — brand / primary */
+  --dt-primary: #4f46e5;
+  --dt-primary-hover: #4338ca;
+  --dt-primary-light: #eef2ff;
+  --dt-primary-light-hover: #e0e7ff;
+  --dt-primary-ring: #c7d2fe;
+
+  /* Colors — surfaces */
+  --dt-white: #ffffff;
+  --dt-bg: #f9fafb;
+  --dt-bg-hover: #f3f4f6;
+  --dt-bg-sidebar: #ffffff;
+
+  /* Colors — text */
+  --dt-text-primary: #1f2937;
+  --dt-text-secondary: #374151;
+  --dt-text-muted: #6b7280;
+  --dt-text-faint: #9ca3af;
+  --dt-text-disabled: #d1d5db;
+
+  /* Colors — borders */
+  --dt-border: #e5e7eb;
+  --dt-border-light: #f3f4f6;
+  --dt-border-dark: #d1d5db;
+
+  /* Colors — status */
+  --dt-success: #22c55e;
+  --dt-danger: #ef4444;
+  --dt-warning: #f59e0b;
+  --dt-danger-bg: #fee2e2;
+  --dt-danger-text: #991b1b;
+
+  /* Colors — chores status */
+  --dt-chores-open: #3b82f6;
+  --dt-chores-claimed: #8b5cf6;
+  --dt-chores-assigned: #6366f1;
+  --dt-chores-in-progress: #f59e0b;
+  --dt-chores-pending-signoff: #f97316;
+  --dt-chores-completed: #22c55e;
+  --dt-chores-overdue: #ef4444;
+  --dt-chores-expiring-soon: #eab308;
+
+  /* Density bar colors */
+  --dt-density-none: #f3f4f6;
+  --dt-density-low: #bbf7d0;
+  --dt-density-medium: #fcd34d;
+  --dt-density-high: #fca5a5;
+
+  /* Family member colors */
+  --dt-member-faiyaz: #3b82f6;
+  --dt-member-trisha: #ec4899;
+  --dt-member-arya: #22c55e;
+  --dt-member-raya: #f59e0b;
+
+  /* Shadows */
+  --dt-shadow-card: 0 4px 12px rgba(0, 0, 0, 0.08);
+  --dt-shadow-card-hover: 0 4px 12px rgba(0, 0, 0, 0.08);
+  --dt-shadow-side-nav: 0 2px 6px rgba(0, 0, 0, 0.06);
+  --dt-shadow-side-nav-hover: 0 4px 12px rgba(79, 70, 229, 0.15);
+  --dt-shadow-popup: 0 8px 24px rgba(0, 0, 0, 0.15);
+  --dt-shadow-modal: 0 20px 40px rgba(0, 0, 0, 0.2);
+  --dt-shadow-view-btn: 0 1px 2px rgba(0, 0, 0, 0.06);
+  --dt-shadow-fab: 0 4px 12px rgba(79, 70, 229, 0.4);
+  --dt-shadow-fab-hover: 0 6px 16px rgba(79, 70, 229, 0.5);
+  --dt-shadow-sidebar: 2px 0 4px rgba(0, 0, 0, 0.06);
+}
+
+.dark {
+  /* Colors — brand / primary */
+  --dt-primary: #6366f1;
+  --dt-primary-hover: #818cf8;
+  --dt-primary-light: #1e1b4b;
+  --dt-primary-light-hover: #312e81;
+  --dt-primary-ring: #4f46e5;
+
+  /* Colors — surfaces */
+  --dt-white: #1e293b;
+  --dt-bg: #0f172a;
+  --dt-bg-hover: #1e293b;
+  --dt-bg-sidebar: #1e293b;
+
+  /* Colors — text */
+  --dt-text-primary: #f1f5f9;
+  --dt-text-secondary: #cbd5e1;
+  --dt-text-muted: #94a3b8;
+  --dt-text-faint: #64748b;
+  --dt-text-disabled: #475569;
+
+  /* Colors — borders */
+  --dt-border: #334155;
+  --dt-border-light: #1e293b;
+  --dt-border-dark: #475569;
+
+  /* Colors — status */
+  --dt-success: #22c55e;
+  --dt-danger: #ef4444;
+  --dt-warning: #fbbf24;
+  --dt-danger-bg: #7f1d1d;
+  --dt-danger-text: #fecaca;
+
+  /* Colors — chores status */
+  --dt-chores-open: #60a5fa;
+  --dt-chores-claimed: #a78bfa;
+  --dt-chores-assigned: #818cf8;
+  --dt-chores-in-progress: #fbbf24;
+  --dt-chores-pending-signoff: #fb923c;
+  --dt-chores-completed: #4ade80;
+  --dt-chores-overdue: #f87171;
+  --dt-chores-expiring-soon: #facc15;
+
+  /* Density bar colors */
+  --dt-density-none: #334155;
+  --dt-density-low: #166534;
+  --dt-density-medium: #854d0e;
+  --dt-density-high: #991b1b;
+
+  /* Family member colors (brighter for dark backgrounds) */
+  --dt-member-faiyaz: #60a5fa;
+  --dt-member-trisha: #f472b6;
+  --dt-member-arya: #4ade80;
+  --dt-member-raya: #fbbf24;
+
+  /* Shadows */
+  --dt-shadow-card: 0 4px 12px rgba(0, 0, 0, 0.3);
+  --dt-shadow-card-hover: 0 4px 12px rgba(0, 0, 0, 0.4);
+  --dt-shadow-side-nav: 0 2px 6px rgba(0, 0, 0, 0.3);
+  --dt-shadow-side-nav-hover: 0 4px 12px rgba(99, 102, 241, 0.3);
+  --dt-shadow-popup: 0 8px 24px rgba(0, 0, 0, 0.5);
+  --dt-shadow-modal: 0 20px 40px rgba(0, 0, 0, 0.6);
+  --dt-shadow-view-btn: 0 1px 2px rgba(0, 0, 0, 0.3);
+  --dt-shadow-fab: 0 4px 12px rgba(99, 102, 241, 0.4);
+  --dt-shadow-fab-hover: 0 6px 16px rgba(99, 102, 241, 0.5);
+  --dt-shadow-sidebar: 2px 0 4px rgba(0, 0, 0, 0.3);
+}
+
+/* ---------------------------------------------------------------------------
+ * Tailwind @theme — maps CSS custom properties to utility classes
+ * --------------------------------------------------------------------------- */
+
+@theme {
+  --font-sans: 'Inter', system-ui, sans-serif;
+  --color-primary: var(--dt-primary);
+  --color-primary-hover: var(--dt-primary-hover);
+  --color-primary-light: var(--dt-primary-light);
+  --color-primary-light-hover: var(--dt-primary-light-hover);
+  --color-primary-ring: var(--dt-primary-ring);
+  --color-bg: var(--dt-bg);
+  --color-bg-hover: var(--dt-bg-hover);
+  --color-white: var(--dt-white);
+  --color-text-primary: var(--dt-text-primary);
+  --color-text-secondary: var(--dt-text-secondary);
+  --color-text-muted: var(--dt-text-muted);
+  --color-text-faint: var(--dt-text-faint);
+  --color-text-disabled: var(--dt-text-disabled);
+  --color-border: var(--dt-border);
+  --color-border-light: var(--dt-border-light);
+  --color-border-dark: var(--dt-border-dark);
+  --color-success: var(--dt-success);
+  --color-danger: var(--dt-danger);
+  --color-warning: var(--dt-warning);
+  --color-faiyaz: var(--dt-member-faiyaz);
+  --color-trisha: var(--dt-member-trisha);
+  --color-arya: var(--dt-member-arya);
+  --color-raya: var(--dt-member-raya);
+  --shadow-view-btn: var(--dt-shadow-view-btn);
+  --shadow-sidebar: var(--dt-shadow-sidebar);
+}
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* ---------------------------------------------------------------------------
+ * Base styles
+ * --------------------------------------------------------------------------- */
+
+html, body, #root {
+  height: 100%;
+  margin: 0;
+  overflow: hidden;
+}

@@ -1,0 +1,1286 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dashy — Weather Icons Mockup v3</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    background: #f0f2f5;
+    color: #1f2937;
+    padding: 32px;
+    line-height: 1.5;
+  }
+  h1 { font-size: 24px; font-weight: 700; margin-bottom: 8px; }
+  h2 { font-size: 18px; font-weight: 600; margin: 32px 0 16px; padding-bottom: 8px; border-bottom: 2px solid #e5e7eb; }
+  h3 { font-size: 14px; font-weight: 600; margin: 20px 0 12px; color: #6b7280; text-transform: uppercase; letter-spacing: 0.5px; }
+  p { color: #6b7280; margin-bottom: 16px; font-size: 14px; }
+  .section { background: #fff; border-radius: 12px; padding: 24px; margin-bottom: 24px; box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
+  .grid { display: flex; flex-wrap: wrap; gap: 16px; align-items: flex-start; }
+  .icon-card {
+    display: flex; flex-direction: column; align-items: center; gap: 8px;
+    padding: 16px; border-radius: 10px; background: #f9fafb; border: 1px solid #e5e7eb;
+    min-width: 80px; text-align: center;
+  }
+  .icon-card svg { display: block; }
+  .icon-label { font-size: 11px; color: #6b7280; font-weight: 500; }
+  .icon-sublabel { font-size: 10px; color: #9ca3af; }
+
+  .cal-row {
+    display: flex; align-items: center; gap: 12px;
+    padding: 12px 16px; background: #f9fafb; border-radius: 10px;
+    border: 1px solid #e5e7eb; margin-bottom: 12px;
+  }
+  .cal-row .temp-high { font-size: 22px; font-weight: 700; }
+  .cal-row .temp-low { font-size: 18px; font-weight: 400; color: #9ca3af; }
+  .cal-row .condition { font-size: 14px; color: #6b7280; }
+  .cal-row .metric { font-size: 13px; color: #6b7280; display: flex; align-items: center; gap: 4px; }
+
+  .tooltip-mockup {
+    width: 320px; background: #fff; border: 1px solid #e5e7eb;
+    border-radius: 12px; padding: 20px; box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+  }
+  .tooltip-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+  .tooltip-header-left { display: flex; align-items: center; gap: 12px; }
+  .tooltip-header .big-temp { font-size: 32px; font-weight: 700; line-height: 1; }
+  .tooltip-header .condition-text { font-size: 13px; color: #6b7280; margin-top: 2px; }
+  .tooltip-header .day-label { font-size: 14px; font-weight: 600; text-align: right; }
+  .tooltip-header .date-label { font-size: 11px; color: #9ca3af; text-align: right; }
+  .tooltip-summary { font-size: 12px; color: #9ca3af; font-style: italic; margin-bottom: 16px; }
+
+  .chart-area { background: #f3f4f6; border-radius: 8px; padding: 12px 8px; margin-bottom: 16px; }
+
+  .section-heading { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; }
+  .section-heading .heading-label { font-size: 10px; font-weight: 600; color: #9ca3af; text-transform: uppercase; letter-spacing: 0.5px; }
+
+  .detail-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 12px; }
+  .detail-item { display: flex; align-items: center; gap: 10px; background: #f3f4f6; border-radius: 8px; padding: 10px 12px; }
+  .detail-item .metric-icon { flex-shrink: 0; }
+  .detail-item .detail-label { font-size: 10px; color: #9ca3af; }
+  .detail-item .detail-value { font-size: 13px; font-weight: 500; }
+
+  .astro-row { display: flex; gap: 8px; }
+  .astro-item { flex: 1; background: #f3f4f6; border-radius: 8px; padding: 10px 8px; text-align: center; }
+  .astro-item .astro-icon { margin-bottom: 4px; }
+  .astro-item .astro-label { font-size: 10px; color: #9ca3af; }
+  .astro-item .astro-value { font-size: 12px; font-weight: 500; }
+
+  .note { background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 8px; padding: 12px 16px; font-size: 13px; color: #1e40af; margin-bottom: 16px; }
+  .note strong { font-weight: 600; }
+  .changelog { background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px; padding: 12px 16px; font-size: 13px; color: #166534; margin-bottom: 16px; }
+  .changelog strong { font-weight: 600; }
+  .changelog ul { margin-top: 6px; padding-left: 18px; }
+  .changelog li { margin-bottom: 2px; }
+
+  .mapping-table { width: 100%; border-collapse: collapse; margin-top: 12px; font-size: 13px; }
+  .mapping-table th, .mapping-table td { padding: 8px 12px; text-align: left; border-bottom: 1px solid #e5e7eb; }
+  .mapping-table th { font-weight: 600; color: #6b7280; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; }
+  .mapping-table tr:hover { background: #f9fafb; }
+  .mapping-table .owm-code { font-family: monospace; font-size: 12px; color: #6b7280; }
+  .mapping-table .status-new { color: #16a34a; font-weight: 600; font-size: 11px; }
+  .mapping-table .status-existing { color: #6b7280; font-size: 11px; }
+</style>
+</head>
+<body>
+
+<h1>Dashy — Weather Icons Redesign (v3)</h1>
+<p>One-to-one mapping: every distinct OWM <code>weather.main</code> value gets its own unique icon. No grouping.</p>
+
+<div class="changelog">
+  <strong>Changes from v2:</strong>
+  <ul>
+    <li>Added unique icons for ALL 15 OWM conditions: Drizzle, Mist, Haze, Smoke, Dust, Sand, Ash, Squall, Tornado</li>
+    <li>Removed grouping — each condition maps 1:1 to its own icon</li>
+    <li>Full mapping table showing OWM code ranges, current behavior, and new icon</li>
+  </ul>
+</div>
+
+<!-- ============================================================ -->
+<!-- SECTION 1: Full OWM Condition Mapping -->
+<!-- ============================================================ -->
+<div class="section">
+  <h2>1. Complete OWM Condition Mapping (15 distinct values)</h2>
+  <p>OpenWeatherMap returns these 15 distinct <code>weather.main</code> values. Each gets a unique SVG icon.</p>
+
+  <table class="mapping-table">
+    <thead>
+      <tr>
+        <th>OWM Main</th>
+        <th>Code Range</th>
+        <th>Description</th>
+        <th>Current Mapping</th>
+        <th>New Icon</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>Clear</strong></td>
+        <td class="owm-code">800</td>
+        <td>No clouds</td>
+        <td><span class="status-existing">sunny</span></td>
+        <td>Sun with rays</td>
+      </tr>
+      <tr>
+        <td><strong>Clouds</strong></td>
+        <td class="owm-code">801–804</td>
+        <td>Few to overcast clouds</td>
+        <td><span class="status-existing">cloudy</span></td>
+        <td>Cloud shape</td>
+      </tr>
+      <tr>
+        <td><strong>Rain</strong></td>
+        <td class="owm-code">500–504, 511, 520–531</td>
+        <td>Moderate to heavy rain</td>
+        <td><span class="status-existing">rainy</span></td>
+        <td>Cloud + heavy rain lines</td>
+      </tr>
+      <tr>
+        <td><strong>Drizzle</strong></td>
+        <td class="owm-code">300–321</td>
+        <td>Light rain droplets</td>
+        <td><span class="status-existing">→ rainy (grouped)</span></td>
+        <td><span class="status-new">NEW</span> Cloud + light dots</td>
+      </tr>
+      <tr>
+        <td><strong>Thunderstorm</strong></td>
+        <td class="owm-code">200–232</td>
+        <td>Thunder + lightning</td>
+        <td><span class="status-existing">→ rainy (grouped)</span></td>
+        <td><span class="status-new">NEW</span> Cloud + lightning bolt</td>
+      </tr>
+      <tr>
+        <td><strong>Snow</strong></td>
+        <td class="owm-code">600–622</td>
+        <td>Snowfall</td>
+        <td><span class="status-existing">snowy</span></td>
+        <td>Cloud + snowflakes</td>
+      </tr>
+      <tr>
+        <td><strong>Mist</strong></td>
+        <td class="owm-code">701</td>
+        <td>Water droplets suspended, visibility reduced</td>
+        <td><span class="status-existing">→ cloudy (grouped)</span></td>
+        <td><span class="status-new">NEW</span> Thin horizontal lines (light)</td>
+      </tr>
+      <tr>
+        <td><strong>Smoke</strong></td>
+        <td class="owm-code">711</td>
+        <td>Smoke from fires</td>
+        <td><span class="status-existing">→ cloudy (grouped)</span></td>
+        <td><span class="status-new">NEW</span> Wavy smoke lines</td>
+      </tr>
+      <tr>
+        <td><strong>Haze</strong></td>
+        <td class="owm-code">721</td>
+        <td>Dust/haze particles, reduced visibility</td>
+        <td><span class="status-existing">→ cloudy (grouped)</span></td>
+        <td><span class="status-new">NEW</span> Sun partially obscured by haze bands</td>
+      </tr>
+      <tr>
+        <td><strong>Dust</strong></td>
+        <td class="owm-code">731</td>
+        <td>Dust whirls</td>
+        <td><span class="status-existing">→ cloudy (grouped)</span></td>
+        <td><span class="status-new">NEW</span> Swirling dust particles</td>
+      </tr>
+      <tr>
+        <td><strong>Fog</strong></td>
+        <td class="owm-code">741</td>
+        <td>Dense fog, very low visibility</td>
+        <td><span class="status-existing">→ cloudy (grouped)</span></td>
+        <td><span class="status-new">NEW</span> Thick horizontal lines (heavy)</td>
+      </tr>
+      <tr>
+        <td><strong>Sand</strong></td>
+        <td class="owm-code">751</td>
+        <td>Sand/dust storm</td>
+        <td><span class="status-existing">→ cloudy (grouped)</span></td>
+        <td><span class="status-new">NEW</span> Sand particles blowing</td>
+      </tr>
+      <tr>
+        <td><strong>Ash</strong></td>
+        <td class="owm-code">761</td>
+        <td>Volcanic ash</td>
+        <td><span class="status-existing">→ cloudy (grouped)</span></td>
+        <td><span class="status-new">NEW</span> Falling ash particles</td>
+      </tr>
+      <tr>
+        <td><strong>Squall</strong></td>
+        <td class="owm-code">771</td>
+        <td>Sudden strong wind gusts</td>
+        <td><span class="status-existing">→ cloudy (grouped)</span></td>
+        <td><span class="status-new">NEW</span> Strong wind + rain</td>
+      </tr>
+      <tr>
+        <td><strong>Tornado</strong></td>
+        <td class="owm-code">781</td>
+        <td>Tornado/funnel cloud</td>
+        <td><span class="status-existing">→ cloudy (grouped)</span></td>
+        <td><span class="status-new">NEW</span> Funnel cloud</td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+<!-- ============================================================ -->
+<!-- SECTION 2: All 15 Condition Icons -->
+<!-- ============================================================ -->
+<div class="section">
+  <h2>2. All 15 Weather Condition Icons</h2>
+  <p>Every OWM <code>weather.main</code> value → unique SVG icon. Shown at 32px (calendar medium size).</p>
+
+  <div class="grid">
+    <!-- 1. Clear / Sunny -->
+    <div class="icon-card">
+      <svg width="32" height="32" viewBox="0 0 24 24" fill="none">
+        <circle cx="12" cy="12" r="4" fill="#FBBF24"/>
+        <g stroke="#FBBF24" stroke-width="2" stroke-linecap="round">
+          <line x1="12" y1="2" x2="12" y2="4"/><line x1="12" y1="20" x2="12" y2="22"/>
+          <line x1="4.93" y1="4.93" x2="6.34" y2="6.34"/><line x1="17.66" y1="17.66" x2="19.07" y2="19.07"/>
+          <line x1="2" y1="12" x2="4" y2="12"/><line x1="20" y1="12" x2="22" y2="12"/>
+          <line x1="4.93" y1="19.07" x2="6.34" y2="17.66"/><line x1="17.66" y1="6.34" x2="19.07" y2="4.93"/>
+        </g>
+      </svg>
+      <span class="icon-label">Clear</span>
+      <span class="icon-sublabel">800</span>
+    </div>
+
+    <!-- 2. Clouds -->
+    <div class="icon-card">
+      <svg width="32" height="32" viewBox="0 0 24 24" fill="none">
+        <path d="M6 19a4 4 0 0 1-.88-7.9A5.5 5.5 0 0 1 16.08 8 4.5 4.5 0 0 1 18 17H6z" fill="#94A3B8"/>
+      </svg>
+      <span class="icon-label">Clouds</span>
+      <span class="icon-sublabel">801–804</span>
+    </div>
+
+    <!-- 3. Rain -->
+    <div class="icon-card">
+      <svg width="32" height="32" viewBox="0 0 24 24" fill="none">
+        <path d="M6 14a4 4 0 0 1-.88-7.9A5.5 5.5 0 0 1 16.08 3 4.5 4.5 0 0 1 18 12H6z" fill="#94A3B8"/>
+        <g stroke="#60A5FA" stroke-width="1.5" stroke-linecap="round">
+          <line x1="8" y1="16" x2="7" y2="20"/><line x1="12" y1="16" x2="11" y2="20"/><line x1="16" y1="16" x2="15" y2="20"/>
+        </g>
+      </svg>
+      <span class="icon-label">Rain</span>
+      <span class="icon-sublabel">500–531</span>
+    </div>
+
+    <!-- 4. Drizzle (NEW) -->
+    <div class="icon-card" style="border: 2px solid #f59e0b;">
+      <svg width="32" height="32" viewBox="0 0 24 24" fill="none">
+        <path d="M6 14a4 4 0 0 1-.88-7.9A5.5 5.5 0 0 1 16.08 3 4.5 4.5 0 0 1 18 12H6z" fill="#94A3B8"/>
+        <g fill="#93C5FD">
+          <circle cx="9" cy="16" r="0.8"/><circle cx="12" cy="17" r="0.8"/><circle cx="15" cy="16" r="0.8"/>
+          <circle cx="10.5" cy="19" r="0.8"/><circle cx="13.5" cy="19" r="0.8"/>
+        </g>
+      </svg>
+      <span class="icon-label">Drizzle ✨NEW</span>
+      <span class="icon-sublabel">300–321</span>
+    </div>
+
+    <!-- 5. Thunderstorm (NEW) -->
+    <div class="icon-card" style="border: 2px solid #f59e0b;">
+      <svg width="32" height="32" viewBox="0 0 24 24" fill="none">
+        <path d="M6 14a4 4 0 0 1-.88-7.9A5.5 5.5 0 0 1 16.08 3 4.5 4.5 0 0 1 18 12H6z" fill="#64748B"/>
+        <path d="M13 12l-3 5h3l-1 4 4-6h-3l1-3z" fill="#FBBF24" stroke="#F59E0B" stroke-width="0.5"/>
+      </svg>
+      <span class="icon-label">Thunderstorm ✨NEW</span>
+      <span class="icon-sublabel">200–232</span>
+    </div>
+
+    <!-- 6. Snow -->
+    <div class="icon-card">
+      <svg width="32" height="32" viewBox="0 0 24 24" fill="none">
+        <path d="M6 14a4 4 0 0 1-.88-7.9A5.5 5.5 0 0 1 16.08 3 4.5 4.5 0 0 1 18 12H6z" fill="#94A3B8"/>
+        <g fill="#93C5FD">
+          <circle cx="8" cy="17" r="1"/><circle cx="12" cy="18" r="1"/><circle cx="16" cy="17" r="1"/>
+          <circle cx="10" cy="21" r="1"/><circle cx="14" cy="21" r="1"/>
+        </g>
+      </svg>
+      <span class="icon-label">Snow</span>
+      <span class="icon-sublabel">600–622</span>
+    </div>
+
+    <!-- 7. Mist (NEW) -->
+    <div class="icon-card" style="border: 2px solid #f59e0b;">
+      <svg width="32" height="32" viewBox="0 0 24 24" fill="none">
+        <g stroke="#CBD5E1" stroke-width="1.5" stroke-linecap="round" opacity="0.7">
+          <line x1="5" y1="7" x2="19" y2="7"/>
+          <line x1="7" y1="11" x2="17" y2="11"/>
+          <line x1="5" y1="15" x2="19" y2="15"/>
+          <line x1="9" y1="19" x2="15" y2="19"/>
+        </g>
+      </svg>
+      <span class="icon-label">Mist NEW</span>
+      <span class="icon-sublabel">701</span>
+    </div>
+
+    <!-- 8. Smoke (NEW) -->
+    <div class="icon-card" style="border: 2px solid #f59e0b;">
+      <svg width="32" height="32" viewBox="0 0 24 24" fill="none">
+        <g stroke="#78716C" stroke-width="1.5" stroke-linecap="round" fill="none">
+          <path d="M8 20c0-3 2-4 2-7s-1-4-1-7"/>
+          <path d="M12 20c0-3 2-4 2-7s-1-4-1-7"/>
+          <path d="M16 20c0-3 2-4 2-7s-1-4-1-7"/>
+        </g>
+      </svg>
+      <span class="icon-label">Smoke ✨NEW</span>
+      <span class="icon-sublabel">711</span>
+    </div>
+
+    <!-- 9. Haze (NEW) -->
+    <div class="icon-card" style="border: 2px solid #f59e0b;">
+      <svg width="32" height="32" viewBox="0 0 24 24" fill="none">
+        <!-- Sun partially visible -->
+        <circle cx="12" cy="10" r="4" fill="#FDE68A" opacity="0.5"/>
+        <g stroke="#FDE68A" stroke-width="1.5" stroke-linecap="round" opacity="0.4">
+          <line x1="12" y1="3" x2="12" y2="5"/><line x1="12" y1="15" x2="12" y2="17"/>
+          <line x1="5" y1="10" x2="7" y2="10"/><line x1="17" y1="10" x2="19" y2="10"/>
+        </g>
+        <!-- Haze bands -->
+        <g stroke="#D6D3D1" stroke-width="2" stroke-linecap="round" opacity="0.6">
+          <line x1="3" y1="14" x2="21" y2="14"/>
+          <line x1="5" y1="18" x2="19" y2="18"/>
+          <line x1="7" y1="21" x2="17" y2="21"/>
+        </g>
+      </svg>
+      <span class="icon-label">Haze ✨NEW</span>
+      <span class="icon-sublabel">721</span>
+    </div>
+
+    <!-- 10. Dust (NEW) -->
+    <div class="icon-card" style="border: 2px solid #f59e0b;">
+      <svg width="32" height="32" viewBox="0 0 24 24" fill="none">
+        <!-- Swirling dust -->
+        <g stroke="#A8A29E" stroke-width="1.5" stroke-linecap="round" fill="none">
+          <path d="M4 16c2-2 5-2 7 0s5 2 7 0"/>
+          <path d="M6 12c1.5-1.5 4-1.5 5.5 0s4 1.5 5.5 0"/>
+          <path d="M8 8c1-1 3-1 4 0s3 1 4 0"/>
+        </g>
+        <!-- Dust particles -->
+        <g fill="#D6D3D1">
+          <circle cx="6" cy="18" r="1"/><circle cx="10" cy="20" r="0.8"/><circle cx="15" cy="19" r="1"/>
+          <circle cx="19" cy="17" r="0.8"/><circle cx="12" cy="6" r="0.8"/>
+        </g>
+      </svg>
+      <span class="icon-label">Dust ✨NEW</span>
+      <span class="icon-sublabel">731</span>
+    </div>
+
+    <!-- 11. Fog (NEW) -->
+    <div class="icon-card" style="border: 2px solid #f59e0b;">
+      <svg width="32" height="32" viewBox="0 0 24 24" fill="none">
+        <g stroke="#94A3B8" stroke-width="2.5" stroke-linecap="round">
+          <line x1="3" y1="7" x2="21" y2="7"/>
+          <line x1="3" y1="11" x2="21" y2="11"/>
+          <line x1="3" y1="15" x2="21" y2="15"/>
+          <line x1="3" y1="19" x2="21" y2="19"/>
+        </g>
+      </svg>
+      <span class="icon-label">Fog ✨NEW</span>
+      <span class="icon-sublabel">741</span>
+    </div>
+
+    <!-- 12. Sand (NEW) -->
+    <div class="icon-card" style="border: 2px solid #f59e0b;">
+      <svg width="32" height="32" viewBox="0 0 24 24" fill="none">
+        <!-- Wind lines with sand -->
+        <g stroke="#D4A574" stroke-width="1.5" stroke-linecap="round" fill="none">
+          <path d="M3 10c3-1 6-1 9 0s6 1 9 0"/>
+          <path d="M3 14c3-1 6-1 9 0s6 1 9 0"/>
+          <path d="M5 18c2.5-0.8 5-0.8 7.5 0s5 0.8 7.5 0"/>
+        </g>
+        <!-- Sand particles -->
+        <g fill="#D4A574">
+          <circle cx="8" cy="8" r="0.8"/><circle cx="14" cy="7" r="0.6"/><circle cx="18" cy="9" r="0.8"/>
+          <circle cx="11" cy="12" r="0.6"/><circle cx="20" cy="12" r="0.7"/>
+          <circle cx="6" cy="16" r="0.6"/><circle cx="16" cy="16" r="0.8"/>
+        </g>
+      </svg>
+      <span class="icon-label">Sand NEW</span>
+      <span class="icon-sublabel">751</span>
+    </div>
+
+    <!-- 13. Ash (NEW) -->
+    <div class="icon-card" style="border: 2px solid #f59e0b;">
+      <svg width="32" height="32" viewBox="0 0 24 24" fill="none">
+        <!-- Volcano hint -->
+        <path d="M8 20l4-10 4 10z" fill="#78716C" opacity="0.3"/>
+        <!-- Falling ash particles -->
+        <g fill="#A8A29E">
+          <circle cx="7" cy="8" r="1"/><circle cx="11" cy="6" r="0.8"/><circle cx="15" cy="9" r="1"/>
+          <circle cx="9" cy="12" r="0.7"/><circle cx="13" cy="11" r="0.9"/><circle cx="17" cy="7" r="0.8"/>
+          <circle cx="6" cy="14" r="0.6"/><circle cx="18" cy="13" r="0.7"/>
+          <circle cx="10" cy="16" r="0.8"/><circle cx="14" cy="15" r="0.6"/>
+        </g>
+      </svg>
+      <span class="icon-label">Ash ✨NEW</span>
+      <span class="icon-sublabel">761</span>
+    </div>
+
+    <!-- 14. Squall (NEW) -->
+    <div class="icon-card" style="border: 2px solid #f59e0b;">
+      <svg width="32" height="32" viewBox="0 0 24 24" fill="none">
+        <!-- Dark cloud -->
+        <path d="M6 12a4 4 0 0 1-.88-7.9A5.5 5.5 0 0 1 16.08 1 4.5 4.5 0 0 1 18 10H6z" fill="#475569"/>
+        <!-- Strong wind lines -->
+        <g stroke="#64748B" stroke-width="2" stroke-linecap="round">
+          <line x1="3" y1="14" x2="12" y2="14"/>
+          <line x1="5" y1="17" x2="16" y2="17"/>
+          <line x1="3" y1="20" x2="10" y2="20"/>
+        </g>
+        <!-- Rain drops -->
+        <g stroke="#60A5FA" stroke-width="1.5" stroke-linecap="round">
+          <line x1="14" y1="13" x2="13" y2="17"/>
+          <line x1="18" y1="14" x2="17" y2="18"/>
+        </g>
+      </svg>
+      <span class="icon-label">Squall ✨NEW</span>
+      <span class="icon-sublabel">771</span>
+    </div>
+
+    <!-- 15. Tornado (NEW) -->
+    <div class="icon-card" style="border: 2px solid #f59e0b;">
+      <svg width="32" height="32" viewBox="0 0 24 24" fill="none">
+        <!-- Funnel cloud -->
+        <path d="M6 6c2-1 4-1 6 0s4 1 6 0" stroke="#64748B" stroke-width="1.5" stroke-linecap="round" fill="none"/>
+        <path d="M7 9c1.5-0.8 3-0.8 4.5 0s3 0.8 4.5 0" stroke="#64748B" stroke-width="1.5" stroke-linecap="round" fill="none"/>
+        <path d="M8 12c1-0.6 2.5-0.6 3.5 0s2.5 0.6 3.5 0" stroke="#64748B" stroke-width="1.5" stroke-linecap="round" fill="none"/>
+        <path d="M9 15c0.8-0.5 2-0.5 2.8 0s2 0.5 2.8 0" stroke="#64748B" stroke-width="1.5" stroke-linecap="round" fill="none"/>
+        <path d="M10 18c0.5-0.3 1.2-0.3 1.8 0s1.2 0.3 1.8 0" stroke="#64748B" stroke-width="1.5" stroke-linecap="round" fill="none"/>
+        <!-- Debris at bottom -->
+        <g fill="#A8A29E">
+          <circle cx="10" cy="21" r="0.8"/><circle cx="13" cy="21.5" r="0.6"/><circle cx="15" cy="20.5" r="0.7"/>
+        </g>
+      </svg>
+      <span class="icon-label">Tornado ✨NEW</span>
+      <span class="icon-sublabel">781</span>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<!-- SECTION 2B: Day/Night Icon Variants -->
+<!-- ============================================================ -->
+<div class="section">
+  <h2>2B. Day/Night Icon Variants</h2>
+  <p>OWM icon codes have a <code>d</code> or <code>n</code> suffix (e.g., <code>01d</code> = day, <code>01n</code> = night). Key conditions have distinct day vs night appearances.</p>
+
+  <div class="changelog">
+    <strong>Day/Night Differentiation:</strong>
+    <ul>
+      <li><strong>Clear:</strong> Sun (day) vs Moon with stars (night)</li>
+      <li><strong>Clouds:</strong> Light grey cloud (day) vs Dark blue-grey cloud (night)</li>
+      <li><strong>Rain/Drizzle/Thunderstorm:</strong> Lighter cloud (day) vs Darker cloud (night)</li>
+      <li><strong>Snow:</strong> Light cloud (day) vs Dark cloud (night)</li>
+      <li><strong>Mist/Fog/Haze:</strong> Lighter lines (day) vs Darker lines (night)</li>
+    </ul>
+  </div>
+
+  <h3>Clear — Day vs Night</h3>
+  <div class="grid">
+    <div class="icon-card">
+      <svg width="32" height="32" viewBox="0 0 24 24" fill="none">
+        <circle cx="12" cy="12" r="4" fill="#FBBF24"/>
+        <g stroke="#FBBF24" stroke-width="2" stroke-linecap="round">
+          <line x1="12" y1="2" x2="12" y2="4"/><line x1="12" y1="20" x2="12" y2="22"/>
+          <line x1="4.93" y1="4.93" x2="6.34" y2="6.34"/><line x1="17.66" y1="17.66" x2="19.07" y2="19.07"/>
+          <line x1="2" y1="12" x2="4" y2="12"/><line x1="20" y1="12" x2="22" y2="12"/>
+          <line x1="4.93" y1="19.07" x2="6.34" y2="17.66"/><line x1="17.66" y1="6.34" x2="19.07" y2="4.93"/>
+        </g>
+      </svg>
+      <span class="icon-label">Clear (Day)</span>
+      <span class="icon-sublabel">01d</span>
+    </div>
+    <div class="icon-card" style="background: #1e293b;">
+      <svg width="32" height="32" viewBox="0 0 24 24" fill="none">
+        <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" fill="#FDE68A" stroke="#FCD34D" stroke-width="1"/>
+        <circle cx="18" cy="5" r="1" fill="#FDE68A"/>
+        <circle cx="20" cy="9" r="0.8" fill="#FDE68A"/>
+        <circle cx="16" cy="7" r="0.6" fill="#FDE68A"/>
+      </svg>
+      <span class="icon-label" style="color: #e2e8f0;">Clear (Night)</span>
+      <span class="icon-sublabel" style="color: #94a3b8;">01n</span>
+    </div>
+  </div>
+
+  <h3>Clouds — Day vs Night</h3>
+  <div class="grid">
+    <div class="icon-card">
+      <svg width="32" height="32" viewBox="0 0 24 24" fill="none">
+        <path d="M6 19a4 4 0 0 1-.88-7.9A5.5 5.5 0 0 1 16.08 8 4.5 4.5 0 0 1 18 17H6z" fill="#94A3B8"/>
+      </svg>
+      <span class="icon-label">Clouds (Day)</span>
+      <span class="icon-sublabel">02d, 03d, 04d</span>
+    </div>
+    <div class="icon-card" style="background: #1e293b;">
+      <svg width="32" height="32" viewBox="0 0 24 24" fill="none">
+        <path d="M6 19a4 4 0 0 1-.88-7.9A5.5 5.5 0 0 1 16.08 8 4.5 4.5 0 0 1 18 17H6z" fill="#475569"/>
+      </svg>
+      <span class="icon-label" style="color: #e2e8f0;">Clouds (Night)</span>
+      <span class="icon-sublabel" style="color: #94a3b8;">02n, 03n, 04n</span>
+    </div>
+  </div>
+
+  <h3>Rain — Day vs Night</h3>
+  <div class="grid">
+    <div class="icon-card">
+      <svg width="32" height="32" viewBox="0 0 24 24" fill="none">
+        <path d="M6 14a4 4 0 0 1-.88-7.9A5.5 5.5 0 0 1 16.08 3 4.5 4.5 0 0 1 18 12H6z" fill="#94A3B8"/>
+        <g stroke="#60A5FA" stroke-width="1.5" stroke-linecap="round">
+          <line x1="8" y1="16" x2="7" y2="20"/><line x1="12" y1="16" x2="11" y2="20"/><line x1="16" y1="16" x2="15" y2="20"/>
+        </g>
+      </svg>
+      <span class="icon-label">Rain (Day)</span>
+      <span class="icon-sublabel">09d, 10d</span>
+    </div>
+    <div class="icon-card" style="background: #1e293b;">
+      <svg width="32" height="32" viewBox="0 0 24 24" fill="none">
+        <path d="M6 14a4 4 0 0 1-.88-7.9A5.5 5.5 0 0 1 16.08 3 4.5 4.5 0 0 1 18 12H6z" fill="#334155"/>
+        <g stroke="#60A5FA" stroke-width="1.5" stroke-linecap="round">
+          <line x1="8" y1="16" x2="7" y2="20"/><line x1="12" y1="16" x2="11" y2="20"/><line x1="16" y1="16" x2="15" y2="20"/>
+        </g>
+      </svg>
+      <span class="icon-label" style="color: #e2e8f0;">Rain (Night)</span>
+      <span class="icon-sublabel" style="color: #94a3b8;">09n, 10n</span>
+    </div>
+  </div>
+
+  <h3>Thunderstorm — Day vs Night</h3>
+  <div class="grid">
+    <div class="icon-card">
+      <svg width="32" height="32" viewBox="0 0 24 24" fill="none">
+        <path d="M6 14a4 4 0 0 1-.88-7.9A5.5 5.5 0 0 1 16.08 3 4.5 4.5 0 0 1 18 12H6z" fill="#64748B"/>
+        <path d="M13 12l-3 5h3l-1 4 4-6h-3l1-3z" fill="#FBBF24" stroke="#F59E0B" stroke-width="0.5"/>
+      </svg>
+      <span class="icon-label">Thunderstorm (Day)</span>
+      <span class="icon-sublabel">11d</span>
+    </div>
+    <div class="icon-card" style="background: #1e293b;">
+      <svg width="32" height="32" viewBox="0 0 24 24" fill="none">
+        <path d="M6 14a4 4 0 0 1-.88-7.9A5.5 5.5 0 0 1 16.08 3 4.5 4.5 0 0 1 18 12H6z" fill="#1e293b" stroke="#475569" stroke-width="1"/>
+        <path d="M13 12l-3 5h3l-1 4 4-6h-3l1-3z" fill="#FBBF24" stroke="#F59E0B" stroke-width="0.5"/>
+      </svg>
+      <span class="icon-label" style="color: #e2e8f0;">Thunderstorm (Night)</span>
+      <span class="icon-sublabel" style="color: #94a3b8;">11n</span>
+    </div>
+  </div>
+
+  <h3>Snow — Day vs Night</h3>
+  <div class="grid">
+    <div class="icon-card">
+      <svg width="32" height="32" viewBox="0 0 24 24" fill="none">
+        <path d="M6 14a4 4 0 0 1-.88-7.9A5.5 5.5 0 0 1 16.08 3 4.5 4.5 0 0 1 18 12H6z" fill="#94A3B8"/>
+        <g fill="#93C5FD">
+          <circle cx="8" cy="17" r="1"/><circle cx="12" cy="18" r="1"/><circle cx="16" cy="17" r="1"/>
+          <circle cx="10" cy="21" r="1"/><circle cx="14" cy="21" r="1"/>
+        </g>
+      </svg>
+      <span class="icon-label">Snow (Day)</span>
+      <span class="icon-sublabel">13d</span>
+    </div>
+    <div class="icon-card" style="background: #1e293b;">
+      <svg width="32" height="32" viewBox="0 0 24 24" fill="none">
+        <path d="M6 14a4 4 0 0 1-.88-7.9A5.5 5.5 0 0 1 16.08 3 4.5 4.5 0 0 1 18 12H6z" fill="#334155"/>
+        <g fill="#93C5FD">
+          <circle cx="8" cy="17" r="1"/><circle cx="12" cy="18" r="1"/><circle cx="16" cy="17" r="1"/>
+          <circle cx="10" cy="21" r="1"/><circle cx="14" cy="21" r="1"/>
+        </g>
+      </svg>
+      <span class="icon-label" style="color: #e2e8f0;">Snow (Night)</span>
+      <span class="icon-sublabel" style="color: #94a3b8;">13n</span>
+    </div>
+  </div>
+
+  <h3>Mist/Fog — Day vs Night</h3>
+  <div class="grid">
+    <div class="icon-card">
+      <svg width="32" height="32" viewBox="0 0 24 24" fill="none">
+        <g stroke="#CBD5E1" stroke-width="1.5" stroke-linecap="round" opacity="0.7">
+          <line x1="5" y1="7" x2="19" y2="7"/>
+          <line x1="7" y1="11" x2="17" y2="11"/>
+          <line x1="5" y1="15" x2="19" y2="15"/>
+          <line x1="9" y1="19" x2="15" y2="19"/>
+        </g>
+      </svg>
+      <span class="icon-label">Mist (Day)</span>
+      <span class="icon-sublabel">50d</span>
+    </div>
+    <div class="icon-card" style="background: #1e293b;">
+      <svg width="32" height="32" viewBox="0 0 24 24" fill="none">
+        <g stroke="#64748B" stroke-width="1.5" stroke-linecap="round" opacity="0.7">
+          <line x1="5" y1="7" x2="19" y2="7"/>
+          <line x1="7" y1="11" x2="17" y2="11"/>
+          <line x1="5" y1="15" x2="19" y2="15"/>
+          <line x1="9" y1="19" x2="15" y2="19"/>
+        </g>
+      </svg>
+      <span class="icon-label" style="color: #e2e8f0;">Mist (Night)</span>
+      <span class="icon-sublabel" style="color: #94a3b8;">50n</span>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<!-- SECTION 3: Calendar View Row -->
+<!-- ============================================================ -->
+<div class="section">
+  <h2>3. Calendar View Row — Before & After</h2>
+
+  <h3>Before (grey dot + emoji metrics)</h3>
+  <div class="cal-row">
+    <svg width="20" height="20" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4" fill="#CBD5E1"/></svg>
+    <span class="temp-high">78°</span>
+    <span class="temp-low">66°</span>
+    <span class="condition">partly-cloudy</span>
+    <span class="metric">💧 60%</span>
+    <span class="metric">💨 10 mph</span>
+  </div>
+
+  <h3>After (proper condition icon + SVG metric icons)</h3>
+  <div class="cal-row">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+      <circle cx="8" cy="8" r="3.5" fill="#FBBF24"/>
+      <g stroke="#FBBF24" stroke-width="1.5" stroke-linecap="round">
+        <line x1="8" y1="1.5" x2="8" y2="3"/><line x1="8" y1="13" x2="8" y2="14.5"/>
+        <line x1="2.5" y1="2.5" x2="3.5" y2="3.5"/><line x1="12.5" y1="12.5" x2="13.5" y2="13.5"/>
+        <line x1="1.5" y1="8" x2="3" y2="8"/>
+      </g>
+      <path d="M9 20a3.5 3.5 0 0 1-.77-6.91A4.5 4.5 0 0 1 17 11a3.5 3.5 0 0 1 1.5 6.73H9z" fill="#94A3B8"/>
+    </svg>
+    <span class="temp-high">78°</span>
+    <span class="temp-low">66°</span>
+    <span class="condition">partly-cloudy</span>
+    <span class="metric">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z" fill="#60A5FA"/></svg>
+      60%
+    </span>
+    <span class="metric">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+        <path d="M9.59 4.59A2 2 0 1 1 11 8H2m10.59 11.41A2 2 0 1 0 14 16H2m15.73-8.27A2.5 2.5 0 1 1 19.5 12H2" stroke="#94A3B8" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      10 mph
+    </span>
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<!-- SECTION 4: Tooltip Metric Icons -->
+<!-- ============================================================ -->
+<div class="section">
+  <h2>4. Tooltip Metric Icons</h2>
+
+  <!-- Temperature -->
+  <h3>Temperature — Thermometer, color-coded by feel</h3>
+  <div class="grid">
+    <div class="icon-card">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+        <path d="M14 14.76V3.5a2.5 2.5 0 1 0-5 0v11.26a4.5 4.5 0 1 0 5 0z" fill="#3B82F6"/>
+        <circle cx="11.5" cy="17.5" r="2" fill="#fff"/>
+      </svg>
+      <span class="icon-label">Cold</span>
+      <span class="icon-sublabel">&lt; 32°F</span>
+    </div>
+    <div class="icon-card">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+        <path d="M14 14.76V3.5a2.5 2.5 0 1 0-5 0v11.26a4.5 4.5 0 1 0 5 0z" fill="#60A5FA"/>
+        <circle cx="11.5" cy="17.5" r="2" fill="#fff"/>
+      </svg>
+      <span class="icon-label">Cool</span>
+      <span class="icon-sublabel">32–50°F</span>
+    </div>
+    <div class="icon-card">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+        <path d="M14 14.76V3.5a2.5 2.5 0 1 0-5 0v11.26a4.5 4.5 0 1 0 5 0z" fill="#22C55E"/>
+        <circle cx="11.5" cy="17.5" r="2" fill="#fff"/>
+      </svg>
+      <span class="icon-label">Mild</span>
+      <span class="icon-sublabel">50–70°F</span>
+    </div>
+    <div class="icon-card">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+        <path d="M14 14.76V3.5a2.5 2.5 0 1 0-5 0v11.26a4.5 4.5 0 1 0 5 0z" fill="#F59E0B"/>
+        <circle cx="11.5" cy="17.5" r="2" fill="#fff"/>
+      </svg>
+      <span class="icon-label">Warm</span>
+      <span class="icon-sublabel">70–85°F</span>
+    </div>
+    <div class="icon-card">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+        <path d="M14 14.76V3.5a2.5 2.5 0 1 0-5 0v11.26a4.5 4.5 0 1 0 5 0z" fill="#F97316"/>
+        <circle cx="11.5" cy="17.5" r="2" fill="#fff"/>
+      </svg>
+      <span class="icon-label">Hot</span>
+      <span class="icon-sublabel">85–100°F</span>
+    </div>
+    <div class="icon-card">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+        <path d="M14 14.76V3.5a2.5 2.5 0 1 0-5 0v11.26a4.5 4.5 0 1 0 5 0z" fill="#EF4444"/>
+        <circle cx="11.5" cy="17.5" r="2" fill="#fff"/>
+      </svg>
+      <span class="icon-label">Extreme Hot</span>
+      <span class="icon-sublabel">&gt; 100°F</span>
+    </div>
+    <div class="icon-card">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+        <path d="M14 14.76V3.5a2.5 2.5 0 1 0-5 0v11.26a4.5 4.5 0 1 0 5 0z" fill="#60A5FA"/>
+        <circle cx="11.5" cy="17.5" r="2" fill="#fff"/>
+        <line x1="6" y1="7" x2="4" y2="5" stroke="#93C5FD" stroke-width="1.5" stroke-linecap="round"/>
+        <line x1="17" y1="7" x2="19" y2="5" stroke="#93C5FD" stroke-width="1.5" stroke-linecap="round"/>
+        <line x1="5" y1="10" x2="3" y2="10" stroke="#93C5FD" stroke-width="1.5" stroke-linecap="round"/>
+        <line x1="18" y1="10" x2="20" y2="10" stroke="#93C5FD" stroke-width="1.5" stroke-linecap="round"/>
+      </svg>
+      <span class="icon-label">Freezing</span>
+      <span class="icon-sublabel">&lt; 0°F</span>
+    </div>
+  </div>
+
+  <!-- Feels Like -->
+  <h3>Feels Like — Face with expression + temperature effects</h3>
+  <div class="grid">
+    <div class="icon-card">
+      <svg width="28" height="28" viewBox="0 0 28 28" fill="none">
+        <circle cx="14" cy="14" r="10" fill="#DBEAFE" stroke="#93C5FD" stroke-width="1"/>
+        <path d="M9 12l2 1 2-1" stroke="#3B82F6" stroke-width="1.5" stroke-linecap="round" fill="none"/>
+        <path d="M15 12l2 1 2-1" stroke="#3B82F6" stroke-width="1.5" stroke-linecap="round" fill="none"/>
+        <path d="M11 17h6" stroke="#3B82F6" stroke-width="1.5" stroke-linecap="round"/>
+        <line x1="12.5" y1="16.5" x2="12.5" y2="17.5" stroke="#3B82F6" stroke-width="1"/>
+        <line x1="14" y1="16.5" x2="14" y2="17.5" stroke="#3B82F6" stroke-width="1"/>
+        <line x1="15.5" y1="16.5" x2="15.5" y2="17.5" stroke="#3B82F6" stroke-width="1"/>
+        <g stroke="#60A5FA" stroke-width="1" stroke-linecap="round">
+          <line x1="4" y1="5" x2="4" y2="8"/><line x1="2.5" y1="6.5" x2="5.5" y2="6.5"/>
+          <line x1="24" y1="4" x2="24" y2="7"/><line x1="22.5" y1="5.5" x2="25.5" y2="5.5"/>
+        </g>
+      </svg>
+      <span class="icon-label">Freezing</span>
+    </div>
+    <div class="icon-card">
+      <svg width="28" height="28" viewBox="0 0 28 28" fill="none">
+        <circle cx="14" cy="14" r="10" fill="#DBEAFE" stroke="#93C5FD" stroke-width="1"/>
+        <path d="M9 12l2 1 2-1" stroke="#3B82F6" stroke-width="1.5" stroke-linecap="round" fill="none"/>
+        <path d="M15 12l2 1 2-1" stroke="#3B82F6" stroke-width="1.5" stroke-linecap="round" fill="none"/>
+        <path d="M10 17.5c1.5 1 4.5 1 6 0" stroke="#3B82F6" stroke-width="1.5" stroke-linecap="round" fill="none"/>
+        <ellipse cx="22" cy="16" rx="3" ry="2" fill="#BFDBFE" opacity="0.6"/>
+      </svg>
+      <span class="icon-label">Cold</span>
+    </div>
+    <div class="icon-card">
+      <svg width="28" height="28" viewBox="0 0 28 28" fill="none">
+        <circle cx="14" cy="14" r="10" fill="#DCFCE7" stroke="#86EFAC" stroke-width="1"/>
+        <circle cx="10.5" cy="12" r="1.2" fill="#16A34A"/>
+        <circle cx="17.5" cy="12" r="1.2" fill="#16A34A"/>
+        <path d="M10 16c1.5 2 6.5 2 8 0" stroke="#16A34A" stroke-width="1.5" stroke-linecap="round" fill="none"/>
+        <g stroke="#86EFAC" stroke-width="1" stroke-linecap="round">
+          <line x1="5" y1="6" x2="5" y2="8"/><line x1="4" y1="7" x2="6" y2="7"/>
+        </g>
+      </svg>
+      <span class="icon-label">Comfortable</span>
+    </div>
+    <div class="icon-card">
+      <svg width="28" height="28" viewBox="0 0 28 28" fill="none">
+        <circle cx="14" cy="14" r="10" fill="#FEF3C7" stroke="#FCD34D" stroke-width="1"/>
+        <path d="M9 12.5c.5-1 2.5-1 3 0" stroke="#D97706" stroke-width="1.5" stroke-linecap="round" fill="none"/>
+        <path d="M16 12.5c.5-1 2.5-1 3 0" stroke="#D97706" stroke-width="1.5" stroke-linecap="round" fill="none"/>
+        <path d="M10 16c1.5 2 6.5 2 8 0" stroke="#D97706" stroke-width="1.5" stroke-linecap="round" fill="none"/>
+        <g stroke="#FBBF24" stroke-width="1" stroke-linecap="round" opacity="0.6">
+          <line x1="4" y1="5" x2="5" y2="6"/><line x1="24" y1="5" x2="23" y2="6"/>
+        </g>
+      </svg>
+      <span class="icon-label">Warm</span>
+    </div>
+    <div class="icon-card">
+      <svg width="28" height="28" viewBox="0 0 28 28" fill="none">
+        <circle cx="14" cy="14" r="10" fill="#FEE2E2" stroke="#FCA5A5" stroke-width="1"/>
+        <path d="M9 12l2 1 2-1" stroke="#DC2626" stroke-width="1.5" stroke-linecap="round" fill="none"/>
+        <path d="M15 12l2 1 2-1" stroke="#DC2626" stroke-width="1.5" stroke-linecap="round" fill="none"/>
+        <ellipse cx="14" cy="17.5" rx="2.5" ry="1.5" fill="#FCA5A5"/>
+        <path d="M20 8c0-1.5 1-2 1-2s1 .5 1 2a1 1 0 0 1-2 0z" fill="#60A5FA"/>
+        <g stroke="#F97316" stroke-width="1.2" stroke-linecap="round" fill="none">
+          <path d="M3 5c1-1 2-1 3 0"/><path d="M22 4c1-1 2-1 3 0"/>
+        </g>
+      </svg>
+      <span class="icon-label">Hot</span>
+    </div>
+    <div class="icon-card">
+      <svg width="28" height="28" viewBox="0 0 28 28" fill="none">
+        <circle cx="14" cy="14" r="10" fill="#FEE2E2" stroke="#F87171" stroke-width="1.5"/>
+        <g stroke="#DC2626" stroke-width="1.5" stroke-linecap="round">
+          <line x1="9" y1="11" x2="11.5" y2="13.5"/><line x1="11.5" y1="11" x2="9" y2="13.5"/>
+          <line x1="16.5" y1="11" x2="19" y2="13.5"/><line x1="19" y1="11" x2="16.5" y2="13.5"/>
+        </g>
+        <path d="M10 18h8" stroke="#DC2626" stroke-width="2" stroke-linecap="round"/>
+        <line x1="12" y1="17" x2="12" y2="19" stroke="#DC2626" stroke-width="1"/>
+        <line x1="14" y1="17" x2="14" y2="19" stroke="#DC2626" stroke-width="1"/>
+        <line x1="16" y1="17" x2="16" y2="19" stroke="#DC2626" stroke-width="1"/>
+        <path d="M21 7c0-1.5 1-2 1-2s1 .5 1 2a1 1 0 0 1-2 0z" fill="#60A5FA"/>
+        <g stroke="#EF4444" stroke-width="1.5" stroke-linecap="round" fill="none">
+          <path d="M2 4c1.5-1.5 3-1.5 4.5 0"/><path d="M21 3c1.5-1.5 3-1.5 4.5 0"/>
+        </g>
+      </svg>
+      <span class="icon-label">Extreme Hot</span>
+    </div>
+  </div>
+
+  <!-- Humidity -->
+  <h3>Humidity — Water drop, opacity scales with %</h3>
+  <div class="grid">
+    <div class="icon-card">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+        <path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z" fill="#BFDBFE" opacity="0.5"/>
+      </svg>
+      <span class="icon-label">Low</span><span class="icon-sublabel">0–30%</span>
+    </div>
+    <div class="icon-card">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+        <path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z" fill="#60A5FA" opacity="0.7"/>
+      </svg>
+      <span class="icon-label">Moderate</span><span class="icon-sublabel">30–60%</span>
+    </div>
+    <div class="icon-card">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+        <path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z" fill="#3B82F6" opacity="0.85"/>
+      </svg>
+      <span class="icon-label">High</span><span class="icon-sublabel">60–80%</span>
+    </div>
+    <div class="icon-card">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+        <path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z" fill="#1D4ED8"/>
+      </svg>
+      <span class="icon-label">Very High</span><span class="icon-sublabel">80–100%</span>
+    </div>
+  </div>
+
+  <!-- Wind -->
+  <h3>Wind — Wind lines, more lines = stronger wind</h3>
+  <div class="grid">
+    <div class="icon-card">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+        <path d="M9.59 4.59A2 2 0 1 1 11 8H2" stroke="#94A3B8" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" opacity="0.5"/>
+      </svg>
+      <span class="icon-label">Calm</span><span class="icon-sublabel">0–5 mph</span>
+    </div>
+    <div class="icon-card">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+        <path d="M9.59 4.59A2 2 0 1 1 11 8H2m10.59 11.41A2 2 0 1 0 14 16H2" stroke="#94A3B8" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      <span class="icon-label">Light</span><span class="icon-sublabel">5–15 mph</span>
+    </div>
+    <div class="icon-card">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+        <path d="M9.59 4.59A2 2 0 1 1 11 8H2m10.59 11.41A2 2 0 1 0 14 16H2m15.73-8.27A2.5 2.5 0 1 1 19.5 12H2" stroke="#64748B" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      <span class="icon-label">Moderate</span><span class="icon-sublabel">15–25 mph</span>
+    </div>
+    <div class="icon-card">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+        <path d="M9.59 4.59A2 2 0 1 1 11 8H2m10.59 11.41A2 2 0 1 0 14 16H2m15.73-8.27A2.5 2.5 0 1 1 19.5 12H2" stroke="#475569" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      <span class="icon-label">Strong</span><span class="icon-sublabel">25–40 mph</span>
+    </div>
+    <div class="icon-card">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+        <path d="M9.59 4.59A2 2 0 1 1 11 8H2m10.59 11.41A2 2 0 1 0 14 16H2m15.73-8.27A2.5 2.5 0 1 1 19.5 12H2" stroke="#334155" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M17 5l2-2m0 0l2 2m-2-2v4" stroke="#334155" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      <span class="icon-label">Very Strong</span><span class="icon-sublabel">&gt; 40 mph</span>
+    </div>
+  </div>
+
+  <!-- UV Index -->
+  <h3>UV Index — Sun with rays, color-coded by intensity</h3>
+  <div class="grid">
+    <div class="icon-card">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+        <circle cx="12" cy="12" r="4" fill="#FEF08A"/>
+        <g stroke="#FEF08A" stroke-width="1.5" stroke-linecap="round">
+          <line x1="12" y1="3" x2="12" y2="5"/><line x1="12" y1="19" x2="12" y2="21"/>
+          <line x1="3" y1="12" x2="5" y2="12"/><line x1="19" y1="12" x2="21" y2="12"/>
+        </g>
+      </svg>
+      <span class="icon-label">Low</span><span class="icon-sublabel">0–2</span>
+    </div>
+    <div class="icon-card">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+        <circle cx="12" cy="12" r="4" fill="#FBBF24"/>
+        <g stroke="#FBBF24" stroke-width="1.5" stroke-linecap="round">
+          <line x1="12" y1="2" x2="12" y2="4"/><line x1="12" y1="20" x2="12" y2="22"/>
+          <line x1="2" y1="12" x2="4" y2="12"/><line x1="20" y1="12" x2="22" y2="12"/>
+          <line x1="4.93" y1="4.93" x2="6.34" y2="6.34"/><line x1="17.66" y1="17.66" x2="19.07" y2="19.07"/>
+        </g>
+      </svg>
+      <span class="icon-label">Moderate</span><span class="icon-sublabel">3–5</span>
+    </div>
+    <div class="icon-card">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+        <circle cx="12" cy="12" r="4.5" fill="#F97316"/>
+        <g stroke="#F97316" stroke-width="2" stroke-linecap="round">
+          <line x1="12" y1="2" x2="12" y2="4"/><line x1="12" y1="20" x2="12" y2="22"/>
+          <line x1="2" y1="12" x2="4" y2="12"/><line x1="20" y1="12" x2="22" y2="12"/>
+          <line x1="4.93" y1="4.93" x2="6.34" y2="6.34"/><line x1="17.66" y1="17.66" x2="19.07" y2="19.07"/>
+          <line x1="4.93" y1="19.07" x2="6.34" y2="17.66"/><line x1="17.66" y1="6.34" x2="19.07" y2="4.93"/>
+        </g>
+      </svg>
+      <span class="icon-label">High</span><span class="icon-sublabel">6–7</span>
+    </div>
+    <div class="icon-card">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+        <circle cx="12" cy="12" r="5" fill="#EA580C"/>
+        <g stroke="#EA580C" stroke-width="2" stroke-linecap="round">
+          <line x1="12" y1="1" x2="12" y2="4"/><line x1="12" y1="20" x2="12" y2="23"/>
+          <line x1="1" y1="12" x2="4" y2="12"/><line x1="20" y1="12" x2="23" y2="12"/>
+          <line x1="4.22" y1="4.22" x2="6.34" y2="6.34"/><line x1="17.66" y1="17.66" x2="19.78" y2="19.78"/>
+          <line x1="4.22" y1="19.78" x2="6.34" y2="17.66"/><line x1="17.66" y1="6.34" x2="19.78" y2="4.22"/>
+        </g>
+      </svg>
+      <span class="icon-label">Very High</span><span class="icon-sublabel">8–10</span>
+    </div>
+    <div class="icon-card">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+        <circle cx="12" cy="12" r="5.5" fill="#DC2626"/>
+        <g stroke="#DC2626" stroke-width="2.5" stroke-linecap="round">
+          <line x1="12" y1="1" x2="12" y2="4"/><line x1="12" y1="20" x2="12" y2="23"/>
+          <line x1="1" y1="12" x2="4" y2="12"/><line x1="20" y1="12" x2="23" y2="12"/>
+          <line x1="3.51" y1="3.51" x2="6.34" y2="6.34"/><line x1="17.66" y1="17.66" x2="20.49" y2="20.49"/>
+          <line x1="3.51" y1="20.49" x2="6.34" y2="17.66"/><line x1="17.66" y1="6.34" x2="20.49" y2="3.51"/>
+        </g>
+      </svg>
+      <span class="icon-label">Extreme</span><span class="icon-sublabel">11+</span>
+    </div>
+  </div>
+
+  <!-- Precipitation -->
+  <h3>Precipitation — Cloud with drops, more drops = higher probability</h3>
+  <div class="grid">
+    <div class="icon-card">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+        <path d="M6 14a4 4 0 0 1-.88-7.9A5.5 5.5 0 0 1 16.08 3 4.5 4.5 0 0 1 18 12H6z" fill="#CBD5E1"/>
+        <line x1="10" y1="15" x2="9" y2="18" stroke="#93C5FD" stroke-width="1.5" stroke-linecap="round" opacity="0.5"/>
+      </svg>
+      <span class="icon-label">Low</span><span class="icon-sublabel">0–20%</span>
+    </div>
+    <div class="icon-card">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+        <path d="M6 14a4 4 0 0 1-.88-7.9A5.5 5.5 0 0 1 16.08 3 4.5 4.5 0 0 1 18 12H6z" fill="#94A3B8"/>
+        <g stroke="#60A5FA" stroke-width="1.5" stroke-linecap="round">
+          <line x1="9" y1="15" x2="8" y2="18"/><line x1="13" y1="15" x2="12" y2="18"/>
+        </g>
+      </svg>
+      <span class="icon-label">Moderate</span><span class="icon-sublabel">20–50%</span>
+    </div>
+    <div class="icon-card">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+        <path d="M6 14a4 4 0 0 1-.88-7.9A5.5 5.5 0 0 1 16.08 3 4.5 4.5 0 0 1 18 12H6z" fill="#64748B"/>
+        <g stroke="#3B82F6" stroke-width="1.5" stroke-linecap="round">
+          <line x1="8" y1="15" x2="7" y2="19"/><line x1="12" y1="15" x2="11" y2="19"/><line x1="16" y1="15" x2="15" y2="19"/>
+        </g>
+      </svg>
+      <span class="icon-label">High</span><span class="icon-sublabel">50–80%</span>
+    </div>
+    <div class="icon-card">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+        <path d="M6 14a4 4 0 0 1-.88-7.9A5.5 5.5 0 0 1 16.08 3 4.5 4.5 0 0 1 18 12H6z" fill="#475569"/>
+        <g stroke="#2563EB" stroke-width="2" stroke-linecap="round">
+          <line x1="7" y1="15" x2="6" y2="20"/><line x1="10" y1="15" x2="9" y2="20"/>
+          <line x1="13" y1="15" x2="12" y2="20"/><line x1="16" y1="15" x2="15" y2="20"/>
+        </g>
+      </svg>
+      <span class="icon-label">Very High</span><span class="icon-sublabel">80–100%</span>
+    </div>
+  </div>
+
+  <!-- Pressure -->
+  <h3>Pressure — Barometer gauge, needle position reflects pressure</h3>
+  <div class="grid">
+    <div class="icon-card">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+        <path d="M12 20a8 8 0 1 1 0-16" stroke="#94A3B8" stroke-width="2" stroke-linecap="round"/>
+        <line x1="12" y1="12" x2="6" y2="7" stroke="#EF4444" stroke-width="2" stroke-linecap="round"/>
+        <circle cx="12" cy="12" r="2" fill="#475569"/>
+      </svg>
+      <span class="icon-label">Low</span><span class="icon-sublabel">&lt; 1000 hPa</span>
+    </div>
+    <div class="icon-card">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+        <path d="M12 20a8 8 0 1 1 0-16" stroke="#94A3B8" stroke-width="2" stroke-linecap="round"/>
+        <line x1="12" y1="12" x2="12" y2="5" stroke="#22C55E" stroke-width="2" stroke-linecap="round"/>
+        <circle cx="12" cy="12" r="2" fill="#475569"/>
+      </svg>
+      <span class="icon-label">Normal</span><span class="icon-sublabel">1000–1020</span>
+    </div>
+    <div class="icon-card">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+        <path d="M12 20a8 8 0 1 1 0-16" stroke="#94A3B8" stroke-width="2" stroke-linecap="round"/>
+        <line x1="12" y1="12" x2="18" y2="7" stroke="#3B82F6" stroke-width="2" stroke-linecap="round"/>
+        <circle cx="12" cy="12" r="2" fill="#475569"/>
+      </svg>
+      <span class="icon-label">High</span><span class="icon-sublabel">&gt; 1020 hPa</span>
+    </div>
+  </div>
+
+  <!-- Sunrise / Sunset -->
+  <h3>Sunrise / Sunset</h3>
+  <div class="grid">
+    <div class="icon-card">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+        <line x1="2" y1="17" x2="22" y2="17" stroke="#F59E0B" stroke-width="1.5" stroke-linecap="round"/>
+        <path d="M12 14V9" stroke="#FBBF24" stroke-width="2" stroke-linecap="round"/>
+        <path d="M8 11l4-4 4 4" stroke="#FBBF24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        <g stroke="#FBBF24" stroke-width="1.5" stroke-linecap="round">
+          <line x1="5" y1="13" x2="7" y2="11"/><line x1="19" y1="13" x2="17" y2="11"/>
+        </g>
+      </svg>
+      <span class="icon-label">Sunrise</span>
+    </div>
+    <div class="icon-card">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+        <line x1="2" y1="17" x2="22" y2="17" stroke="#F97316" stroke-width="1.5" stroke-linecap="round"/>
+        <path d="M12 14V9" stroke="#FB923C" stroke-width="2" stroke-linecap="round"/>
+        <path d="M8 11l4 4 4-4" stroke="#FB923C" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        <g stroke="#FB923C" stroke-width="1.5" stroke-linecap="round">
+          <line x1="5" y1="13" x2="7" y2="15"/><line x1="19" y1="13" x2="17" y2="15"/>
+        </g>
+      </svg>
+      <span class="icon-label">Sunset</span>
+    </div>
+  </div>
+
+  <!-- Moon Phases -->
+  <h3>Moon Phases — 8 phases</h3>
+  <div class="grid">
+    <div class="icon-card">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="8" fill="#374151"/></svg>
+      <span class="icon-label">New Moon</span><span class="icon-sublabel">0.0</span>
+    </div>
+    <div class="icon-card">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+        <circle cx="12" cy="12" r="8" fill="#374151"/>
+        <path d="M12 4a8 8 0 0 1 0 16 6 6 0 0 0 0-16z" fill="#FDE68A"/>
+      </svg>
+      <span class="icon-label">Waxing Crescent</span><span class="icon-sublabel">0.125</span>
+    </div>
+    <div class="icon-card">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+        <circle cx="12" cy="12" r="8" fill="#374151"/>
+        <path d="M12 4a8 8 0 0 1 0 16V4z" fill="#FDE68A"/>
+      </svg>
+      <span class="icon-label">First Quarter</span><span class="icon-sublabel">0.25</span>
+    </div>
+    <div class="icon-card">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+        <circle cx="12" cy="12" r="8" fill="#FDE68A"/>
+        <path d="M12 4a8 8 0 0 0 0 16 6 6 0 0 1 0-16z" fill="#374151"/>
+      </svg>
+      <span class="icon-label">Waxing Gibbous</span><span class="icon-sublabel">0.375</span>
+    </div>
+    <div class="icon-card">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="8" fill="#FDE68A"/></svg>
+      <span class="icon-label">Full Moon</span><span class="icon-sublabel">0.5</span>
+    </div>
+    <div class="icon-card">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+        <circle cx="12" cy="12" r="8" fill="#FDE68A"/>
+        <path d="M12 4a8 8 0 0 1 0 16 6 6 0 0 0 0-16z" fill="#374151"/>
+      </svg>
+      <span class="icon-label">Waning Gibbous</span><span class="icon-sublabel">0.625</span>
+    </div>
+    <div class="icon-card">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+        <circle cx="12" cy="12" r="8" fill="#374151"/>
+        <path d="M12 4a8 8 0 0 0 0 16V4z" fill="#FDE68A"/>
+      </svg>
+      <span class="icon-label">Last Quarter</span><span class="icon-sublabel">0.75</span>
+    </div>
+    <div class="icon-card">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+        <circle cx="12" cy="12" r="8" fill="#374151"/>
+        <path d="M12 4a8 8 0 0 1 0 16 6 6 0 0 1 0-16z" fill="#FDE68A"/>
+      </svg>
+      <span class="icon-label">Waning Crescent</span><span class="icon-sublabel">0.875</span>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<!-- SECTION 5: Full Tooltip Mockup -->
+<!-- ============================================================ -->
+<div class="section">
+  <h2>5. Full Tooltip Mockup — Rich Content</h2>
+
+  <div class="tooltip-mockup">
+    <div class="tooltip-header">
+      <div class="tooltip-header-left">
+        <svg width="36" height="36" viewBox="0 0 24 24" fill="none">
+          <circle cx="8" cy="8" r="3.5" fill="#FBBF24"/>
+          <g stroke="#FBBF24" stroke-width="1.5" stroke-linecap="round">
+            <line x1="8" y1="1.5" x2="8" y2="3"/><line x1="8" y1="13" x2="8" y2="14.5"/>
+            <line x1="2.5" y1="2.5" x2="3.5" y2="3.5"/><line x1="12.5" y1="12.5" x2="13.5" y2="13.5"/>
+            <line x1="1.5" y1="8" x2="3" y2="8"/>
+          </g>
+          <path d="M9 20a3.5 3.5 0 0 1-.77-6.91A4.5 4.5 0 0 1 17 11a3.5 3.5 0 0 1 1.5 6.73H9z" fill="#94A3B8"/>
+        </svg>
+        <div>
+          <div class="big-temp">78°F</div>
+          <div class="condition-text">Partly Cloudy</div>
+        </div>
+      </div>
+      <div>
+        <div class="day-label">Today</div>
+        <div class="date-label">Aug 11</div>
+      </div>
+    </div>
+
+    <div class="tooltip-summary">Partly cloudy throughout the day with a high of 78°F.</div>
+
+    <div class="section-heading">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+        <path d="M14 14.76V3.5a2.5 2.5 0 1 0-5 0v11.26a4.5 4.5 0 1 0 5 0z" fill="#F59E0B"/>
+        <circle cx="11.5" cy="17.5" r="2" fill="#fff"/>
+      </svg>
+      <span class="heading-label">Temperature</span>
+    </div>
+
+    <div class="chart-area">
+      <svg width="100%" height="80" viewBox="0 0 260 80" style="display:block;">
+        <defs>
+          <linearGradient id="mockGrad" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="#f97316" stop-opacity="0.2"/>
+            <stop offset="100%" stop-color="#f97316" stop-opacity="0"/>
+          </linearGradient>
+        </defs>
+        <path d="M 16,55 L 52,45 L 88,35 L 124,25 L 160,20 L 196,22 L 232,30 L 244,35 L 244,60 L 16,60 Z" fill="url(#mockGrad)"/>
+        <path d="M 16,55 L 52,45 L 88,35 L 124,25 L 160,20 L 196,22 L 232,30 L 244,35" fill="none" stroke="#f97316" stroke-width="2" stroke-linecap="round"/>
+        <circle cx="16" cy="55" r="3" fill="#f97316"/><text x="16" y="45" text-anchor="start" fill="#1f2937" font-size="9" font-weight="600">66°</text>
+        <circle cx="88" cy="35" r="3" fill="#f97316"/><text x="88" y="25" text-anchor="middle" fill="#1f2937" font-size="9" font-weight="600">72°</text>
+        <circle cx="160" cy="20" r="3" fill="#f97316"/><text x="160" y="10" text-anchor="middle" fill="#1f2937" font-size="9" font-weight="600">78°</text>
+        <circle cx="244" cy="35" r="3" fill="#f97316"/><text x="244" y="25" text-anchor="end" fill="#1f2937" font-size="9" font-weight="600">70°</text>
+        <text x="16" y="75" text-anchor="start" fill="#9ca3af" font-size="9">6am</text>
+        <text x="124" y="75" text-anchor="middle" fill="#9ca3af" font-size="9">12pm</text>
+        <text x="244" y="75" text-anchor="end" fill="#9ca3af" font-size="9">10pm</text>
+      </svg>
+    </div>
+
+    <div class="detail-grid">
+      <div class="detail-item">
+        <div class="metric-icon">
+          <svg width="20" height="20" viewBox="0 0 28 28" fill="none">
+            <circle cx="14" cy="14" r="10" fill="#FEF3C7" stroke="#FCD34D" stroke-width="1"/>
+            <path d="M9 12.5c.5-1 2.5-1 3 0" stroke="#D97706" stroke-width="1.5" stroke-linecap="round" fill="none"/>
+            <path d="M16 12.5c.5-1 2.5-1 3 0" stroke="#D97706" stroke-width="1.5" stroke-linecap="round" fill="none"/>
+            <path d="M10 16c1.5 2 6.5 2 8 0" stroke="#D97706" stroke-width="1.5" stroke-linecap="round" fill="none"/>
+          </svg>
+        </div>
+        <div><div class="detail-label">Feels Like</div><div class="detail-value">75°F</div></div>
+      </div>
+      <div class="detail-item">
+        <div class="metric-icon">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+            <path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z" fill="#3B82F6" opacity="0.85"/>
+          </svg>
+        </div>
+        <div><div class="detail-label">Humidity</div><div class="detail-value">60%</div></div>
+      </div>
+      <div class="detail-item">
+        <div class="metric-icon">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+            <path d="M9.59 4.59A2 2 0 1 1 11 8H2m10.59 11.41A2 2 0 1 0 14 16H2m15.73-8.27A2.5 2.5 0 1 1 19.5 12H2" stroke="#64748B" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </div>
+        <div><div class="detail-label">Wind</div><div class="detail-value">10 mph SW</div></div>
+      </div>
+      <div class="detail-item">
+        <div class="metric-icon">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+            <circle cx="12" cy="12" r="4.5" fill="#F97316"/>
+            <g stroke="#F97316" stroke-width="2" stroke-linecap="round">
+              <line x1="12" y1="2" x2="12" y2="4"/><line x1="12" y1="20" x2="12" y2="22"/>
+              <line x1="2" y1="12" x2="4" y2="12"/><line x1="20" y1="12" x2="22" y2="12"/>
+              <line x1="4.93" y1="4.93" x2="6.34" y2="6.34"/><line x1="17.66" y1="17.66" x2="19.07" y2="19.07"/>
+              <line x1="4.93" y1="19.07" x2="6.34" y2="17.66"/><line x1="17.66" y1="6.34" x2="19.07" y2="4.93"/>
+            </g>
+          </svg>
+        </div>
+        <div><div class="detail-label">UV Index</div><div class="detail-value">6 (High)</div></div>
+      </div>
+      <div class="detail-item">
+        <div class="metric-icon">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+            <path d="M6 14a4 4 0 0 1-.88-7.9A5.5 5.5 0 0 1 16.08 3 4.5 4.5 0 0 1 18 12H6z" fill="#64748B"/>
+            <g stroke="#3B82F6" stroke-width="1.5" stroke-linecap="round">
+              <line x1="8" y1="15" x2="7" y2="19"/><line x1="12" y1="15" x2="11" y2="19"/><line x1="16" y1="15" x2="15" y2="19"/>
+            </g>
+          </svg>
+        </div>
+        <div><div class="detail-label">Precipitation</div><div class="detail-value">20%</div></div>
+      </div>
+      <div class="detail-item">
+        <div class="metric-icon">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+            <path d="M12 20a8 8 0 1 1 0-16" stroke="#94A3B8" stroke-width="2" stroke-linecap="round"/>
+            <line x1="12" y1="12" x2="12" y2="5" stroke="#22C55E" stroke-width="2" stroke-linecap="round"/>
+            <circle cx="12" cy="12" r="2" fill="#475569"/>
+          </svg>
+        </div>
+        <div><div class="detail-label">Pressure</div><div class="detail-value">1015 hPa</div></div>
+      </div>
+    </div>
+
+    <div class="astro-row">
+      <div class="astro-item">
+        <div class="astro-icon">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+            <line x1="2" y1="17" x2="22" y2="17" stroke="#F59E0B" stroke-width="1.5" stroke-linecap="round"/>
+            <path d="M12 14V9" stroke="#FBBF24" stroke-width="2" stroke-linecap="round"/>
+            <path d="M8 11l4-4 4 4" stroke="#FBBF24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </div>
+        <div class="astro-label">Sunrise</div>
+        <div class="astro-value">6:12 AM</div>
+      </div>
+      <div class="astro-item">
+        <div class="astro-icon">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+            <line x1="2" y1="17" x2="22" y2="17" stroke="#F97316" stroke-width="1.5" stroke-linecap="round"/>
+            <path d="M12 14V9" stroke="#FB923C" stroke-width="2" stroke-linecap="round"/>
+            <path d="M8 11l4 4 4-4" stroke="#FB923C" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </div>
+        <div class="astro-label">Sunset</div>
+        <div class="astro-value">8:04 PM</div>
+      </div>
+      <div class="astro-item">
+        <div class="astro-icon">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+            <circle cx="12" cy="12" r="8" fill="#374151"/>
+            <path d="M12 4a8 8 0 0 1 0 16 6 6 0 0 0 0-16z" fill="#FDE68A"/>
+          </svg>
+        </div>
+        <div class="astro-label">Moon</div>
+        <div class="astro-value">Waxing Crescent</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<!-- SECTION 6: Implementation Plan -->
+<!-- ============================================================ -->
+<div class="section">
+  <h2>6. Implementation Plan</h2>
+  <div class="note">
+    <strong>Files to modify:</strong>
+    <ol style="margin-top:8px; padding-left:20px;">
+      <li><code>types/index.ts</code> — Expand condition Literal to all 15 OWM values</li>
+      <li><code>models.py</code> — Same backend type expansion</li>
+      <li><code>weather_service.py</code> — Remove grouping. Each OWM <code>weather.main</code> maps 1:1 to its own condition string. Add <code>_map_icon()</code> for all 15.</li>
+      <li><code>WeatherIcon.tsx</code> — Add 10 new SVG cases (drizzle, thunderstorm, mist, smoke, haze, dust, fog, sand, ash, squall, tornado). Fix default fallback.</li>
+      <li><code>WeatherTooltip.tsx</code> — Add metric icon components. Update DetailItem/AstroItem to render icons. Add section heading with icon for Temperature chart.</li>
+      <li><code>DayView.tsx</code>, <code>MonthView.tsx</code>, <code>DayCard.tsx</code> — Replace emoji metric icons with SVG</li>
+    </ol>
+  </div>
+</div>
+
+</body>
+</html>

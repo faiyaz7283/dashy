@@ -1,0 +1,497 @@
+<!DOCTYPE html>
+<!--
+  ⚠️ KIOSK-V2 MOCKUP — TAILWIND ONLY RULE ️
+
+  This mockup uses ONLY Tailwind utility classes. No inline styles with var(--dt-*).
+  When implementing in React:
+  - All styling must use Tailwind utility classes (bg-bg, text-text-primary, etc.)
+  - No inline style="..." with CSS custom properties
+  - No const styles objects
+  - No CSS Modules or styled-components
+  - Dark mode via Tailwind's `dark:` variant (`.dark` class on <html>)
+  - Design tokens consumed via @theme block in src/index.css
+  See AGENTS.md section 5b for full rules.
+-->
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashy v2 — Layout Shell (Updated)</title>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <style type="text/tailwindcss">
+        @theme {
+            --font-sans: 'Inter', system-ui, sans-serif;
+            --color-primary: var(--dt-primary);
+            --color-primary-hover: var(--dt-primary-hover);
+            --color-primary-light: var(--dt-primary-light);
+            --color-primary-light-hover: var(--dt-primary-light-hover);
+            --color-primary-ring: var(--dt-primary-ring);
+            --color-bg: var(--dt-bg);
+            --color-bg-hover: var(--dt-bg-hover);
+            --color-white: var(--dt-white);
+            --color-text-primary: var(--dt-text-primary);
+            --color-text-secondary: var(--dt-text-secondary);
+            --color-text-muted: var(--dt-text-muted);
+            --color-text-faint: var(--dt-text-faint);
+            --color-text-disabled: var(--dt-text-disabled);
+            --color-border: var(--dt-border);
+            --color-border-light: var(--dt-border-light);
+            --color-border-dark: var(--dt-border-dark);
+            --color-success: var(--dt-success);
+            --color-danger: var(--dt-danger);
+            --color-warning: var(--dt-warning);
+            --color-faiyaz: var(--dt-member-faiyaz);
+            --color-trisha: var(--dt-member-trisha);
+            --color-arya: var(--dt-member-arya);
+            --color-raya: var(--dt-member-raya);
+            --shadow-view-btn: var(--dt-shadow-view-btn);
+            --shadow-sidebar: var(--dt-shadow-sidebar);
+        }
+
+        @custom-variant dark (&:where(.dark, .dark *));
+    </style>
+    <link rel="stylesheet" href="tokens.css">
+    <style>
+        /* Auto-hide transitions */
+        .auto-hide {
+            transition: opacity 0.4s ease, transform 0.4s ease;
+        }
+        .auto-hide.hidden-top {
+            opacity: 0;
+            transform: translateY(-100%);
+            pointer-events: none;
+        }
+        .auto-hide.hidden-left {
+            opacity: 0;
+            transform: translateX(-100%);
+            pointer-events: none;
+        }
+        .auto-hide.hidden-bottom {
+            opacity: 0;
+            transform: translateY(100%);
+            pointer-events: none;
+        }
+        .sidebar-transition {
+            transition: width 0.4s ease, opacity 0.4s ease, transform 0.4s ease;
+        }
+        .sidebar-label {
+            transition: opacity 0.2s ease;
+        }
+        .sidebar-action {
+            transition: opacity 0.2s ease;
+        }
+    </style>
+</head>
+<body class="bg-bg text-text-primary font-sans h-screen overflow-hidden">
+
+    <!-- Theme toggle (bottom-right, non-blocking) -->
+    <button id="theme-toggle" class="fixed bottom-4 right-4 z-[9999] p-2 bg-white text-text-secondary border border-border rounded-lg cursor-pointer hover:bg-bg-hover hover:text-text-primary"
+            onclick="toggleTheme()"
+            title="Toggle theme">
+        <svg id="icon-sun" class="w-5 h-5 hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"/>
+        </svg>
+        <svg id="icon-moon" class="w-5 h-5 hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/>
+        </svg>
+        <svg id="icon-auto" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/>
+        </svg>
+    </button>
+
+    <!-- HEADER (auto-hide, full width, top edge only, fixed height) — Updated with Mockup #2 content -->
+    <header id="header" class="auto-hide hidden-top absolute top-0 left-0 right-0 z-50 bg-white border-b border-border shadow-sm h-16">
+        <div class="flex items-center justify-between h-full px-4">
+
+            <!-- LEFT: Date + Clock + Weather -->
+            <div class="flex items-center gap-4">
+                <!-- Date (2 rows) -->
+                <div class="flex flex-col leading-tight">
+                    <span class="text-base font-semibold text-text-primary">Wed, Aug 19th</span>
+                    <span class="text-xs text-text-muted">Week 34 · Day 231</span>
+                </div>
+
+                <!-- Clock -->
+                <div class="flex items-center gap-1.5 text-text-secondary">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
+                    <span class="text-sm font-mono font-medium">2:45 PM</span>
+                </div>
+
+                <!-- Weather -->
+                <div class="flex items-center gap-2">
+                    <svg class="w-5 h-5 text-warning" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M10 2a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zm4 8a4 4 0 11-8 0 4 4 0 018 0zm-.464 4.95l.707.707a1 1 0 001.414-1.414l-.707-.707a1 1 0 00-1.414 1.414zm2.12-10.607a1 1 0 010 1.414l-.706.707a1 1 0 11-1.414-1.414l.707-.707a1 1 0 011.414 0zM17 11a1 1 0 100-2h-1a1 1 0 100 2h1zm-7 4a1 1 0 011 1v1a1 1 0 11-2 0v-1a1 1 0 011-1zM5.05 6.464A1 1 0 106.465 5.05l-.708-.707a1 1 0 00-1.414 1.414l.707.707zm1.414 8.486l-.707.707a1 1 0 01-1.414-1.414l.707-.707a1 1 0 011.414 1.414zM4 11a1 1 0 100-2H3a1 1 0 000 2h1z" clip-rule="evenodd"/>
+                    </svg>
+                    <div class="flex items-baseline gap-1.5">
+                        <span class="text-sm font-semibold text-text-primary">83°</span>
+                        <span class="text-xs text-text-muted">68°</span>
+                    </div>
+                    <span class="text-xs text-text-muted hidden sm:inline">clear</span>
+                    <div class="flex items-center gap-2 text-xs text-text-faint">
+                        <span class="flex items-center gap-0.5">
+                            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"/>
+                            </svg>
+                            55%
+                        </span>
+                        <span class="flex items-center gap-0.5">
+                            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"/>
+                            </svg>
+                            4 mph
+                        </span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- CENTER: Family Pills + Total Events -->
+            <div class="flex items-center gap-2">
+                <!-- Faiyaz: 3 events — pill with border -->
+                <div class="inline-flex items-center gap-1.5 rounded-full bg-faiyaz/10 px-2 py-1 text-xs font-medium text-faiyaz inset-ring inset-ring-faiyaz/20">
+                    <div class="w-4 h-4 rounded-full bg-faiyaz flex items-center justify-center text-white text-[9px] font-bold leading-none">F</div>
+                    <span>3</span>
+                </div>
+                <!-- Trisha: 2 events -->
+                <div class="inline-flex items-center gap-1.5 rounded-full bg-trisha/10 px-2 py-1 text-xs font-medium text-trisha inset-ring inset-ring-trisha/20">
+                    <div class="w-4 h-4 rounded-full bg-trisha flex items-center justify-center text-white text-[9px] font-bold leading-none">T</div>
+                    <span>2</span>
+                </div>
+                <!-- Arya: 1 event -->
+                <div class="inline-flex items-center gap-1.5 rounded-full bg-arya/10 px-2 py-1 text-xs font-medium text-arya inset-ring inset-ring-arya/20">
+                    <div class="w-4 h-4 rounded-full bg-arya flex items-center justify-center text-white text-[9px] font-bold leading-none">A</div>
+                    <span>1</span>
+                </div>
+                <!-- Raya: 0 events (dimmed) -->
+                <div class="inline-flex items-center gap-1.5 rounded-full bg-raya/10 px-2 py-1 text-xs font-medium text-raya inset-ring inset-ring-raya/20 opacity-50">
+                    <div class="w-4 h-4 rounded-full bg-raya flex items-center justify-center text-white text-[9px] font-bold leading-none">R</div>
+                    <span>0</span>
+                </div>
+                <!-- Total events -->
+                <div class="ml-1 inline-flex items-center rounded-full bg-primary-light px-2 py-1 text-xs font-medium text-primary inset-ring inset-ring-primary/20">
+                    6 events
+                </div>
+            </div>
+
+            <!-- RIGHT: View Switcher + Today + Date Picker -->
+            <div class="flex items-center gap-3">
+                <!-- View switcher (custom Tailwind segmented control) -->
+                <div class="flex items-center bg-bg-hover rounded-lg p-0.5">
+                    <button class="px-3 py-1.5 text-xs font-medium text-text-muted hover:text-text-primary rounded-md transition-colors">Day</button>
+                    <button class="px-3 py-1.5 text-xs font-medium bg-white text-primary shadow-view-btn rounded-md">Week</button>
+                    <button class="px-3 py-1.5 text-xs font-medium text-text-muted hover:text-text-primary rounded-md transition-colors">Month</button>
+                    <button class="px-3 py-1.5 text-xs font-medium text-text-muted hover:text-text-primary rounded-md transition-colors">Year</button>
+                </div>
+
+                <!-- Today button -->
+                <button class="px-3 py-1.5 text-xs font-medium text-text-primary border border-border rounded-lg hover:bg-bg-hover transition-colors">
+                    Today
+                </button>
+
+                <!-- Date picker trigger -->
+                <button class="p-1.5 text-text-secondary hover:text-text-primary hover:bg-bg-hover rounded-lg transition-colors" title="Date picker">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                    </svg>
+                </button>
+            </div>
+
+        </div>
+    </header>
+
+    <!-- SIDEBAR (auto-hide, left edge, remembers collapsed/expanded state, spans full available height) -->
+    <aside id="sidebar" class="auto-hide hidden-left absolute left-0 z-40 bg-white border-r border-border shadow-sidebar w-16 sidebar-transition flex flex-col" style="top: 0; bottom: 0;">
+
+        <!-- Nav items container -->
+        <nav class="relative flex flex-1 flex-col pt-4">
+            <ul class="flex flex-1 flex-col gap-y-1 px-2">
+
+                <!-- Calendar (active) -->
+                <li>
+                    <button class="group flex gap-x-3 rounded-md p-2 text-sm/6 font-semibold bg-primary-light text-primary w-full items-center">
+                        <svg class="size-6 shrink-0 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                        </svg>
+                        <span class="sidebar-label opacity-0 whitespace-nowrap">Calendar</span>
+                        <svg class="sidebar-action size-4 shrink-0 opacity-0 ml-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                        </svg>
+                    </button>
+                </li>
+
+                <!-- Chores -->
+                <li>
+                    <button class="group flex gap-x-3 rounded-md p-2 text-sm/6 font-semibold text-text-secondary hover:bg-primary-light hover:text-primary w-full items-center transition-colors">
+                        <svg class="size-6 shrink-0 text-text-muted group-hover:text-primary transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
+                        </svg>
+                        <span class="sidebar-label opacity-0 whitespace-nowrap">Chores</span>
+                        <svg class="sidebar-action size-4 shrink-0 opacity-0 ml-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                        </svg>
+                    </button>
+                </li>
+
+            </ul>
+        </nav>
+
+        <!-- Expand/Collapse toggle (floating on right edge) -->
+        <button id="sidebar-toggle" class="absolute right-0 top-1/2 -translate-y-1/2 translate-x-1/2 p-1 bg-white border border-border rounded-full shadow-md hover:bg-bg-hover"
+                onclick="toggleSidebar()"
+                title="Toggle sidebar">
+            <svg id="sidebar-toggle-icon" class="w-4 h-4 text-text-secondary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+            </svg>
+        </button>
+    </aside>
+
+    <!-- STATUS BAR (auto-hide, bottom edge, full width, fixed height) -->
+    <footer id="status-bar" class="auto-hide hidden-bottom absolute bottom-0 left-0 right-0 z-50 bg-white border-t border-border shadow-sm h-12">
+        <div class="flex items-center justify-between px-4 py-2">
+            <!-- Left: Settings -->
+            <button class="p-2 text-text-secondary hover:text-text-primary hover:bg-bg-hover rounded-md" title="Settings">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/>
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                </svg>
+            </button>
+
+            <!-- Center: Calendar + Weather Countdowns (icons only) -->
+            <div class="flex items-center gap-4 text-sm text-text-muted">
+                <div class="flex items-center gap-2">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
+                    <span>2:34</span>
+                </div>
+                <div class="flex items-center gap-2">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 15a4 4 0 004 4h9a5 5 0 10-.1-9.999 5.002 5.002 0 10-9.78 2.096A4.001 4.001 0 003 15z"/>
+                    </svg>
+                    <span>14:22</span>
+                </div>
+            </div>
+
+            <!-- Right: Theme Toggle (icon only, shows current mode) -->
+            <div class="flex items-center gap-2 text-text-muted">
+                <span id="status-theme-icon">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/>
+                    </svg>
+                </span>
+            </div>
+        </div>
+    </footer>
+
+    <!-- MAIN CONTENT AREA (standardized content card pattern) -->
+    <main class="h-full w-full flex flex-col p-2 bg-bg">
+        <div class="grow rounded-lg bg-white shadow-xs ring-1 ring-border overflow-hidden flex flex-col items-center justify-center">
+            <h1 class="text-2xl font-semibold text-text-primary mb-2">Content Area</h1>
+            <p class="text-text-muted">Hover over edges to reveal UI elements</p>
+            <p class="text-sm text-text-faint mt-4">Top → Header | Left → Sidebar | Bottom → Status Bar</p>
+        </div>
+    </main>
+
+    <script>
+        // State
+        let sidebarExpanded = false;
+        let currentTheme = 'auto';
+        let hideTimeout;
+        let isHoveringHeader = false;
+        let isHoveringSidebar = false;
+        let isHoveringStatusBar = false;
+
+        const header = document.getElementById('header');
+        const sidebar = document.getElementById('sidebar');
+        const statusBar = document.getElementById('status-bar');
+        const sidebarLabels = document.querySelectorAll('.sidebar-label');
+        const sidebarActions = document.querySelectorAll('.sidebar-action');
+        const sidebarToggleIcon = document.getElementById('sidebar-toggle-icon');
+
+        // Show functions
+        function showHeader() {
+            header.classList.remove('hidden-top');
+            clearTimeout(hideTimeout);
+            updateSidebarBounds();
+        }
+
+        function showSidebar() {
+            sidebar.classList.remove('hidden-left');
+            updateSidebarState();
+            clearTimeout(hideTimeout);
+        }
+
+        function showStatusBar() {
+            statusBar.classList.remove('hidden-bottom');
+            clearTimeout(hideTimeout);
+            updateSidebarBounds();
+        }
+
+        // Hide functions
+        function hideHeader() {
+            if (!isHoveringHeader) {
+                header.classList.add('hidden-top');
+                updateSidebarBounds();
+            }
+        }
+
+        function hideSidebar() {
+            if (!isHoveringSidebar) {
+                sidebar.classList.add('hidden-left');
+            }
+        }
+
+        function hideStatusBar() {
+            if (!isHoveringStatusBar) {
+                statusBar.classList.add('hidden-bottom');
+                updateSidebarBounds();
+            }
+        }
+
+        // Update sidebar bounds based on header/status bar visibility
+        function updateSidebarBounds() {
+            const headerVisible = !header.classList.contains('hidden-top');
+            const statusBarVisible = !statusBar.classList.contains('hidden-bottom');
+
+            const headerHeight = headerVisible ? header.offsetHeight : 0;
+            const statusBarHeight = statusBarVisible ? statusBar.offsetHeight : 0;
+
+            sidebar.style.top = `${headerHeight}px`;
+            sidebar.style.bottom = `${statusBarHeight}px`;
+        }
+
+        // Update sidebar appearance based on state
+        function updateSidebarState() {
+            if (sidebarExpanded) {
+                sidebar.classList.remove('w-16');
+                sidebar.classList.add('w-56');
+                sidebarLabels.forEach(el => el.classList.remove('opacity-0'));
+                sidebarActions.forEach(el => el.classList.remove('opacity-0'));
+                sidebarToggleIcon.style.transform = 'rotate(180deg)';
+            } else {
+                sidebar.classList.remove('w-56');
+                sidebar.classList.add('w-16');
+                sidebarLabels.forEach(el => el.classList.add('opacity-0'));
+                sidebarActions.forEach(el => el.classList.add('opacity-0'));
+                sidebarToggleIcon.style.transform = 'rotate(0deg)';
+            }
+        }
+
+        // Toggle sidebar expanded/collapsed
+        function toggleSidebar() {
+            sidebarExpanded = !sidebarExpanded;
+            updateSidebarState();
+        }
+
+        // Theme toggle (cycles: auto → light → dark → auto)
+        function toggleTheme() {
+            const themes = ['auto', 'light', 'dark'];
+            const currentIndex = themes.indexOf(currentTheme);
+            currentTheme = themes[(currentIndex + 1) % themes.length];
+
+            const html = document.documentElement;
+            const iconSun = document.getElementById('icon-sun');
+            const iconMoon = document.getElementById('icon-moon');
+            const iconAuto = document.getElementById('icon-auto');
+            const statusThemeIcon = document.getElementById('status-theme-icon');
+
+            iconSun.classList.add('hidden');
+            iconMoon.classList.add('hidden');
+            iconAuto.classList.add('hidden');
+
+            if (currentTheme === 'light') {
+                html.classList.remove('dark');
+                iconSun.classList.remove('hidden');
+                statusThemeIcon.innerHTML = '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"/></svg>';
+            } else if (currentTheme === 'dark') {
+                html.classList.add('dark');
+                iconMoon.classList.remove('hidden');
+                statusThemeIcon.innerHTML = '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/></svg>';
+            } else {
+                if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
+                    html.classList.add('dark');
+                } else {
+                    html.classList.remove('dark');
+                }
+                iconAuto.classList.remove('hidden');
+                statusThemeIcon.innerHTML = '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/></svg>';
+            }
+        }
+
+        // Edge detection (screen-respected threshold: 0.8% of viewport, min 12px)
+        function getEdgeThreshold(dimension) {
+            return Math.max(12, Math.round(dimension * 0.008));
+        }
+
+        document.addEventListener('mousemove', (e) => {
+            const verticalThreshold = getEdgeThreshold(window.innerHeight);
+            const horizontalThreshold = getEdgeThreshold(window.innerWidth);
+
+            const nearTop = e.clientY < verticalThreshold;
+            const nearLeft = e.clientX < horizontalThreshold;
+            const nearBottom = e.clientY > window.innerHeight - verticalThreshold;
+
+            if (nearTop) {
+                showHeader();
+            } else if (!isHoveringHeader) {
+                hideHeader();
+            }
+
+            if (nearLeft) {
+                showSidebar();
+            } else if (!isHoveringSidebar) {
+                hideSidebar();
+            }
+
+            if (nearBottom) {
+                showStatusBar();
+            } else if (!isHoveringStatusBar) {
+                hideStatusBar();
+            }
+        });
+
+        // Keep elements visible when hovering
+        header.addEventListener('mouseenter', () => {
+            isHoveringHeader = true;
+            showHeader();
+        });
+
+        header.addEventListener('mouseleave', () => {
+            isHoveringHeader = false;
+            hideHeader();
+        });
+
+        sidebar.addEventListener('mouseenter', () => {
+            isHoveringSidebar = true;
+            showSidebar();
+        });
+
+        sidebar.addEventListener('mouseleave', () => {
+            isHoveringSidebar = false;
+            hideSidebar();
+        });
+
+        statusBar.addEventListener('mouseenter', () => {
+            isHoveringStatusBar = true;
+            showStatusBar();
+        });
+
+        statusBar.addEventListener('mouseleave', () => {
+            isHoveringStatusBar = false;
+            hideStatusBar();
+        });
+
+        // Initialize
+        updateSidebarState();
+        updateSidebarBounds();
+
+        // Initial hide after 3 seconds
+        hideTimeout = setTimeout(() => {
+            hideHeader();
+            hideSidebar();
+            hideStatusBar();
+        }, 3000);
+    </script>
+</body>
+</html>

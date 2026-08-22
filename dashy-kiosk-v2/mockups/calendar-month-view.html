@@ -1,0 +1,888 @@
+<!DOCTYPE html>
+<!--
+  ️ KIOSK-V2 MOCKUP — TAILWIND ONLY RULE ⚠️
+
+  This mockup uses ONLY Tailwind utility classes. No inline styles with var(--dt-*).
+  When implementing in React:
+  - All styling must use Tailwind utility classes (bg-bg, text-text-primary, etc.)
+  - No inline style="..." with CSS custom properties
+  - No const styles objects
+  - No CSS Modules or styled-components
+  - Dark mode via Tailwind's `dark:` variant (`.dark` class on <html>)
+  - Design tokens consumed via @theme block in src/index.css
+  See AGENTS.md section 5b for full rules.
+
+  NOTE: This is a static visual mockup. All day cells, event rows, density indicators,
+  and weather data are hardcoded HTML. In React, these will be generated from data.
+  Event overflow ("+N more") is documented in mockup-plan.md — implement via custom
+  hook with ResizeObserver, not inline JS.
+  Do NOT translate any JavaScript from this mockup into the implementation.
+-->
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashy v2 — Calendar Month View</title>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <style type="text/tailwindcss">
+        @theme {
+            --font-sans: 'Inter', system-ui, sans-serif;
+            --color-primary: var(--dt-primary);
+            --color-primary-hover: var(--dt-primary-hover);
+            --color-primary-light: var(--dt-primary-light);
+            --color-primary-light-hover: var(--dt-primary-light-hover);
+            --color-primary-ring: var(--dt-primary-ring);
+            --color-bg: var(--dt-bg);
+            --color-bg-hover: var(--dt-bg-hover);
+            --color-white: var(--dt-white);
+            --color-text-primary: var(--dt-text-primary);
+            --color-text-secondary: var(--dt-text-secondary);
+            --color-text-muted: var(--dt-text-muted);
+            --color-text-faint: var(--dt-text-faint);
+            --color-text-disabled: var(--dt-text-disabled);
+            --color-border: var(--dt-border);
+            --color-border-light: var(--dt-border-light);
+            --color-border-dark: var(--dt-border-dark);
+            --color-faiyaz: var(--dt-member-faiyaz);
+            --color-trisha: var(--dt-member-trisha);
+            --color-arya: var(--dt-member-arya);
+            --color-raya: var(--dt-member-raya);
+            --color-density-none: var(--dt-density-none);
+            --color-density-low: var(--dt-density-low);
+            --color-density-medium: var(--dt-density-medium);
+            --color-density-high: var(--dt-density-high);
+        }
+
+        @custom-variant dark (&:where(.dark, .dark *));
+    </style>
+    <link rel="stylesheet" href="tokens.css">
+</head>
+<body class="bg-bg text-text-primary font-sans h-screen overflow-hidden">
+
+    <!-- Theme toggle (bottom-right) -->
+    <button id="theme-toggle" class="fixed bottom-4 right-4 z-[9999] p-2 bg-white text-text-secondary border border-border rounded-lg cursor-pointer hover:bg-bg-hover hover:text-text-primary"
+            onclick="toggleTheme()"
+            title="Toggle theme">
+        <svg id="icon-sun" class="w-5 h-5 hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"/>
+        </svg>
+        <svg id="icon-moon" class="w-5 h-5 hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/>
+        </svg>
+        <svg id="icon-auto" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/>
+        </svg>
+    </button>
+
+    <!-- Navigation arrows (fixed, overlay content area, transparent until hover) -->
+    <button class="fixed left-2 top-1/2 -translate-y-1/2 z-50 p-2 rounded-full bg-white/10 hover:bg-white border border-transparent hover:border-border text-text-faint/10 hover:text-text-primary transition-all cursor-pointer"
+            title="Previous month">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+        </svg>
+    </button>
+    <button class="fixed right-2 top-1/2 -translate-y-1/2 z-50 p-2 rounded-full bg-white/10 hover:bg-white border border-transparent hover:border-border text-text-faint/10 hover:text-text-primary transition-all cursor-pointer"
+            title="Next month">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+        </svg>
+    </button>
+
+    <!-- Hidden sentinel: ensures Tailwind CDN generates CSS for all dynamically-used classes -->
+    <div class="hidden border-border bg-white dark:bg-bg bg-bg-hover text-text-primary text-text-muted text-text-faint text-text-disabled border-faiyaz border-trisha border-arya border-raya bg-faiyaz bg-trisha bg-arya bg-raya bg-density-low bg-density-medium bg-density-high border-l-4 border-l-density-none border-l-density-low border-l-density-medium border-l-density-high rounded-md rounded-tl-md rounded-tr-md rounded-bl-md rounded-br-md rounded-tl-sm rounded-bl-sm ring-2 ring-density-low ring-density-medium ring-density-high"></div>
+
+    <!-- MONTH VIEW CONTENT — Full viewport -->
+    <main class="h-full w-full flex flex-col p-2 bg-bg">
+        <!-- Content card (Catalyst pattern) -->
+        <div class="grow rounded-lg bg-white dark:bg-bg shadow-xs ring-1 ring-border overflow-hidden flex flex-col">
+
+            <!-- Month grid: day headers + 6 rows of day cells -->
+            <div class="flex-1 flex flex-col overflow-hidden p-4">
+
+                <!-- Day-of-week headers -->
+                <div class="grid grid-cols-[auto_repeat(7,1fr)] gap-0 border-b border-border">
+                    <div class="w-2"></div>
+                    <div class="text-center text-xs font-semibold text-text-muted uppercase tracking-wide py-1">Mon</div>
+                    <div class="text-center text-xs font-semibold text-text-muted uppercase tracking-wide py-1">Tue</div>
+                    <div class="text-center text-xs font-semibold text-text-muted uppercase tracking-wide py-1">Wed</div>
+                    <div class="text-center text-xs font-semibold text-text-muted uppercase tracking-wide py-1">Thu</div>
+                    <div class="text-center text-xs font-semibold text-text-muted uppercase tracking-wide py-1">Fri</div>
+                    <div class="text-center text-xs font-semibold text-text-muted uppercase tracking-wide py-1">Sat</div>
+                    <div class="text-center text-xs font-semibold text-text-muted uppercase tracking-wide py-1">Sun</div>
+                </div>
+
+                <!-- Week rows (6 rows for August 2026) -->
+                <div class="flex-1 grid grid-rows-6 gap-0 border-t border-border">
+
+                    <!-- ═══ WEEK 1: Jul 27 – Aug 2 (low density) ═══ -->
+                    <div class="grid grid-cols-[auto_repeat(7,1fr)] gap-0">
+                        <div class="w-2 border-l-4 border-l-density-low rounded-tl-sm"></div>
+                        <!-- Mon 27 (prev month) -->
+                        <div class="border-b border-r border-border p-1.5 hover:bg-bg-hover transition-colors cursor-pointer rounded-tl-md">
+                            <span class="text-xs text-text-disabled">27</span>
+                        </div>
+                        <!-- Tue 28 -->
+                        <div class="border-b border-r border-border p-1.5 hover:bg-bg-hover transition-colors cursor-pointer">
+                            <span class="text-xs text-text-disabled">28</span>
+                        </div>
+                        <!-- Wed 29 -->
+                        <div class="border-b border-r border-border p-1.5 hover:bg-bg-hover transition-colors cursor-pointer">
+                            <span class="text-xs text-text-disabled">29</span>
+                        </div>
+                        <!-- Thu 30 -->
+                        <div class="border-b border-r border-border p-1.5 hover:bg-bg-hover transition-colors cursor-pointer">
+                            <span class="text-xs text-text-disabled">30</span>
+                        </div>
+                        <!-- Fri 31 -->
+                        <div class="border-b border-r border-border p-1.5 hover:bg-bg-hover transition-colors cursor-pointer">
+                            <span class="text-xs text-text-disabled">31</span>
+                        </div>
+                        <!-- Sat 1 -->
+                        <div class="border-b border-r border-border p-1.5 hover:bg-bg-hover transition-colors cursor-pointer">
+                            <span class="text-xs font-medium text-text-primary">1</span>
+                        </div>
+                        <!-- Sun 2 — 1 event (low) -->
+                        <div class="border-b border-border p-1.5 hover:bg-bg-hover transition-colors cursor-pointer rounded-tr-md">
+                            <div class="grid grid-cols-[auto_1fr_auto] items-center gap-1">
+                                <span class="text-xs font-medium text-text-primary">2</span>
+                                <div></div>
+                                <span class="rounded-full bg-density-low px-1.5 py-0.5 text-[9px] font-medium text-text-primary">1</span>
+                            </div>
+                            <div class="mt-1 space-y-0.5">
+                                <div class="border-l-2 border-faiyaz bg-faiyaz/10 rounded-sm px-1 py-0.5 hover:bg-faiyaz/20 transition-colors cursor-pointer">
+                                    <div class="flex items-center justify-between">
+                                        <span class="text-[9px] font-medium text-text-primary truncate">Yoga</span>
+                                        <div class="w-3 h-3 rounded-full bg-faiyaz flex items-center justify-center text-white text-[7px] font-bold leading-none flex-shrink-0 ml-1">F</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- ═══ WEEK 2: Aug 3 – 9 (medium density) ═══ -->
+                    <div class="grid grid-cols-[auto_repeat(7,1fr)] gap-0 border-t border-border">
+                        <div class="w-2 border-l-4 border-l-density-medium"></div>
+                        <!-- Mon 3 — 2 events (medium) -->
+                        <div class="border-b border-r border-border p-1.5 hover:bg-bg-hover transition-colors cursor-pointer">
+                            <div class="grid grid-cols-[auto_1fr_auto] items-center gap-1">
+                                <span class="text-xs font-medium text-text-primary">3</span>
+                                <div></div>
+                                <span class="rounded-full bg-density-medium px-1.5 py-0.5 text-[9px] font-medium text-text-primary">2</span>
+                            </div>
+                            <div class="mt-1 space-y-0.5">
+                                <div class="border-l-2 border-faiyaz bg-faiyaz/10 rounded-sm px-1 py-0.5 hover:bg-faiyaz/20 transition-colors cursor-pointer">
+                                    <div class="flex items-center justify-between">
+                                        <span class="text-[9px] font-medium text-text-primary truncate">Standup</span>
+                                        <div class="w-3 h-3 rounded-full bg-faiyaz flex items-center justify-center text-white text-[7px] font-bold leading-none flex-shrink-0 ml-1">F</div>
+                                    </div>
+                                </div>
+                                <div class="border-l-2 border-trisha bg-trisha/10 rounded-sm px-1 py-0.5 hover:bg-trisha/20 transition-colors cursor-pointer">
+                                    <div class="flex items-center justify-between">
+                                        <span class="text-[9px] font-medium text-text-primary truncate">Dentist</span>
+                                        <div class="w-3 h-3 rounded-full bg-trisha flex items-center justify-center text-white text-[7px] font-bold leading-none flex-shrink-0 ml-1">T</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <!-- Tue 4 — 1 event (low) -->
+                        <div class="border-b border-r border-border p-1.5 hover:bg-bg-hover transition-colors cursor-pointer">
+                            <div class="grid grid-cols-[auto_1fr_auto] items-center gap-1">
+                                <span class="text-xs font-medium text-text-primary">4</span>
+                                <div></div>
+                                <span class="rounded-full bg-density-low px-1.5 py-0.5 text-[9px] font-medium text-text-primary">1</span>
+                            </div>
+                            <div class="mt-1 space-y-0.5">
+                                <div class="border-l-2 border-arya bg-arya/10 rounded-sm px-1 py-0.5 hover:bg-arya/20 transition-colors cursor-pointer">
+                                    <div class="flex items-center justify-between">
+                                        <span class="text-[9px] font-medium text-text-primary truncate">Preschool</span>
+                                        <div class="w-3 h-3 rounded-full bg-arya flex items-center justify-center text-white text-[7px] font-bold leading-none flex-shrink-0 ml-1">A</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <!-- Wed 5 — 0 events -->
+                        <div class="border-b border-r border-border p-1.5 hover:bg-bg-hover transition-colors cursor-pointer">
+                            <span class="text-xs font-medium text-text-primary">5</span>
+                        </div>
+                        <!-- Thu 6 — 3 events (high) -->
+                        <div class="border-b border-r border-border p-1.5 hover:bg-bg-hover transition-colors cursor-pointer">
+                            <div class="grid grid-cols-[auto_1fr_auto] items-center gap-1">
+                                <span class="text-xs font-medium text-text-primary">6</span>
+                                <div></div>
+                                <span class="rounded-full bg-density-high px-1.5 py-0.5 text-[9px] font-medium text-text-primary">3</span>
+                            </div>
+                            <div class="mt-1 space-y-0.5">
+                                <div class="border-l-2 border-faiyaz bg-faiyaz/10 rounded-sm px-1 py-0.5 hover:bg-faiyaz/20 transition-colors cursor-pointer">
+                                    <div class="flex items-center justify-between">
+                                        <span class="text-[9px] font-medium text-text-primary truncate">Reading</span>
+                                        <div class="w-3 h-3 rounded-full bg-faiyaz flex items-center justify-center text-white text-[7px] font-bold leading-none flex-shrink-0 ml-1">F</div>
+                                    </div>
+                                </div>
+                                <div class="border-l-2 border-raya bg-raya/10 rounded-sm px-1 py-0.5 hover:bg-raya/20 transition-colors cursor-pointer">
+                                    <div class="flex items-center justify-between">
+                                        <span class="text-[9px] font-medium text-text-primary truncate">Piano</span>
+                                        <div class="w-3 h-3 rounded-full bg-raya flex items-center justify-center text-white text-[7px] font-bold leading-none flex-shrink-0 ml-1">R</div>
+                                    </div>
+                                </div>
+                                <div class="text-[8px] text-text-muted">+1 more</div>
+                            </div>
+                        </div>
+                        <!-- Fri 7 — 0 events -->
+                        <div class="border-b border-r border-border p-1.5 hover:bg-bg-hover transition-colors cursor-pointer">
+                            <span class="text-xs font-medium text-text-primary">7</span>
+                        </div>
+                        <!-- Sat 8 — 1 event (low) -->
+                        <div class="border-b border-r border-border p-1.5 hover:bg-bg-hover transition-colors cursor-pointer">
+                            <div class="grid grid-cols-[auto_1fr_auto] items-center gap-1">
+                                <span class="text-xs font-medium text-text-primary">8</span>
+                                <div></div>
+                                <span class="rounded-full bg-density-low px-1.5 py-0.5 text-[9px] font-medium text-text-primary">1</span>
+                            </div>
+                            <div class="mt-1 space-y-0.5">
+                                <div class="border-l-2 border-faiyaz bg-faiyaz/10 rounded-sm px-1 py-0.5 hover:bg-faiyaz/20 transition-colors cursor-pointer">
+                                    <div class="flex items-center justify-between">
+                                        <span class="text-[9px] font-medium text-text-primary truncate">Park</span>
+                                        <div class="w-3 h-3 rounded-full bg-faiyaz flex items-center justify-center text-white text-[7px] font-bold leading-none flex-shrink-0 ml-1">F</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <!-- Sun 9 — 2 events (medium) -->
+                        <div class="border-b border-border p-1.5 hover:bg-bg-hover transition-colors cursor-pointer">
+                            <div class="grid grid-cols-[auto_1fr_auto] items-center gap-1">
+                                <span class="text-xs font-medium text-text-primary">9</span>
+                                <div></div>
+                                <span class="rounded-full bg-density-medium px-1.5 py-0.5 text-[9px] font-medium text-text-primary">2</span>
+                            </div>
+                            <div class="mt-1 space-y-0.5">
+                                <div class="border-l-2 border-trisha bg-trisha/10 rounded-sm px-1 py-0.5 hover:bg-trisha/20 transition-colors cursor-pointer">
+                                    <div class="flex items-center justify-between">
+                                        <span class="text-[9px] font-medium text-text-primary truncate">Brunch</span>
+                                        <div class="w-3 h-3 rounded-full bg-trisha flex items-center justify-center text-white text-[7px] font-bold leading-none flex-shrink-0 ml-1">T</div>
+                                    </div>
+                                </div>
+                                <div class="border-l-2 border-arya bg-arya/10 rounded-sm px-1 py-0.5 hover:bg-arya/20 transition-colors cursor-pointer">
+                                    <div class="flex items-center justify-between">
+                                        <span class="text-[9px] font-medium text-text-primary truncate">Soccer</span>
+                                        <div class="w-3 h-3 rounded-full bg-arya flex items-center justify-center text-white text-[7px] font-bold leading-none flex-shrink-0 ml-1">A</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- ══ WEEK 3: Aug 10 – 16 (high density) ═══ -->
+                    <div class="grid grid-cols-[auto_repeat(7,1fr)] gap-0 border-t border-border">
+                        <div class="w-2 border-l-4 border-l-density-high"></div>
+                        <!-- Mon 10 — 4 events (high) -->
+                        <div class="border-b border-r border-border p-1.5 hover:bg-bg-hover transition-colors cursor-pointer">
+                            <div class="grid grid-cols-[auto_1fr_auto] items-center gap-1">
+                                <span class="text-xs font-medium text-text-primary">10</span>
+                                <div></div>
+                                <span class="rounded-full bg-density-high px-1.5 py-0.5 text-[9px] font-medium text-text-primary">4</span>
+                            </div>
+                            <div class="mt-1 space-y-0.5">
+                                <div class="border-l-2 border-faiyaz bg-faiyaz/10 rounded-sm px-1 py-0.5 hover:bg-faiyaz/20 transition-colors cursor-pointer">
+                                    <div class="flex items-center justify-between">
+                                        <span class="text-[9px] font-medium text-text-primary truncate">Standup</span>
+                                        <div class="w-3 h-3 rounded-full bg-faiyaz flex items-center justify-center text-white text-[7px] font-bold leading-none flex-shrink-0 ml-1">F</div>
+                                    </div>
+                                </div>
+                                <div class="border-l-2 border-trisha bg-trisha/10 rounded-sm px-1 py-0.5 hover:bg-trisha/20 transition-colors cursor-pointer">
+                                    <div class="flex items-center justify-between">
+                                        <span class="text-[9px] font-medium text-text-primary truncate">Yoga</span>
+                                        <div class="w-3 h-3 rounded-full bg-trisha flex items-center justify-center text-white text-[7px] font-bold leading-none flex-shrink-0 ml-1">T</div>
+                                    </div>
+                                </div>
+                                <div class="text-[8px] text-text-muted">+2 more</div>
+                            </div>
+                        </div>
+                        <!-- Tue 11 — 2 events (medium) -->
+                        <div class="border-b border-r border-border p-1.5 hover:bg-bg-hover transition-colors cursor-pointer">
+                            <div class="grid grid-cols-[auto_1fr_auto] items-center gap-1">
+                                <span class="text-xs font-medium text-text-primary">11</span>
+                                <div></div>
+                                <span class="rounded-full bg-density-medium px-1.5 py-0.5 text-[9px] font-medium text-text-primary">2</span>
+                            </div>
+                            <div class="mt-1 space-y-0.5">
+                                <div class="border-l-2 border-faiyaz bg-faiyaz/10 rounded-sm px-1 py-0.5 hover:bg-faiyaz/20 transition-colors cursor-pointer">
+                                    <div class="flex items-center justify-between">
+                                        <span class="text-[9px] font-medium text-text-primary truncate">Dentist</span>
+                                        <div class="w-3 h-3 rounded-full bg-faiyaz flex items-center justify-center text-white text-[7px] font-bold leading-none flex-shrink-0 ml-1">F</div>
+                                    </div>
+                                </div>
+                                <div class="border-l-2 border-arya bg-arya/10 rounded-sm px-1 py-0.5 hover:bg-arya/20 transition-colors cursor-pointer">
+                                    <div class="flex items-center justify-between">
+                                        <span class="text-[9px] font-medium text-text-primary truncate">Preschool</span>
+                                        <div class="w-3 h-3 rounded-full bg-arya flex items-center justify-center text-white text-[7px] font-bold leading-none flex-shrink-0 ml-1">A</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <!-- Wed 12 — 1 event (low) -->
+                        <div class="border-b border-r border-border p-1.5 hover:bg-bg-hover transition-colors cursor-pointer">
+                            <div class="grid grid-cols-[auto_1fr_auto] items-center gap-1">
+                                <span class="text-xs font-medium text-text-primary">12</span>
+                                <div></div>
+                                <span class="rounded-full bg-density-low px-1.5 py-0.5 text-[9px] font-medium text-text-primary">1</span>
+                            </div>
+                            <div class="mt-1 space-y-0.5">
+                                <div class="border-l-2 border-trisha bg-trisha/10 rounded-sm px-1 py-0.5 hover:bg-trisha/20 transition-colors cursor-pointer">
+                                    <div class="flex items-center justify-between">
+                                        <span class="text-[9px] font-medium text-text-primary truncate">Grocery</span>
+                                        <div class="w-3 h-3 rounded-full bg-trisha flex items-center justify-center text-white text-[7px] font-bold leading-none flex-shrink-0 ml-1">T</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <!-- Thu 13 — 3 events (high) -->
+                        <div class="border-b border-r border-border p-1.5 hover:bg-bg-hover transition-colors cursor-pointer">
+                            <div class="grid grid-cols-[auto_1fr_auto] items-center gap-1">
+                                <span class="text-xs font-medium text-text-primary">13</span>
+                                <div></div>
+                                <span class="rounded-full bg-density-high px-1.5 py-0.5 text-[9px] font-medium text-text-primary">3</span>
+                            </div>
+                            <div class="mt-1 space-y-0.5">
+                                <div class="border-l-2 border-faiyaz bg-faiyaz/10 rounded-sm px-1 py-0.5 hover:bg-faiyaz/20 transition-colors cursor-pointer">
+                                    <div class="flex items-center justify-between">
+                                        <span class="text-[9px] font-medium text-text-primary truncate">Reading</span>
+                                        <div class="w-3 h-3 rounded-full bg-faiyaz flex items-center justify-center text-white text-[7px] font-bold leading-none flex-shrink-0 ml-1">F</div>
+                                    </div>
+                                </div>
+                                <div class="border-l-2 border-raya bg-raya/10 rounded-sm px-1 py-0.5 hover:bg-raya/20 transition-colors cursor-pointer">
+                                    <div class="flex items-center justify-between">
+                                        <span class="text-[9px] font-medium text-text-primary truncate">Piano</span>
+                                        <div class="w-3 h-3 rounded-full bg-raya flex items-center justify-center text-white text-[7px] font-bold leading-none flex-shrink-0 ml-1">R</div>
+                                    </div>
+                                </div>
+                                <div class="text-[8px] text-text-muted">+1 more</div>
+                            </div>
+                        </div>
+                        <!-- Fri 14 — 2 events (medium) -->
+                        <div class="border-b border-r border-border p-1.5 hover:bg-bg-hover transition-colors cursor-pointer">
+                            <div class="grid grid-cols-[auto_1fr_auto] items-center gap-1">
+                                <span class="text-xs font-medium text-text-primary">14</span>
+                                <div></div>
+                                <span class="rounded-full bg-density-medium px-1.5 py-0.5 text-[9px] font-medium text-text-primary">2</span>
+                            </div>
+                            <div class="mt-1 space-y-0.5">
+                                <div class="border-l-2 border-trisha bg-trisha/10 rounded-sm px-1 py-0.5 hover:bg-trisha/20 transition-colors cursor-pointer">
+                                    <div class="flex items-center justify-between">
+                                        <span class="text-[9px] font-medium text-text-primary truncate">Date Night</span>
+                                        <div class="w-3 h-3 rounded-full bg-trisha flex items-center justify-center text-white text-[7px] font-bold leading-none flex-shrink-0 ml-1">T</div>
+                                    </div>
+                                </div>
+                                <div class="border-l-2 border-faiyaz bg-faiyaz/10 rounded-sm px-1 py-0.5 hover:bg-faiyaz/20 transition-colors cursor-pointer">
+                                    <div class="flex items-center justify-between">
+                                        <span class="text-[9px] font-medium text-text-primary truncate">Gym</span>
+                                        <div class="w-3 h-3 rounded-full bg-faiyaz flex items-center justify-center text-white text-[7px] font-bold leading-none flex-shrink-0 ml-1">F</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <!-- Sat 15 — 1 event (low) -->
+                        <div class="border-b border-r border-border p-1.5 hover:bg-bg-hover transition-colors cursor-pointer">
+                            <div class="grid grid-cols-[auto_1fr_auto] items-center gap-1">
+                                <span class="text-xs font-medium text-text-primary">15</span>
+                                <div></div>
+                                <span class="rounded-full bg-density-low px-1.5 py-0.5 text-[9px] font-medium text-text-primary">1</span>
+                            </div>
+                            <div class="mt-1 space-y-0.5">
+                                <div class="border-l-2 border-raya bg-raya/10 rounded-sm px-1 py-0.5 hover:bg-raya/20 transition-colors cursor-pointer">
+                                    <div class="flex items-center justify-between">
+                                        <span class="text-[9px] font-medium text-text-primary truncate">Swim</span>
+                                        <div class="w-3 h-3 rounded-full bg-raya flex items-center justify-center text-white text-[7px] font-bold leading-none flex-shrink-0 ml-1">R</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <!-- Sun 16 — 3 events (high) -->
+                        <div class="border-b border-border p-1.5 hover:bg-bg-hover transition-colors cursor-pointer">
+                            <div class="grid grid-cols-[auto_1fr_auto] items-center gap-1">
+                                <span class="text-xs font-medium text-text-primary">16</span>
+                                <div></div>
+                                <span class="rounded-full bg-density-high px-1.5 py-0.5 text-[9px] font-medium text-text-primary">3</span>
+                            </div>
+                            <div class="mt-1 space-y-0.5">
+                                <div class="border-l-2 border-faiyaz bg-faiyaz/10 rounded-sm px-1 py-0.5 hover:bg-faiyaz/20 transition-colors cursor-pointer">
+                                    <div class="flex items-center justify-between">
+                                        <span class="text-[9px] font-medium text-text-primary truncate">Meal Prep</span>
+                                        <div class="w-3 h-3 rounded-full bg-faiyaz flex items-center justify-center text-white text-[7px] font-bold leading-none flex-shrink-0 ml-1">F</div>
+                                    </div>
+                                </div>
+                                <div class="border-l-2 border-trisha bg-trisha/10 rounded-sm px-1 py-0.5 hover:bg-trisha/20 transition-colors cursor-pointer">
+                                    <div class="flex items-center justify-between">
+                                        <span class="text-[9px] font-medium text-text-primary truncate">Homework</span>
+                                        <div class="w-3 h-3 rounded-full bg-trisha flex items-center justify-center text-white text-[7px] font-bold leading-none flex-shrink-0 ml-1">T</div>
+                                    </div>
+                                </div>
+                                <div class="text-[8px] text-text-muted">+1 more</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- ═══ WEEK 4: Aug 17 – 23 (high density) ═══ -->
+                    <div class="grid grid-cols-[auto_repeat(7,1fr)] gap-0 border-t border-border">
+                        <div class="w-2 border-l-4 border-l-density-high"></div>
+                        <!-- Mon 17 — 3 events (high) -->
+                        <div class="border-b border-r border-border p-1.5 hover:bg-bg-hover transition-colors cursor-pointer">
+                            <div class="grid grid-cols-[auto_1fr_auto] items-center gap-1">
+                                <span class="text-xs font-medium text-text-primary">17</span>
+                                <div></div>
+                                <span class="rounded-full bg-density-high px-1.5 py-0.5 text-[9px] font-medium text-text-primary">3</span>
+                            </div>
+                            <div class="mt-1 space-y-0.5">
+                                <div class="border-l-2 border-faiyaz bg-faiyaz/10 rounded-sm px-1 py-0.5 hover:bg-faiyaz/20 transition-colors cursor-pointer">
+                                    <div class="flex items-center justify-between">
+                                        <span class="text-[9px] font-medium text-text-primary truncate">Standup</span>
+                                        <div class="w-3 h-3 rounded-full bg-faiyaz flex items-center justify-center text-white text-[7px] font-bold leading-none flex-shrink-0 ml-1">F</div>
+                                    </div>
+                                </div>
+                                <div class="border-l-2 border-faiyaz bg-faiyaz/10 rounded-sm px-1 py-0.5 hover:bg-faiyaz/20 transition-colors cursor-pointer">
+                                    <div class="flex items-center justify-between">
+                                        <span class="text-[9px] font-medium text-text-primary truncate">Yoga</span>
+                                        <div class="w-3 h-3 rounded-full bg-faiyaz flex items-center justify-center text-white text-[7px] font-bold leading-none flex-shrink-0 ml-1">F</div>
+                                    </div>
+                                </div>
+                                <div class="text-[8px] text-text-muted">+1 more</div>
+                            </div>
+                        </div>
+                        <!-- Tue 18 — 4 events (high) -->
+                        <div class="border-b border-r border-border p-1.5 hover:bg-bg-hover transition-colors cursor-pointer">
+                            <div class="grid grid-cols-[auto_1fr_auto] items-center gap-1">
+                                <span class="text-xs font-medium text-text-primary">18</span>
+                                <div></div>
+                                <span class="rounded-full bg-density-high px-1.5 py-0.5 text-[9px] font-medium text-text-primary">4</span>
+                            </div>
+                            <div class="mt-1 space-y-0.5">
+                                <div class="border-l-2 border-faiyaz bg-faiyaz/10 rounded-sm px-1 py-0.5 hover:bg-faiyaz/20 transition-colors cursor-pointer">
+                                    <div class="flex items-center justify-between">
+                                        <span class="text-[9px] font-medium text-text-primary truncate">Dentist</span>
+                                        <div class="w-3 h-3 rounded-full bg-faiyaz flex items-center justify-center text-white text-[7px] font-bold leading-none flex-shrink-0 ml-1">F</div>
+                                    </div>
+                                </div>
+                                <div class="border-l-2 border-faiyaz bg-faiyaz/10 rounded-sm px-1 py-0.5 hover:bg-faiyaz/20 transition-colors cursor-pointer">
+                                    <div class="flex items-center justify-between">
+                                        <span class="text-[9px] font-medium text-text-primary truncate">Preschool</span>
+                                        <div class="w-3 h-3 rounded-full bg-faiyaz flex items-center justify-center text-white text-[7px] font-bold leading-none flex-shrink-0 ml-1">F</div>
+                                    </div>
+                                </div>
+                                <div class="text-[8px] text-text-muted">+2 more</div>
+                            </div>
+                        </div>
+                        <!-- Wed 19 — 3 events (high) -->
+                        <div class="border-b border-r border-border p-1.5 hover:bg-bg-hover transition-colors cursor-pointer">
+                            <div class="grid grid-cols-[auto_1fr_auto] items-center gap-1">
+                                <span class="text-xs font-medium text-text-primary">19</span>
+                                <div></div>
+                                <span class="rounded-full bg-density-high px-1.5 py-0.5 text-[9px] font-medium text-text-primary">3</span>
+                            </div>
+                            <div class="mt-1 space-y-0.5">
+                                <div class="border-l-2 border-faiyaz bg-faiyaz/10 rounded-sm px-1 py-0.5 hover:bg-faiyaz/20 transition-colors cursor-pointer">
+                                    <div class="flex items-center justify-between">
+                                        <span class="text-[9px] font-medium text-text-primary truncate">Reading</span>
+                                        <div class="w-3 h-3 rounded-full bg-faiyaz flex items-center justify-center text-white text-[7px] font-bold leading-none flex-shrink-0 ml-1">F</div>
+                                    </div>
+                                </div>
+                                <div class="border-l-2 border-faiyaz bg-faiyaz/10 rounded-sm px-1 py-0.5 hover:bg-faiyaz/20 transition-colors cursor-pointer">
+                                    <div class="flex items-center justify-between">
+                                        <span class="text-[9px] font-medium text-text-primary truncate">Piano</span>
+                                        <div class="w-3 h-3 rounded-full bg-faiyaz flex items-center justify-center text-white text-[7px] font-bold leading-none flex-shrink-0 ml-1">F</div>
+                                    </div>
+                                </div>
+                                <div class="text-[8px] text-text-muted">+1 more</div>
+                            </div>
+                        </div>
+                        <!-- Thu 20 (TODAY) — 2 events (medium), weather: ☀️ 83°/68° -->
+                        <div class="border-b border-r border-border p-1.5 hover:bg-bg-hover transition-colors cursor-pointer ring-2 ring-primary">
+                            <div class="grid grid-cols-[auto_1fr_auto] items-center gap-1">
+                                <span class="inline-flex items-center justify-center w-5 h-5 rounded-full bg-primary text-white text-[10px] font-bold leading-none">20</span>
+                                <div class="flex items-center justify-center gap-1 text-[9px] text-text-muted">
+                                    <svg class="w-3 h-3 text-warning" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 2a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zm4 8a4 4 0 11-8 0 4 4 0 018 0zm-.464 4.95l.707.707a1 1 0 001.414-1.414l-.707-.707a1 1 0 00-1.414 1.414zm2.12-10.607a1 1 0 010 1.414l-.706.707a1 1 0 11-1.414-1.414l.707-.707a1 1 0 011.414 0zM17 11a1 1 0 100-2h-1a1 1 0 100 2h1zm-7 4a1 1 0 011 1v1a1 1 0 11-2 0v-1a1 1 0 011-1zM5.05 6.464A1 1 0 106.465 5.05l-.708-.707a1 1 0 00-1.414 1.414l.707.707zm1.414 8.486l-.707.707a1 1 0 01-1.414-1.414l.707-.707a1 1 0 011.414 1.414zM4 11a1 1 0 100-2H3a1 1 0 000 2h1z" clip-rule="evenodd"/></svg>
+                                    <span class="font-medium text-text-primary">83°</span>
+                                    <span>68°</span>
+                                </div>
+                                <span class="rounded-full bg-density-medium px-1.5 py-0.5 text-[9px] font-medium text-text-primary">2</span>
+                            </div>
+                            <div class="mt-1 space-y-0.5">
+                                <div class="border-l-2 border-faiyaz bg-faiyaz/10 rounded-sm px-1 py-0.5 hover:bg-faiyaz/20 transition-colors cursor-pointer">
+                                    <div class="flex items-center justify-between">
+                                        <span class="text-[9px] font-medium text-text-primary truncate">Playdate</span>
+                                        <div class="w-3 h-3 rounded-full bg-faiyaz flex items-center justify-center text-white text-[7px] font-bold leading-none flex-shrink-0 ml-1">F</div>
+                                    </div>
+                                </div>
+                                <div class="border-l-2 border-faiyaz bg-faiyaz/10 rounded-sm px-1 py-0.5 hover:bg-faiyaz/20 transition-colors cursor-pointer">
+                                    <div class="flex items-center justify-between">
+                                        <span class="text-[9px] font-medium text-text-primary truncate">Cook Dinner</span>
+                                        <div class="w-3 h-3 rounded-full bg-faiyaz flex items-center justify-center text-white text-[7px] font-bold leading-none flex-shrink-0 ml-1">F</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <!-- Fri 21 — 3 events (high), weather: ☁️ 80°/65° -->
+                        <div class="border-b border-r border-border p-1.5 hover:bg-bg-hover transition-colors cursor-pointer">
+                            <div class="grid grid-cols-[auto_1fr_auto] items-center gap-1">
+                                <span class="text-xs font-medium text-text-primary">21</span>
+                                <div class="flex items-center justify-center gap-1 text-[9px] text-text-muted">
+                                    <svg class="w-3 h-3 text-text-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 15a4 4 0 004 4h9a5 5 0 10-.1-9.999 5.002 5.002 0 10-9.78 2.096A4.001 4.001 0 003 15z"/></svg>
+                                    <span class="font-medium text-text-primary">80°</span>
+                                    <span>65°</span>
+                                </div>
+                                <span class="rounded-full bg-density-high px-1.5 py-0.5 text-[9px] font-medium text-text-primary">3</span>
+                            </div>
+                            <div class="mt-1 space-y-0.5">
+                                <div class="border-l-2 border-faiyaz bg-faiyaz/10 rounded-sm px-1 py-0.5 hover:bg-faiyaz/20 transition-colors cursor-pointer">
+                                    <div class="flex items-center justify-between">
+                                        <span class="text-[9px] font-medium text-text-primary truncate">Science Fair</span>
+                                        <div class="w-3 h-3 rounded-full bg-faiyaz flex items-center justify-center text-white text-[7px] font-bold leading-none flex-shrink-0 ml-1">F</div>
+                                    </div>
+                                </div>
+                                <div class="border-l-2 border-faiyaz bg-faiyaz/10 rounded-sm px-1 py-0.5 hover:bg-faiyaz/20 transition-colors cursor-pointer">
+                                    <div class="flex items-center justify-between">
+                                        <span class="text-[9px] font-medium text-text-primary truncate">Team Offsite</span>
+                                        <div class="w-3 h-3 rounded-full bg-faiyaz flex items-center justify-center text-white text-[7px] font-bold leading-none flex-shrink-0 ml-1">F</div>
+                                    </div>
+                                </div>
+                                <div class="text-[8px] text-text-muted">+1 more</div>
+                            </div>
+                        </div>
+                        <!-- Sat 22 — 2 events (medium), weather: 🌧️ 78°/62° -->
+                        <div class="border-b border-r border-border p-1.5 hover:bg-bg-hover transition-colors cursor-pointer">
+                            <div class="grid grid-cols-[auto_1fr_auto] items-center gap-1">
+                                <span class="text-xs font-medium text-text-primary">22</span>
+                                <div class="flex items-center justify-center gap-1 text-[9px] text-text-muted">
+                                    <svg class="w-3 h-3 text-text-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 16.5A5.5 5.5 0 0113.5 11h-.596a7.002 7.002 0 00-1.277-3.858A5.5 5.5 0 017.5 16.5H19z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 19v1m4-1v1m4-1v1"/></svg>
+                                    <span class="font-medium text-text-primary">78°</span>
+                                    <span>62°</span>
+                                </div>
+                                <span class="rounded-full bg-density-medium px-1.5 py-0.5 text-[9px] font-medium text-text-primary">2</span>
+                            </div>
+                            <div class="mt-1 space-y-0.5">
+                                <div class="border-l-2 border-faiyaz bg-faiyaz/10 rounded-sm px-1 py-0.5 hover:bg-faiyaz/20 transition-colors cursor-pointer">
+                                    <div class="flex items-center justify-between">
+                                        <span class="text-[9px] font-medium text-text-primary truncate">Park Visit</span>
+                                        <div class="w-3 h-3 rounded-full bg-faiyaz flex items-center justify-center text-white text-[7px] font-bold leading-none flex-shrink-0 ml-1">F</div>
+                                    </div>
+                                </div>
+                                <div class="border-l-2 border-faiyaz bg-faiyaz/10 rounded-sm px-1 py-0.5 hover:bg-faiyaz/20 transition-colors cursor-pointer">
+                                    <div class="flex items-center justify-between">
+                                        <span class="text-[9px] font-medium text-text-primary truncate">Brunch</span>
+                                        <div class="w-3 h-3 rounded-full bg-faiyaz flex items-center justify-center text-white text-[7px] font-bold leading-none flex-shrink-0 ml-1">F</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <!-- Sun 23 — 2 events (medium), weather: ⛈️ 83°/68° -->
+                        <div class="border-b border-border p-1.5 hover:bg-bg-hover transition-colors cursor-pointer">
+                            <div class="grid grid-cols-[auto_1fr_auto] items-center gap-1">
+                                <span class="text-xs font-medium text-text-primary">23</span>
+                                <div class="flex items-center justify-center gap-1 text-[9px] text-text-muted">
+                                    <svg class="w-3 h-3 text-text-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+                                    <span class="font-medium text-text-primary">83°</span>
+                                    <span>68°</span>
+                                </div>
+                                <span class="rounded-full bg-density-medium px-1.5 py-0.5 text-[9px] font-medium text-text-primary">2</span>
+                            </div>
+                            <div class="mt-1 space-y-0.5">
+                                <div class="border-l-2 border-faiyaz bg-faiyaz/10 rounded-sm px-1 py-0.5 hover:bg-faiyaz/20 transition-colors cursor-pointer">
+                                    <div class="flex items-center justify-between">
+                                        <span class="text-[9px] font-medium text-text-primary truncate">Meal Prep</span>
+                                        <div class="w-3 h-3 rounded-full bg-faiyaz flex items-center justify-center text-white text-[7px] font-bold leading-none flex-shrink-0 ml-1">F</div>
+                                    </div>
+                                </div>
+                                <div class="border-l-2 border-faiyaz bg-faiyaz/10 rounded-sm px-1 py-0.5 hover:bg-faiyaz/20 transition-colors cursor-pointer">
+                                    <div class="flex items-center justify-between">
+                                        <span class="text-[9px] font-medium text-text-primary truncate">Homework</span>
+                                        <div class="w-3 h-3 rounded-full bg-faiyaz flex items-center justify-center text-white text-[7px] font-bold leading-none flex-shrink-0 ml-1">F</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- ═══ WEEK 5: Aug 24 – 30 (medium density) ═══ -->
+                    <div class="grid grid-cols-[auto_repeat(7,1fr)] gap-0 border-t border-border">
+                        <div class="w-2 border-l-4 border-l-density-medium"></div>
+                        <!-- Mon 24 — 3 events (high), weather: ☀️ 85°/70° -->
+                        <div class="border-b border-r border-border p-1.5 hover:bg-bg-hover transition-colors cursor-pointer">
+                            <div class="grid grid-cols-[auto_1fr_auto] items-center gap-1">
+                                <span class="text-xs font-medium text-text-primary">24</span>
+                                <div class="flex items-center justify-center gap-1 text-[9px] text-text-muted">
+                                    <svg class="w-3 h-3 text-warning" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 2a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zm4 8a4 4 0 11-8 0 4 4 0 018 0zm-.464 4.95l.707.707a1 1 0 001.414-1.414l-.707-.707a1 1 0 00-1.414 1.414zm2.12-10.607a1 1 0 010 1.414l-.706.707a1 1 0 11-1.414-1.414l.707-.707a1 1 0 011.414 0zM17 11a1 1 0 100-2h-1a1 1 0 100 2h1zm-7 4a1 1 0 011 1v1a1 1 0 11-2 0v-1a1 1 0 011-1zM5.05 6.464A1 1 0 106.465 5.05l-.708-.707a1 1 0 00-1.414 1.414l.707.707zm1.414 8.486l-.707.707a1 1 0 01-1.414-1.414l.707-.707a1 1 0 011.414 1.414zM4 11a1 1 0 100-2H3a1 1 0 000 2h1z" clip-rule="evenodd"/></svg>
+                                    <span class="font-medium text-text-primary">85°</span>
+                                    <span>70°</span>
+                                </div>
+                                <span class="rounded-full bg-density-high px-1.5 py-0.5 text-[9px] font-medium text-text-primary">3</span>
+                            </div>
+                            <div class="mt-1 space-y-0.5">
+                                <div class="border-l-2 border-arya bg-arya/10 rounded-sm px-1 py-0.5 hover:bg-arya/20 transition-colors cursor-pointer">
+                                    <div class="flex items-center justify-between">
+                                        <span class="text-[9px] font-medium text-text-primary truncate">Back to School</span>
+                                        <div class="w-3 h-3 rounded-full bg-arya flex items-center justify-center text-white text-[7px] font-bold leading-none flex-shrink-0 ml-1">A</div>
+                                    </div>
+                                </div>
+                                <div class="border-l-2 border-trisha bg-trisha/10 rounded-sm px-1 py-0.5 hover:bg-trisha/20 transition-colors cursor-pointer">
+                                    <div class="flex items-center justify-between">
+                                        <span class="text-[9px] font-medium text-text-primary truncate">Parent-Teacher</span>
+                                        <div class="w-3 h-3 rounded-full bg-trisha flex items-center justify-center text-white text-[7px] font-bold leading-none flex-shrink-0 ml-1">T</div>
+                                    </div>
+                                </div>
+                                <div class="text-[8px] text-text-muted">+1 more</div>
+                            </div>
+                        </div>
+                        <!-- Tue 25 — 0 events, weather: ☀️ 87°/72° -->
+                        <div class="border-b border-r border-border p-1.5 hover:bg-bg-hover transition-colors cursor-pointer">
+                            <div class="grid grid-cols-[auto_1fr_auto] items-center gap-1">
+                                <span class="text-xs font-medium text-text-primary">25</span>
+                                <div class="flex items-center justify-center gap-1 text-[9px] text-text-muted">
+                                    <svg class="w-3 h-3 text-warning" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 2a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zm4 8a4 4 0 11-8 0 4 4 0 018 0zm-.464 4.95l.707.707a1 1 0 001.414-1.414l-.707-.707a1 1 0 00-1.414 1.414zm2.12-10.607a1 1 0 010 1.414l-.706.707a1 1 0 11-1.414-1.414l.707-.707a1 1 0 011.414 0zM17 11a1 1 0 100-2h-1a1 1 0 100 2h1zm-7 4a1 1 0 011 1v1a1 1 0 11-2 0v-1a1 1 0 011-1zM5.05 6.464A1 1 0 106.465 5.05l-.708-.707a1 1 0 00-1.414 1.414l.707.707zm1.414 8.486l-.707.707a1 1 0 01-1.414-1.414l.707-.707a1 1 0 011.414 1.414zM4 11a1 1 0 100-2H3a1 1 0 000 2h1z" clip-rule="evenodd"/></svg>
+                                    <span class="font-medium text-text-primary">87°</span>
+                                    <span>72°</span>
+                                </div>
+                                <div></div>
+                            </div>
+                        </div>
+                        <!-- Wed 26 — 1 event (low), weather: ⛅ 82°/66° -->
+                        <div class="border-b border-r border-border p-1.5 hover:bg-bg-hover transition-colors cursor-pointer">
+                            <div class="grid grid-cols-[auto_1fr_auto] items-center gap-1">
+                                <span class="text-xs font-medium text-text-primary">26</span>
+                                <div class="flex items-center justify-center gap-1 text-[9px] text-text-muted">
+                                    <svg class="w-3 h-3 text-text-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
+                                    <span class="font-medium text-text-primary">82°</span>
+                                    <span>66°</span>
+                                </div>
+                                <span class="rounded-full bg-density-low px-1.5 py-0.5 text-[9px] font-medium text-text-primary">1</span>
+                            </div>
+                            <div class="mt-1 space-y-0.5">
+                                <div class="border-l-2 border-faiyaz bg-faiyaz/10 rounded-sm px-1 py-0.5 hover:bg-faiyaz/20 transition-colors cursor-pointer">
+                                    <div class="flex items-center justify-between">
+                                        <span class="text-[9px] font-medium text-text-primary truncate">Reading</span>
+                                        <div class="w-3 h-3 rounded-full bg-faiyaz flex items-center justify-center text-white text-[7px] font-bold leading-none flex-shrink-0 ml-1">F</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <!-- Thu 27 — 2 events (medium), weather: 🌧️ 75°/60° -->
+                        <div class="border-b border-r border-border p-1.5 hover:bg-bg-hover transition-colors cursor-pointer">
+                            <div class="grid grid-cols-[auto_1fr_auto] items-center gap-1">
+                                <span class="text-xs font-medium text-text-primary">27</span>
+                                <div class="flex items-center justify-center gap-1 text-[9px] text-text-muted">
+                                    <svg class="w-3 h-3 text-text-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 16.5A5.5 5.5 0 0113.5 11h-.596a7.002 7.002 0 00-1.277-3.858A5.5 5.5 0 017.5 16.5H19z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 19v1m4-1v1m4-1v1"/></svg>
+                                    <span class="font-medium text-text-primary">75°</span>
+                                    <span>60°</span>
+                                </div>
+                                <span class="rounded-full bg-density-medium px-1.5 py-0.5 text-[9px] font-medium text-text-primary">2</span>
+                            </div>
+                            <div class="mt-1 space-y-0.5">
+                                <div class="border-l-2 border-trisha bg-trisha/10 rounded-sm px-1 py-0.5 hover:bg-trisha/20 transition-colors cursor-pointer">
+                                    <div class="flex items-center justify-between">
+                                        <span class="text-[9px] font-medium text-text-primary truncate">Piano</span>
+                                        <div class="w-3 h-3 rounded-full bg-trisha flex items-center justify-center text-white text-[7px] font-bold leading-none flex-shrink-0 ml-1">T</div>
+                                    </div>
+                                </div>
+                                <div class="border-l-2 border-arya bg-arya/10 rounded-sm px-1 py-0.5 hover:bg-arya/20 transition-colors cursor-pointer">
+                                    <div class="flex items-center justify-between">
+                                        <span class="text-[9px] font-medium text-text-primary truncate">Grocery</span>
+                                        <div class="w-3 h-3 rounded-full bg-arya flex items-center justify-center text-white text-[7px] font-bold leading-none flex-shrink-0 ml-1">A</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <!-- Fri 28 — 0 events, weather: ☁️ 77°/63° -->
+                        <div class="border-b border-r border-border p-1.5 hover:bg-bg-hover transition-colors cursor-pointer">
+                            <div class="grid grid-cols-[auto_1fr_auto] items-center gap-1">
+                                <span class="text-xs font-medium text-text-primary">28</span>
+                                <div class="flex items-center justify-center gap-1 text-[9px] text-text-muted">
+                                    <svg class="w-3 h-3 text-text-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 15a4 4 0 004 4h9a5 5 0 10-.1-9.999 5.002 5.002 0 10-9.78 2.096A4.001 4.001 0 003 15z"/></svg>
+                                    <span class="font-medium text-text-primary">77°</span>
+                                    <span>63°</span>
+                                </div>
+                                <div></div>
+                            </div>
+                        </div>
+                        <!-- Sat 29 — 1 event (low), weather: ☀️ 81°/67° -->
+                        <div class="border-b border-r border-border p-1.5 hover:bg-bg-hover transition-colors cursor-pointer">
+                            <div class="grid grid-cols-[auto_1fr_auto] items-center gap-1">
+                                <span class="text-xs font-medium text-text-primary">29</span>
+                                <div class="flex items-center justify-center gap-1 text-[9px] text-text-muted">
+                                    <svg class="w-3 h-3 text-warning" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 2a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zm4 8a4 4 0 11-8 0 4 4 0 018 0zm-.464 4.95l.707.707a1 1 0 001.414-1.414l-.707-.707a1 1 0 00-1.414 1.414zm2.12-10.607a1 1 0 010 1.414l-.706.707a1 1 0 11-1.414-1.414l.707-.707a1 1 0 011.414 0zM17 11a1 1 0 100-2h-1a1 1 0 100 2h1zm-7 4a1 1 0 011 1v1a1 1 0 11-2 0v-1a1 1 0 011-1zM5.05 6.464A1 1 0 106.465 5.05l-.708-.707a1 1 0 00-1.414 1.414l.707.707zm1.414 8.486l-.707.707a1 1 0 01-1.414-1.414l.707-.707a1 1 0 011.414 1.414zM4 11a1 1 0 100-2H3a1 1 0 000 2h1z" clip-rule="evenodd"/></svg>
+                                    <span class="font-medium text-text-primary">81°</span>
+                                    <span>67°</span>
+                                </div>
+                                <span class="rounded-full bg-density-low px-1.5 py-0.5 text-[9px] font-medium text-text-primary">1</span>
+                            </div>
+                            <div class="mt-1 space-y-0.5">
+                                <div class="border-l-2 border-raya bg-raya/10 rounded-sm px-1 py-0.5 hover:bg-raya/20 transition-colors cursor-pointer">
+                                    <div class="flex items-center justify-between">
+                                        <span class="text-[9px] font-medium text-text-primary truncate">Family Outing</span>
+                                        <div class="w-3 h-3 rounded-full bg-raya flex items-center justify-center text-white text-[7px] font-bold leading-none flex-shrink-0 ml-1">R</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <!-- Sun 30 — 2 events (medium), weather: ☀️ 84°/69° -->
+                        <div class="border-b border-border p-1.5 hover:bg-bg-hover transition-colors cursor-pointer">
+                            <div class="grid grid-cols-[auto_1fr_auto] items-center gap-1">
+                                <span class="text-xs font-medium text-text-primary">30</span>
+                                <div class="flex items-center justify-center gap-1 text-[9px] text-text-muted">
+                                    <svg class="w-3 h-3 text-warning" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 2a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zm4 8a4 4 0 11-8 0 4 4 0 018 0zm-.464 4.95l.707.707a1 1 0 001.414-1.414l-.707-.707a1 1 0 00-1.414 1.414zm2.12-10.607a1 1 0 010 1.414l-.706.707a1 1 0 11-1.414-1.414l.707-.707a1 1 0 011.414 0zM17 11a1 1 0 100-2h-1a1 1 0 100 2h1zm-7 4a1 1 0 011 1v1a1 1 0 11-2 0v-1a1 1 0 011-1zM5.05 6.464A1 1 0 106.465 5.05l-.708-.707a1 1 0 00-1.414 1.414l.707.707zm1.414 8.486l-.707.707a1 1 0 01-1.414-1.414l.707-.707a1 1 0 011.414 1.414zM4 11a1 1 0 100-2H3a1 1 0 000 2h1z" clip-rule="evenodd"/></svg>
+                                    <span class="font-medium text-text-primary">84°</span>
+                                    <span>69°</span>
+                                </div>
+                                <span class="rounded-full bg-density-medium px-1.5 py-0.5 text-[9px] font-medium text-text-primary">2</span>
+                            </div>
+                            <div class="mt-1 space-y-0.5">
+                                <div class="border-l-2 border-faiyaz bg-faiyaz/10 rounded-sm px-1 py-0.5 hover:bg-faiyaz/20 transition-colors cursor-pointer">
+                                    <div class="flex items-center justify-between">
+                                        <span class="text-[9px] font-medium text-text-primary truncate">Meal Prep</span>
+                                        <div class="w-3 h-3 rounded-full bg-faiyaz flex items-center justify-center text-white text-[7px] font-bold leading-none flex-shrink-0 ml-1">F</div>
+                                    </div>
+                                </div>
+                                <div class="border-l-2 border-trisha bg-trisha/10 rounded-sm px-1 py-0.5 hover:bg-trisha/20 transition-colors cursor-pointer">
+                                    <div class="flex items-center justify-between">
+                                        <span class="text-[9px] font-medium text-text-primary truncate">Date Night</span>
+                                        <div class="w-3 h-3 rounded-full bg-trisha flex items-center justify-center text-white text-[7px] font-bold leading-none flex-shrink-0 ml-1">T</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- ═══ WEEK 6: Aug 31 – Sep 6 (low density) ═══ -->
+                    <div class="grid grid-cols-[auto_repeat(7,1fr)] gap-0 border-t border-border">
+                        <div class="w-2 border-l-4 border-l-density-low rounded-bl-sm"></div>
+                        <!-- Mon 31 — 1 event (low), weather: ⛅ 79°/64° -->
+                        <div class="border-b border-r border-border p-1.5 hover:bg-bg-hover transition-colors cursor-pointer rounded-bl-md">
+                            <div class="grid grid-cols-[auto_1fr_auto] items-center gap-1">
+                                <span class="text-xs font-medium text-text-primary">31</span>
+                                <div class="flex items-center justify-center gap-1 text-[9px] text-text-muted">
+                                    <svg class="w-3 h-3 text-text-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
+                                    <span class="font-medium text-text-primary">79°</span>
+                                    <span>64°</span>
+                                </div>
+                                <span class="rounded-full bg-density-low px-1.5 py-0.5 text-[9px] font-medium text-text-primary">1</span>
+                            </div>
+                            <div class="mt-1 space-y-0.5">
+                                <div class="border-l-2 border-faiyaz bg-faiyaz/10 rounded-sm px-1 py-0.5 hover:bg-faiyaz/20 transition-colors cursor-pointer">
+                                    <div class="flex items-center justify-between">
+                                        <span class="text-[9px] font-medium text-text-primary truncate">Standup</span>
+                                        <div class="w-3 h-3 rounded-full bg-faiyaz flex items-center justify-center text-white text-[7px] font-bold leading-none flex-shrink-0 ml-1">F</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <!-- Tue 1 (next month) — weather: ☁️ 76°/61° -->
+                        <div class="border-b border-r border-border p-1.5 hover:bg-bg-hover transition-colors cursor-pointer">
+                            <div class="grid grid-cols-[auto_1fr_auto] items-center gap-1">
+                                <span class="text-xs text-text-disabled">1</span>
+                                <div class="flex items-center justify-center gap-1 text-[9px] text-text-muted">
+                                    <svg class="w-3 h-3 text-text-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 15a4 4 0 004 4h9a5 5 0 10-.1-9.999 5.002 5.002 0 10-9.78 2.096A4.001 4.001 0 003 15z"/></svg>
+                                    <span class="font-medium text-text-disabled">76°</span>
+                                    <span class="text-text-disabled">61°</span>
+                                </div>
+                                <div></div>
+                            </div>
+                        </div>
+                        <!-- Wed 2 — weather: ️ 73°/58° -->
+                        <div class="border-b border-r border-border p-1.5 hover:bg-bg-hover transition-colors cursor-pointer">
+                            <div class="grid grid-cols-[auto_1fr_auto] items-center gap-1">
+                                <span class="text-xs text-text-disabled">2</span>
+                                <div class="flex items-center justify-center gap-1 text-[9px] text-text-muted">
+                                    <svg class="w-3 h-3 text-text-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 16.5A5.5 5.5 0 0113.5 11h-.596a7.002 7.002 0 00-1.277-3.858A5.5 5.5 0 017.5 16.5H19z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 19v1m4-1v1m4-1v1"/></svg>
+                                    <span class="font-medium text-text-disabled">73°</span>
+                                    <span class="text-text-disabled">58°</span>
+                                </div>
+                                <div></div>
+                            </div>
+                        </div>
+                        <!-- Thu 3 — weather: ☀️ 80°/65° -->
+                        <div class="border-b border-r border-border p-1.5 hover:bg-bg-hover transition-colors cursor-pointer">
+                            <div class="grid grid-cols-[auto_1fr_auto] items-center gap-1">
+                                <span class="text-xs text-text-disabled">3</span>
+                                <div class="flex items-center justify-center gap-1 text-[9px] text-text-muted">
+                                    <svg class="w-3 h-3 text-warning" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 2a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zm4 8a4 4 0 11-8 0 4 4 0 018 0zm-.464 4.95l.707.707a1 1 0 001.414-1.414l-.707-.707a1 1 0 00-1.414 1.414zm2.12-10.607a1 1 0 010 1.414l-.706.707a1 1 0 11-1.414-1.414l.707-.707a1 1 0 011.414 0zM17 11a1 1 0 100-2h-1a1 1 0 100 2h1zm-7 4a1 1 0 011 1v1a1 1 0 11-2 0v-1a1 1 0 011-1zM5.05 6.464A1 1 0 106.465 5.05l-.708-.707a1 1 0 00-1.414 1.414l.707.707zm1.414 8.486l-.707.707a1 1 0 01-1.414-1.414l.707-.707a1 1 0 011.414 1.414zM4 11a1 1 0 100-2H3a1 1 0 000 2h1z" clip-rule="evenodd"/></svg>
+                                    <span class="font-medium text-text-disabled">80°</span>
+                                    <span class="text-text-disabled">65°</span>
+                                </div>
+                                <div></div>
+                            </div>
+                        </div>
+                        <!-- Fri 4 — weather: ☀️ 82°/67° -->
+                        <div class="border-b border-r border-border p-1.5 hover:bg-bg-hover transition-colors cursor-pointer">
+                            <div class="grid grid-cols-[auto_1fr_auto] items-center gap-1">
+                                <span class="text-xs text-text-disabled">4</span>
+                                <div class="flex items-center justify-center gap-1 text-[9px] text-text-muted">
+                                    <svg class="w-3 h-3 text-warning" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 2a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zm4 8a4 4 0 11-8 0 4 4 0 018 0zm-.464 4.95l.707.707a1 1 0 001.414-1.414l-.707-.707a1 1 0 00-1.414 1.414zm2.12-10.607a1 1 0 010 1.414l-.706.707a1 1 0 11-1.414-1.414l.707-.707a1 1 0 011.414 0zM17 11a1 1 0 100-2h-1a1 1 0 100 2h1zm-7 4a1 1 0 011 1v1a1 1 0 11-2 0v-1a1 1 0 011-1zM5.05 6.464A1 1 0 106.465 5.05l-.708-.707a1 1 0 00-1.414 1.414l.707.707zm1.414 8.486l-.707.707a1 1 0 01-1.414-1.414l.707-.707a1 1 0 011.414 1.414zM4 11a1 1 0 100-2H3a1 1 0 000 2h1z" clip-rule="evenodd"/></svg>
+                                    <span class="font-medium text-text-disabled">82°</span>
+                                    <span class="text-text-disabled">67°</span>
+                                </div>
+                                <div></div>
+                            </div>
+                        </div>
+                        <!-- Sat 5 — weather: ⛅ 78°/63° -->
+                        <div class="border-b border-r border-border p-1.5 hover:bg-bg-hover transition-colors cursor-pointer">
+                            <div class="grid grid-cols-[auto_1fr_auto] items-center gap-1">
+                                <span class="text-xs text-text-disabled">5</span>
+                                <div class="flex items-center justify-center gap-1 text-[9px] text-text-muted">
+                                    <svg class="w-3 h-3 text-text-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
+                                    <span class="font-medium text-text-disabled">78°</span>
+                                    <span class="text-text-disabled">63°</span>
+                                </div>
+                                <div></div>
+                            </div>
+                        </div>
+                        <!-- Sun 6 — weather: ☁️ 75°/60° -->
+                        <div class="border-b border-border p-1.5 hover:bg-bg-hover transition-colors cursor-pointer rounded-br-md">
+                            <div class="grid grid-cols-[auto_1fr_auto] items-center gap-1">
+                                <span class="text-xs text-text-disabled">6</span>
+                                <div class="flex items-center justify-center gap-1 text-[9px] text-text-muted">
+                                    <svg class="w-3 h-3 text-text-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 15a4 4 0 004 4h9a5 5 0 10-.1-9.999 5.002 5.002 0 10-9.78 2.096A4.001 4.001 0 003 15z"/></svg>
+                                    <span class="font-medium text-text-disabled">75°</span>
+                                    <span class="text-text-disabled">60°</span>
+                                </div>
+                                <div></div>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+
+        </div>
+    </main>
+
+    <script>
+        let currentTheme = 'auto';
+
+        function toggleTheme() {
+            const themes = ['auto', 'light', 'dark'];
+            const currentIndex = themes.indexOf(currentTheme);
+            currentTheme = themes[(currentIndex + 1) % themes.length];
+
+            const html = document.documentElement;
+            const iconSun = document.getElementById('icon-sun');
+            const iconMoon = document.getElementById('icon-moon');
+            const iconAuto = document.getElementById('icon-auto');
+
+            iconSun.classList.add('hidden');
+            iconMoon.classList.add('hidden');
+            iconAuto.classList.add('hidden');
+
+            if (currentTheme === 'light') {
+                html.classList.remove('dark');
+                iconSun.classList.remove('hidden');
+            } else if (currentTheme === 'dark') {
+                html.classList.add('dark');
+                iconMoon.classList.remove('hidden');
+            } else {
+                if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
+                    html.classList.add('dark');
+                } else {
+                    html.classList.remove('dark');
+                }
+                iconAuto.classList.remove('hidden');
+            }
+        }
+    </script>
+</body>
+</html>
