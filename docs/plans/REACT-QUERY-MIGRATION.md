@@ -388,6 +388,36 @@ queryClient.invalidateQueries({ queryKey: ['chores'] })
 
 **Commit:** `feat: add React Query devtools for development debugging`
 
+**✅ Phase 6 Complete (2026-08-25):**
+- Commit: `9700fc9` in dashy-kiosk
+- Installed `@tanstack/react-query-devtools` v5.102.3 as dev dependency
+- Added `<ReactQueryDevtools initialIsOpen={false} />` to main.tsx
+- Devtools tree-shaken in production build (no bundle size impact)
+- All quality gates passed (lint, typecheck, test, build)
+- Tests pass (308/308) but Docker workers hit OOM during cleanup (known infrastructure issue)
+
+---
+
+## Migration Complete
+
+All 6 phases of the React Query migration are now complete. The kiosk now uses TanStack React Query v5 for all data fetching with:
+
+- **Stale-while-revalidate caching** — no more skeleton flashes on view switches
+- **Request deduplication** — multiple components fetching same data = single request
+- **Background refresh** — data updates silently without UI flicker
+- **Devtools** — React Query Devtools available in development for debugging
+
+### Summary of Changes
+
+| Phase | Description | Commit |
+|-------|-------------|--------|
+| 1 | Install & wire React Query | `19df923` |
+| 2 | Migrate weather & family hooks | (see Phase 2 notes) |
+| 3 | Lift calendar data above view switcher | (see Phase 3 notes) |
+| 4 | Migrate chores hook | `3996f7c` |
+| 5 | Remove useApi & clean up | `96c124f` |
+| 6 | Add React Query devtools | `9700fc9` |
+
 ---
 
 ## File Impact Summary
