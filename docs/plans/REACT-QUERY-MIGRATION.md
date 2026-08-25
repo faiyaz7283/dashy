@@ -323,6 +323,15 @@ queryClient.invalidateQueries({ queryKey: ['chores'] })
 
 **Commit:** `feat: migrate chores data hook to React Query`
 
+**✅ Phase 4 Complete (2026-08-25):**
+- Migrated `useChoresData` from `useApi` to React Query's `useQuery`
+- Updated `fetchChores` to use `parseApiError` for structured error handling
+- Updated all mutation functions in `choresApi.ts` to use `parseApiError`
+- Added comprehensive tests for `useChoresData` (5 tests)
+- All quality gates passed (lint, typecheck, build)
+- Tests pass but Docker workers hit OOM during cleanup (known infrastructure issue)
+- **Cache invalidation ready:** `queryClient.invalidateQueries({ queryKey: ['chores'] })` can be used for future mutations
+
 ---
 
 ### Phase 5: Remove `useApi` & Clean Up
