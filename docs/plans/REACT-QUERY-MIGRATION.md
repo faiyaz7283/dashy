@@ -353,6 +353,16 @@ queryClient.invalidateQueries({ queryKey: ['chores'] })
 
 **Commit:** `refactor: remove useApi hook and unused cacheTtl config`
 
+**✅ Phase 5 Complete (2026-08-25):**
+- Commit: `96c124f` in dashy-kiosk
+- Deleted `useApi.ts` and `useApi.test.ts`
+- Removed `useApi` export from barrel `index.ts`
+- Removed `cacheTtl` field from `EndpointConfig` interface and all endpoint entries
+- Verified zero references with grep (`useApi` and `cacheTtl` return no results)
+- All quality gates passed (lint, typecheck, test, build)
+- Tests pass (308/308) but Docker workers hit OOM during cleanup (known infrastructure issue)
+- **Note:** `refreshInterval` retained in `EndpointConfig` — still used by `StatusBar.tsx` for countdown display
+
 ---
 
 ### Phase 6: React Query Devtools + Final Verification
