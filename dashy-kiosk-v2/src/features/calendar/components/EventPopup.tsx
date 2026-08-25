@@ -15,11 +15,14 @@
  * - Width: w-80 (320px), scaled via useUiScale
  */
 
+import { useMemo } from 'react'
+import { useFamilyData } from '@/shared/hooks/useFamilyData'
 import { Clock, MapPin, FileText, RefreshCw, Users } from 'lucide-react'
 import type { CalendarEvent, Attendee } from '@/types/calendar'
 import { formatTime } from '@/shared/date/format'
 import { isTimedEvent } from '@/types/calendar'
-import { memberBgClasses, getMemberInitial, type MemberColorKey } from '@/shared/utils/memberColors'
+import { buildMemberColorMap, paletteBgClasses, getMemberPaletteKey } from '@/shared/utils/memberColors'
+import type { PaletteKey } from '@/shared/utils/memberColors'
 
 /** Props for the EventPopup component. */
 export interface EventPopupProps {
@@ -34,7 +37,12 @@ export interface EventPopupProps {
  * @returns The event popup UI.
  */
 export function EventPopup({ event }: EventPopupProps) {
-  const memberColor = (event.members[0] ?? 'faiyaz') as MemberColorKey
+  const { members } = useFamilyData()
+  const colorMap = useMemo(() => buildMemberColorMap(members), [members])
+  
+  const memberKey = event.members[0]
+  const paletteKey = getMemberPaletteKey(memberKey, colorMap)
+  const member = members.find(m => m.key === memberKey)
 
   return (
     <div className="w-80 rounded-xl bg-white p-4 shadow-[0_8px_24px_rgba(0,0,0,0.15)] ring-1 ring-border dark:bg-bg dark:shadow-[0_8px_24px_rgba(0,0,0,0.5)]">
@@ -42,9 +50,9 @@ export function EventPopup({ event }: EventPopupProps) {
         {/* Header: avatar + title + recurring icon */}
         <div className="flex items-center gap-2">
           <div
-            className={`flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full ${memberBgClasses[memberColor]} text-[10px] font-semibold text-white`}
+            className={`flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full ${paletteBgClasses[paletteKey]} text-[10px] font-semibold text-white`}
           >
-            {getMemberInitial(memberColor)}
+            {member?.initial ?? '?'}
           </div>
           <h3 className="truncate text-sm font-semibold text-text-primary">{event.title}</h3>
           {event.is_recurring_instance && (
@@ -98,7 +106,7 @@ export function EventPopup({ event }: EventPopupProps) {
             <Users className="mt-0.5 h-4 w-4 flex-shrink-0 text-text-faint" />
             <div className="grid grid-cols-2 gap-x-3 gap-y-1.5">
               {event.attendees.map((attendee, idx) => (
-                <AttendeeRow key={idx} attendee={attendee} />
+                <AttendeeRow key={idx} attendee={attendee} colorMap={colorMap} />
               ))}
             </div>
           </div>
@@ -111,8 +119,10 @@ export function EventPopup({ event }: EventPopupProps) {
 /**
  * Single attendee row with avatar and status.
  */
-function AttendeeRow({ attendee }: { attendee: Attendee }) {
-  const memberColor = (attendee.member_key ?? 'faiyaz') as MemberColorKey
+function AttendeeRow({ attendee, colorMap }: { attendee: Attendee; colorMap: Map<string, PaletteKey> }) {
+  const paletteKey = attendee.color_key && attendee.color_key in paletteBgClasses
+    ? attendee.color_key as PaletteKey
+    : getMemberPaletteKey(attendee.member_key, colorMap)
   const memberInitial = attendee.display_name[0]?.toUpperCase() ?? '?'
 
   const statusColor = getStatusColor(attendee.status)
@@ -120,7 +130,7 @@ function AttendeeRow({ attendee }: { attendee: Attendee }) {
   return (
     <div className="flex items-center gap-1.5">
       <div
-        className={`flex h-4 w-4 flex-shrink-0 items-center justify-center rounded-full ${memberBgClasses[memberColor]} text-[8px] font-semibold text-white`}
+        className={`flex h-4 w-4 flex-shrink-0 items-center justify-center rounded-full ${paletteBgClasses[paletteKey]} text-[8px] font-semibold text-white`}
       >
         {memberInitial}
       </div>

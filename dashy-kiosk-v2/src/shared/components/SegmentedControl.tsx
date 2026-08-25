@@ -14,8 +14,8 @@ export interface SegmentedOption {
 
 /** Props for the SegmentedControl component. */
 export interface SegmentedControlProps {
-  /** Label displayed above the control. */
-  label: string
+  /** Label displayed above the control (optional). */
+  label?: string
   /** Available options. */
   options: SegmentedOption[]
   /** Currently selected value. */
@@ -38,14 +38,18 @@ export function SegmentedControl({
 }: SegmentedControlProps) {
   return (
     <div>
-      <label className="mb-1.5 block text-xs font-medium text-text-secondary">
-        {label}
-      </label>
-      <div className="flex rounded-lg border border-border bg-bg p-1">
+      {label && (
+        <label className="mb-1.5 block text-xs font-medium text-text-secondary">
+          {label}
+        </label>
+      )}
+      <div className="flex rounded-lg border border-border bg-bg p-1" role="radiogroup" aria-label={label}>
         {options.map((option) => (
           <button
             key={option.value}
             type="button"
+            role="radio"
+            aria-checked={value === option.value}
             onClick={() => onChange(option.value)}
             className={`flex-1 rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${
               value === option.value

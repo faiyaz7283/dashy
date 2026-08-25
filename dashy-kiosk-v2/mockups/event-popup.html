@@ -96,9 +96,10 @@
     <div class="fixed z-50 inset-0 flex items-center justify-center p-8 overflow-auto">
         <div class="flex flex-wrap gap-6 max-w-6xl justify-center items-start">
             
-            <!-- Variation 1: Standard timed event -->
+            <!-- Variation 1: Standard timed event — tree connector -->
             <div class="bg-white dark:bg-bg rounded-xl shadow-[0_8px_24px_rgba(0,0,0,0.15)] dark:shadow-[0_8px_24px_rgba(0,0,0,0.5)] ring-1 ring-border w-80">
-                <div class="p-4 space-y-3">
+                <div class="p-4">
+                    <!-- Header: member avatar + title -->
                     <div class="flex items-center gap-2">
                         <div class="w-5 h-5 rounded-full bg-faiyaz flex items-center justify-center text-white text-[10px] font-semibold flex-shrink-0">F</div>
                         <h3 class="text-sm font-semibold text-text-primary truncate">Team Standup</h3>
@@ -106,170 +107,233 @@
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
                         </svg>
                     </div>
-                    <div class="flex items-center gap-3 pl-7">
-                        <svg class="w-4 h-4 text-text-faint flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                        </svg>
-                        <div class="text-sm text-text-primary">11:00 AM – 11:30 AM</div>
-                    </div>
-                    <div class="flex items-center gap-3 pl-7">
-                        <svg class="w-4 h-4 text-text-faint flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
-                        </svg>
-                        <div class="text-sm text-text-primary">Zoom Meeting</div>
-                    </div>
-                    <div class="flex items-start gap-3 pl-7">
-                        <svg class="w-4 h-4 text-text-faint flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
-                        </svg>
-                        <div class="text-sm text-text-primary">Daily sync with the team</div>
-                    </div>
-                    <div class="flex items-center gap-3 pl-7">
-                        <svg class="w-4 h-4 text-text-faint flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
-                        </svg>
-                        <div class="text-sm text-text-primary">Weekdays (Mon–Fri)</div>
-                    </div>
-                    <div class="flex items-start gap-3 pl-7">
-                        <svg class="w-4 h-4 text-text-faint flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/>
-                        </svg>
-                        <div class="grid grid-cols-2 gap-x-3 gap-y-1.5">
-                            <div class="flex items-center gap-1.5">
-                                <div class="w-4 h-4 rounded-full bg-faiyaz flex items-center justify-center text-white text-[8px] font-semibold flex-shrink-0">F</div>
-                                <span class="text-xs text-success font-medium">Accepted</span>
-                            </div>
-                            <div class="flex items-center gap-1.5">
-                                <div class="w-4 h-4 rounded-full bg-trisha flex items-center justify-center text-white text-[8px] font-semibold flex-shrink-0">T</div>
-                                <span class="text-xs text-warning font-medium">Tentative</span>
+
+                    <!-- Tree connector: vertical trunk + horizontal branches -->
+                    <div class="relative mt-3 space-y-2">
+                        <!-- Vertical trunk: ends at last row's icon center (~16px from container bottom for 2-attendee grid) -->
+                        <div class="absolute left-2.5 top-1 bottom-4 w-px bg-border"></div>
+
+                        <!-- Row 1: Time ──┤ -->
+                        <div class="relative flex items-center gap-3 pl-7">
+                            <div class="absolute left-2.5 top-1/2 w-[18px] h-px bg-border -translate-y-1/2"></div>
+                            <svg class="w-4 h-4 text-text-faint flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                            </svg>
+                            <div class="text-sm text-text-primary">11:00 AM – 11:30 AM</div>
+                        </div>
+
+                        <!-- Row 2: Location ── -->
+                        <div class="relative flex items-center gap-3 pl-7">
+                            <div class="absolute left-2.5 top-1/2 w-[18px] h-px bg-border -translate-y-1/2"></div>
+                            <svg class="w-4 h-4 text-text-faint flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
+                            </svg>
+                            <div class="text-sm text-text-primary">Zoom Meeting</div>
+                        </div>
+
+                        <!-- Row 3: Description ── -->
+                        <div class="relative flex items-start gap-3 pl-7">
+                            <div class="absolute left-2.5 top-2.5 w-[18px] h-px bg-border"></div>
+                            <svg class="w-4 h-4 text-text-faint flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                            </svg>
+                            <div class="text-sm text-text-primary">Daily sync with the team</div>
+                        </div>
+
+                        <!-- Row 4: Recurrence ──┤ -->
+                        <div class="relative flex items-center gap-3 pl-7">
+                            <div class="absolute left-2.5 top-1/2 w-[18px] h-px bg-border -translate-y-1/2"></div>
+                            <svg class="w-4 h-4 text-text-faint flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                            </svg>
+                            <div class="text-sm text-text-primary">Weekdays (Mon–Fri)</div>
+                        </div>
+
+                        <!-- Row 5: Attendees ──┘ (last row, trunk ends at icon center) -->
+                        <div class="relative flex items-start gap-3 pl-7">
+                            <div class="absolute left-2.5 top-2.5 w-[18px] h-px bg-border"></div>
+                            <svg class="w-4 h-4 text-text-faint flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/>
+                            </svg>
+                            <div class="grid grid-cols-2 gap-x-3 gap-y-1.5">
+                                <div class="flex items-center gap-1.5">
+                                    <div class="w-4 h-4 rounded-full bg-faiyaz flex items-center justify-center text-white text-[8px] font-semibold flex-shrink-0">F</div>
+                                    <span class="text-xs text-success font-medium">Accepted</span>
+                                </div>
+                                <div class="flex items-center gap-1.5">
+                                    <div class="w-4 h-4 rounded-full bg-trisha flex items-center justify-center text-white text-[8px] font-semibold flex-shrink-0">T</div>
+                                    <span class="text-xs text-warning font-medium">Tentative</span>
+                                </div>
                             </div>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <!-- Variation 2: All-day event with long address -->
+            <!-- Variation 2: All-day event — tree connector -->
             <div class="bg-white dark:bg-bg rounded-xl shadow-[0_8px_24px_rgba(0,0,0,0.15)] dark:shadow-[0_8px_24px_rgba(0,0,0,0.5)] ring-1 ring-border w-80">
-                <div class="p-4 space-y-3">
+                <div class="p-4">
                     <div class="flex items-center gap-2">
                         <div class="w-5 h-5 rounded-full bg-raya flex items-center justify-center text-white text-[10px] font-semibold flex-shrink-0">R</div>
                         <h3 class="text-sm font-semibold text-text-primary truncate">Annual Family Reunion</h3>
                     </div>
-                    <div class="flex items-center gap-3 pl-7">
-                        <svg class="w-4 h-4 text-text-faint flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                        </svg>
-                        <div class="text-sm text-text-primary">All day</div>
-                    </div>
-                    <div class="flex items-start gap-3 pl-7">
-                        <svg class="w-4 h-4 text-text-faint flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
-                        </svg>
-                        <div class="text-sm text-text-primary break-words">123 Maple Street, Apartment 4B, Springfield, IL 62701</div>
-                    </div>
-                    <div class="flex items-start gap-3 pl-7">
-                        <svg class="w-4 h-4 text-text-faint flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
-                        </svg>
-                        <div class="text-sm text-text-primary break-words">Annual family gathering with lunch, games, and activities for all ages. Please bring a dish to share.</div>
-                    </div>
-                    <div class="flex items-start gap-3 pl-7">
-                        <svg class="w-4 h-4 text-text-faint flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/>
-                        </svg>
-                        <div class="grid grid-cols-2 gap-x-3 gap-y-1.5">
-                            <div class="flex items-center gap-1.5">
-                                <div class="w-4 h-4 rounded-full bg-faiyaz flex items-center justify-center text-white text-[8px] font-semibold flex-shrink-0">F</div>
-                                <span class="text-xs text-success font-medium">Accepted</span>
-                            </div>
-                            <div class="flex items-center gap-1.5">
-                                <div class="w-4 h-4 rounded-full bg-trisha flex items-center justify-center text-white text-[8px] font-semibold flex-shrink-0">T</div>
-                                <span class="text-xs text-success font-medium">Accepted</span>
-                            </div>
-                            <div class="flex items-center gap-1.5">
-                                <div class="w-4 h-4 rounded-full bg-arya flex items-center justify-center text-white text-[8px] font-semibold flex-shrink-0">A</div>
-                                <span class="text-xs text-danger font-medium">Declined</span>
-                            </div>
-                            <div class="flex items-center gap-1.5">
-                                <div class="w-4 h-4 rounded-full bg-raya flex items-center justify-center text-white text-[8px] font-semibold flex-shrink-0">R</div>
-                                <span class="text-xs text-success font-medium">Accepted</span>
+
+                    <div class="relative mt-3 space-y-2">
+                        <!-- Trunk ends at last row's icon center (~32px from bottom for 2x2 attendee grid) -->
+                        <div class="absolute left-2.5 top-1 bottom-8 w-px bg-border"></div>
+
+                        <!-- Time ── -->
+                        <div class="relative flex items-center gap-3 pl-7">
+                            <div class="absolute left-2.5 top-1/2 w-[18px] h-px bg-border -translate-y-1/2"></div>
+                            <svg class="w-4 h-4 text-text-faint flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                            </svg>
+                            <div class="text-sm text-text-primary">All day</div>
+                        </div>
+
+                        <!-- Location ── -->
+                        <div class="relative flex items-start gap-3 pl-7">
+                            <div class="absolute left-2.5 top-2.5 w-[18px] h-px bg-border"></div>
+                            <svg class="w-4 h-4 text-text-faint flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
+                            </svg>
+                            <div class="text-sm text-text-primary break-words">123 Maple Street, Apartment 4B, Springfield, IL 62701</div>
+                        </div>
+
+                        <!-- Description ──┤ -->
+                        <div class="relative flex items-start gap-3 pl-7">
+                            <div class="absolute left-2.5 top-2.5 w-[18px] h-px bg-border"></div>
+                            <svg class="w-4 h-4 text-text-faint flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                            </svg>
+                            <div class="text-sm text-text-primary break-words">Annual family gathering with lunch, games, and activities for all ages. Please bring a dish to share.</div>
+                        </div>
+
+                        <!-- Attendees ──┘ -->
+                        <div class="relative flex items-start gap-3 pl-7">
+                            <div class="absolute left-2.5 top-2.5 w-[18px] h-px bg-border"></div>
+                            <svg class="w-4 h-4 text-text-faint flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/>
+                            </svg>
+                            <div class="grid grid-cols-2 gap-x-3 gap-y-1.5">
+                                <div class="flex items-center gap-1.5">
+                                    <div class="w-4 h-4 rounded-full bg-faiyaz flex items-center justify-center text-white text-[8px] font-semibold flex-shrink-0">F</div>
+                                    <span class="text-xs text-success font-medium">Accepted</span>
+                                </div>
+                                <div class="flex items-center gap-1.5">
+                                    <div class="w-4 h-4 rounded-full bg-trisha flex items-center justify-center text-white text-[8px] font-semibold flex-shrink-0">T</div>
+                                    <span class="text-xs text-success font-medium">Accepted</span>
+                                </div>
+                                <div class="flex items-center gap-1.5">
+                                    <div class="w-4 h-4 rounded-full bg-arya flex items-center justify-center text-white text-[8px] font-semibold flex-shrink-0">A</div>
+                                    <span class="text-xs text-danger font-medium">Declined</span>
+                                </div>
+                                <div class="flex items-center gap-1.5">
+                                    <div class="w-4 h-4 rounded-full bg-raya flex items-center justify-center text-white text-[8px] font-semibold flex-shrink-0">R</div>
+                                    <span class="text-xs text-success font-medium">Accepted</span>
+                                </div>
                             </div>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <!-- Variation 3: Many attendees (3 rows of 2) -->
+            <!-- Variation 3: Many attendees — tree connector -->
             <div class="bg-white dark:bg-bg rounded-xl shadow-[0_8px_24px_rgba(0,0,0,0.15)] dark:shadow-[0_8px_24px_rgba(0,0,0,0.5)] ring-1 ring-border w-80">
-                <div class="p-4 space-y-3">
+                <div class="p-4">
                     <div class="flex items-center gap-2">
                         <div class="w-5 h-5 rounded-full bg-arya flex items-center justify-center text-white text-[10px] font-semibold flex-shrink-0">A</div>
                         <h3 class="text-sm font-semibold text-text-primary truncate">Soccer Practice</h3>
                     </div>
-                    <div class="flex items-center gap-3 pl-7">
-                        <svg class="w-4 h-4 text-text-faint flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                        </svg>
-                        <div class="text-sm text-text-primary">3:00 PM – 5:00 PM</div>
-                    </div>
-                    <div class="flex items-center gap-3 pl-7">
-                        <svg class="w-4 h-4 text-text-faint flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
-                        </svg>
-                        <div class="text-sm text-text-primary">Central Park Field 3</div>
-                    </div>
-                    <div class="flex items-start gap-3 pl-7">
-                        <svg class="w-4 h-4 text-text-faint flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/>
-                        </svg>
-                        <div class="grid grid-cols-2 gap-x-3 gap-y-1.5">
-                            <div class="flex items-center gap-1.5">
-                                <div class="w-4 h-4 rounded-full bg-faiyaz flex items-center justify-center text-white text-[8px] font-semibold flex-shrink-0">F</div>
-                                <span class="text-xs text-success font-medium">Accepted</span>
-                            </div>
-                            <div class="flex items-center gap-1.5">
-                                <div class="w-4 h-4 rounded-full bg-trisha flex items-center justify-center text-white text-[8px] font-semibold flex-shrink-0">T</div>
-                                <span class="text-xs text-success font-medium">Accepted</span>
-                            </div>
-                            <div class="flex items-center gap-1.5">
-                                <div class="w-4 h-4 rounded-full bg-arya flex items-center justify-center text-white text-[8px] font-semibold flex-shrink-0">A</div>
-                                <span class="text-xs text-danger font-medium">Declined</span>
-                            </div>
-                            <div class="flex items-center gap-1.5">
-                                <div class="w-4 h-4 rounded-full bg-raya flex items-center justify-center text-white text-[8px] font-semibold flex-shrink-0">R</div>
-                                <span class="text-xs text-success font-medium">Accepted</span>
-                            </div>
-                            <div class="flex items-center gap-1.5">
-                                <div class="w-4 h-4 rounded-full bg-gray-400 flex items-center justify-center text-white text-[8px] font-semibold flex-shrink-0">G</div>
-                                <span class="text-xs text-text-muted font-medium">No response</span>
+
+                    <div class="relative mt-3 space-y-2">
+                        <!-- Trunk ends at last row's icon center (~44px from bottom for 2x3 attendee grid) -->
+                        <div class="absolute left-2.5 top-1 bottom-11 w-px bg-border"></div>
+
+                        <!-- Time ── -->
+                        <div class="relative flex items-center gap-3 pl-7">
+                            <div class="absolute left-2.5 top-1/2 w-[18px] h-px bg-border -translate-y-1/2"></div>
+                            <svg class="w-4 h-4 text-text-faint flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                            </svg>
+                            <div class="text-sm text-text-primary">3:00 PM – 5:00 PM</div>
+                        </div>
+
+                        <!-- Location ──┤ -->
+                        <div class="relative flex items-center gap-3 pl-7">
+                            <div class="absolute left-2.5 top-1/2 w-[18px] h-px bg-border -translate-y-1/2"></div>
+                            <svg class="w-4 h-4 text-text-faint flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
+                            </svg>
+                            <div class="text-sm text-text-primary">Central Park Field 3</div>
+                        </div>
+
+                        <!-- Attendees ──┘ -->
+                        <div class="relative flex items-start gap-3 pl-7">
+                            <div class="absolute left-2.5 top-2.5 w-[18px] h-px bg-border"></div>
+                            <svg class="w-4 h-4 text-text-faint flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/>
+                            </svg>
+                            <div class="grid grid-cols-2 gap-x-3 gap-y-1.5">
+                                <div class="flex items-center gap-1.5">
+                                    <div class="w-4 h-4 rounded-full bg-faiyaz flex items-center justify-center text-white text-[8px] font-semibold flex-shrink-0">F</div>
+                                    <span class="text-xs text-success font-medium">Accepted</span>
+                                </div>
+                                <div class="flex items-center gap-1.5">
+                                    <div class="w-4 h-4 rounded-full bg-trisha flex items-center justify-center text-white text-[8px] font-semibold flex-shrink-0">T</div>
+                                    <span class="text-xs text-success font-medium">Accepted</span>
+                                </div>
+                                <div class="flex items-center gap-1.5">
+                                    <div class="w-4 h-4 rounded-full bg-arya flex items-center justify-center text-white text-[8px] font-semibold flex-shrink-0">A</div>
+                                    <span class="text-xs text-danger font-medium">Declined</span>
+                                </div>
+                                <div class="flex items-center gap-1.5">
+                                    <div class="w-4 h-4 rounded-full bg-raya flex items-center justify-center text-white text-[8px] font-semibold flex-shrink-0">R</div>
+                                    <span class="text-xs text-success font-medium">Accepted</span>
+                                </div>
+                                <div class="flex items-center gap-1.5">
+                                    <div class="w-4 h-4 rounded-full bg-gray-400 flex items-center justify-center text-white text-[8px] font-semibold flex-shrink-0">G</div>
+                                    <span class="text-xs text-text-muted font-medium">No response</span>
+                                </div>
                             </div>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <!-- Variation 4: Minimal event (title + time only) -->
+            <!-- Variation 4: Minimal event — tree connector -->
             <div class="bg-white dark:bg-bg rounded-xl shadow-[0_8px_24px_rgba(0,0,0,0.15)] dark:shadow-[0_8px_24px_rgba(0,0,0,0.5)] ring-1 ring-border w-80">
-                <div class="p-4 space-y-3">
+                <div class="p-4">
                     <div class="flex items-center gap-2">
                         <div class="w-5 h-5 rounded-full bg-trisha flex items-center justify-center text-white text-[10px] font-semibold flex-shrink-0">T</div>
                         <h3 class="text-sm font-semibold text-text-primary truncate">Lunch with Sarah</h3>
                     </div>
-                    <div class="flex items-center gap-3 pl-7">
-                        <svg class="w-4 h-4 text-text-faint flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                        </svg>
-                        <div class="text-sm text-text-primary">1:00 PM – 2:00 PM</div>
-                    </div>
-                    <div class="flex items-center gap-3 pl-7">
-                        <svg class="w-4 h-4 text-text-faint flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
-                        </svg>
-                        <div class="text-sm text-text-primary">Cafe Milano</div>
+
+                    <div class="relative mt-3 space-y-2">
+                        <!-- Trunk ends at last row's icon center (~12px from bottom for single-line row) -->
+                        <div class="absolute left-2.5 top-1 bottom-3 w-px bg-border"></div>
+
+                        <!-- Time ── -->
+                        <div class="relative flex items-center gap-3 pl-7">
+                            <div class="absolute left-2.5 top-1/2 w-[18px] h-px bg-border -translate-y-1/2"></div>
+                            <svg class="w-4 h-4 text-text-faint flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                            </svg>
+                            <div class="text-sm text-text-primary">1:00 PM – 2:00 PM</div>
+                        </div>
+
+                        <!-- Location ──┘ -->
+                        <div class="relative flex items-center gap-3 pl-7">
+                            <div class="absolute left-2.5 top-1/2 w-[18px] h-px bg-border -translate-y-1/2"></div>
+                            <svg class="w-4 h-4 text-text-faint flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
+                            </svg>
+                            <div class="text-sm text-text-primary">Cafe Milano</div>
+                        </div>
                     </div>
                 </div>
             </div>

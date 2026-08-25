@@ -21,7 +21,7 @@ interface CalendarApiResponse {
  * @returns Calendar events, loading states, and error info.
  */
 export function useCalendarData() {
-  const { data, isLoading, isRefreshing, error, lastRefresh } = useApi<CalendarApiResponse>(
+  const { data, isLoading, isRefreshing, error, refetch, lastRefresh } = useApi<CalendarApiResponse>(
     async () => {
       const response = await fetch(ENDPOINTS.calendar.url)
       if (!response.ok) {
@@ -42,6 +42,7 @@ export function useCalendarData() {
     isLoading,
     isRefreshing,
     error,
+    refetch,
     lastRefresh,
   }
 }

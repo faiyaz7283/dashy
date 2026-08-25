@@ -1,11 +1,11 @@
 /**
  * ChoresView — top-level view for the chores feature.
  *
- * Composes the ChoresBoard, ChoreCreateModal, and ChoreEditModal.
- * Manages modal state and passes data/callbacks to children.
+ * Composes the ChoresBoard and renders create/edit modals when triggered
+ * by parent (AppShell). Modal state is managed by the parent so that
+ * triggers from both the Sidebar and the Board columns work correctly.
  */
 
-import { useState } from 'react'
 import { ChoresBoard } from './ChoresBoard'
 import { ChoreCreateModal, type CreateEntryPoint } from '../components/ChoreCreateModal'
 import { ChoreEditModal } from '../components/ChoreEditModal'
@@ -16,6 +16,20 @@ import type { ChoreInstance, FamilyMember } from '@/types'
 export interface ChoresViewProps {
   /** Family members for board columns. */
   members: FamilyMember[]
+  /** Whether the create modal is open. */
+  showCreateModal: boolean
+  /** The entry point for the create modal. */
+  createEntryPoint: CreateEntryPoint
+  /** The instance being edited, or null. */
+  editingInstance: ChoreInstance | null
+  /** Callback to close the create modal. */
+  onCloseCreateModal: () => void
+  /** Callback to close the edit modal. */
+  onCloseEditModal: () => void
+  /** Callback when add chore is requested from a board column. */
+  onAddChore: (memberId?: string) => void
+  /** Callback when a chore card is clicked for editing. */
+  onChoreClick: (instance: ChoreInstance) => void
 }
 
 /**
@@ -24,76 +38,54 @@ export interface ChoresViewProps {
  * @param props - Component props.
  * @returns The chores view UI.
  */
-export function ChoresView({ members }: ChoresViewProps) {
-  const { data, refetch } = useChoresData()
-
-  // Modal state
-  const [showCreateModal, setShowCreateModal] = useState(false)
-  const [createEntryPoint, setCreateEntryPoint] = useState<CreateEntryPoint>({ type: 'sidebar' })
-  const [editingInstance, setEditingInstance] = useState<ChoreInstance | null>(null)
-
-  // Handle add chore from board
-  const handleAddChore = (memberId?: string) => {
-    if (memberId) {
-      setCreateEntryPoint({ type: 'member', memberId })
-    } else {
-      setCreateEntryPoint({ type: 'open-pool' })
-    }
-    setShowCreateModal(true)
-  }
-
-  // Handle chore card click
-  const handleChoreClick = (instance: ChoreInstance) => {
-    setEditingInstance(instance)
-  }
-
-  // Close modals
-  const handleCloseCreateModal = () => {
-    setShowCreateModal(false)
-  }
-
-  const handleCloseEditModal = () => {
-    setEditingInstance(null)
-  }
-
-  if (!data) {
-    return <ChoresBoard members={members} onAddChore={handleAddChore} />
-  }
-
-  const { master_chores } = data
+export function ChoresView({
+  members,
+  showCreateModal,
+  createEntryPoint,
+  editingInstance,
+  onCloseCreateModal,
+  onCloseEditModal,
+  onAddChore,
+  onChoreClick,
+}: ChoresViewProps) {
+  const { data, isLoading, isRefreshing, error, refetch } = useChoresData()
 
   // Find master chore for editing instance
-  const editingMasterChore = editingInstance
-    ? master_chores.find((mc) => mc.id === editingInstance.master_chore_id)
+  const editingMasterChore = editingInstance && data
+    ? data.master_chores.find((mc) => mc.id === editingInstance.master_chore_id)
     : null
 
   return (
     <>
       <ChoresBoard
         members={members}
-        onChoreClick={handleChoreClick}
-        onAddChore={handleAddChore}
+        data={data}
+        isLoading={isLoading}
+        isRefreshing={isRefreshing}
+        error={error}
+        onChoreClick={onChoreClick}
+        onAddChore={onAddChore}
       />
 
-      {showCreateModal && (
+      {showCreateModal && data && (
         <ChoreCreateModal
           entryPoint={createEntryPoint}
           categories={data.categories}
           tags={data.tags}
           members={members}
-          onClose={handleCloseCreateModal}
+          onClose={onCloseCreateModal}
           refetch={refetch}
         />
       )}
 
-      {editingInstance && editingMasterChore && (
+      {editingInstance && editingMasterChore && data && (
         <ChoreEditModal
           instance={editingInstance}
           masterChore={editingMasterChore}
           categories={data.categories}
           tags={data.tags}
           members={members}
-          onClose={handleCloseEditModal}
+          onClose={onCloseEditModal}
           refetch={refetch}
         />
       )}

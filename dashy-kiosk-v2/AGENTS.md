@@ -3,6 +3,10 @@
 This file is read by all AI coding agents (Kimi Code, Claude Code, Qwen Code, Warp, etc.).
 It contains **hard behavior rules**, not project background. For project knowledge, hardware details, architecture, and deployment history, see `README.md`.
 
+**Detailed guides:**
+- [Styling Guide](docs/guides/styling.md) — Tailwind rules, hardcoded values, common patterns
+- [Workflow Guide](docs/guides/workflow.md) — Pre-implementation checklist, self-review, code review gate
+
 ## 0. NO OLD CODE RULE (NON-NEGOTIABLE)
 
 **This is a ground-up rewrite. The old kiosk (`../dashy-kiosk/`) exists only as a running reference at `dashy.local`.**
@@ -34,11 +38,7 @@ All dependencies pinned to latest stable versions. Verify before upgrading.
 | **oxfmt** | ^0.64.0 | Formatter (replaces Prettier) |
 | **pnpm** | 11.22.0 | Package manager |
 
-**Future: vite-plus** — When `vite-plus` reaches a stable version (currently v0.2.9), migrate to it as the unified toolchain (Vite + Vitest + Oxlint + Oxfmt + Rolldown in one `vp` CLI). Track at https://npmx.dev/package/vite-plus.
-
 **Mockup CDN:** Use `https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4` (v4). Do NOT use `https://cdn.tailwindcss.com` (serves v3).
-
-**Dark mode in mockups:** Use `@custom-variant dark (&:where(.dark, .dark *))` in the `@theme` block. Toggle via `document.documentElement.classList.toggle('dark')`.
 
 ## 2. pnpm Only (NON-NEGOTIABLE)
 
@@ -73,14 +73,55 @@ Use the orchestrator's `make` targets (from the `dashy/` directory):
 
 If a command you want is missing from the orchestrator's Makefile, add a target there — do not bypass Docker.
 
+## 3a. Pre-Implementation Checklist (NON-NEGOTIABLE)
+
+**Before writing ANY implementation code, you MUST invoke the `/pre-implementation-checklist` skill.** This is not optional — it's a mandatory workflow step.
+
+The skill will guide you through:
+- AGENTS.md compliance check
+- Duplication detection (search for existing components/hooks)
+- Prop drilling check (3+ levels → use Context API)
+- Hardcoded values check (use tokens, not magic numbers)
+- Testing requirements
+
+**Why this is mandatory:** We've had multiple incidents where code was written with violations despite having rules documented. This skill forces you to check before coding, not after.
+
 ## 4. Verify before declaring done
 
-For any frontend change (run from the orchestrator `dashy/` directory):
+### 4a. Self-Review (NON-NEGOTIABLE)
 
-1. `make lint-kiosk-v2`
-2. `make typecheck-kiosk-v2`
-3. `make test-kiosk-v2`
-4. `make build-kiosk-v2`
+**Before presenting code to the user, you MUST invoke the `/self-review` skill.** This is your responsibility — do not wait for the user to catch violations.
+
+The skill will guide you through:
+- Re-reading relevant AGENTS.md sections
+- Searching for duplicated logic across views
+- Verifying no prop drilling
+- Verifying no hardcoded values
+- Verifying shared components/hooks are used
+- Verifying tests exist
+
+**If violations are found:** Fix them before presenting the code. Do not present code with known violations.
+
+### 4b. Code Review Gate (Before Quality Gates)
+
+**Before running automated quality gates, you MUST invoke the `/code-review-gate` skill.** This performs a manual code review that catches issues automated tools miss.
+
+The skill will guide you through:
+- Pattern violation checks (duplicated logic, prop drilling, hardcoded values)
+- Code quality checks (shared components/hooks, magic numbers, DRY principle)
+- Component structure review
+
+**If violations are found:** Fix them before proceeding to quality gates.
+
+### 4c. Quality Gates (NON-NEGOTIABLE)
+
+**After completing the code review gate, you MUST invoke the `/quality-gate` skill.** This runs the automated quality checks.
+
+The skill will run:
+1. `make lint-kiosk-v2` (oxlint)
+2. `make typecheck-kiosk-v2` (tsc --noEmit)
+3. `make test-kiosk-v2` (vitest)
+4. `make build-kiosk-v2` (vite build)
 
 All four must pass before you tell the user the task is complete.
 
@@ -105,41 +146,43 @@ All four must pass before you tell the user the task is complete.
 
 **Tailwind utility classes only.** No inline `style="..."` with `var(--dt-*)`. No `const styles` objects. No CSS Modules. No styled-components.
 
-**Why:** The frontend architecture audit (`docs/frontend-architecture-audit.md`) found three inconsistent styling patterns (inline styles, const styles objects, Tailwind) used simultaneously. This was resolved: Tailwind is the single approach going forward.
+See [Styling Guide](docs/guides/styling.md#tailwind-only-non-negotiable) for detailed rules and examples.
 
-**Rules:**
-- All layout, spacing, colors, typography, and hover states use Tailwind utility classes
-- Design tokens are consumed via the `@theme` block in `src/index.css` — e.g., `bg-bg`, `text-text-primary`, `border-border`, `bg-primary-light`
-- Catalyst UI patterns for primitives (Button, Badge, Dialog, Sidebar, etc.) — copy from `/Users/admin/Downloads/TailwindPLUS/catalyst-ui-kit/typescript/` and adapt colors via the mapping table in the mockup skill
-- **Mockups must also use Tailwind classes** — approved mockup classes transfer directly to React implementation. No inline styles in mockups.
-- Dark mode: use Tailwind's `dark:` variant. Theme toggling adds/removes the `.dark` class on `<html>`.
-
-**Forbidden patterns:**
-```tsx
-// FORBIDDEN: inline style with CSS var
-<div style={{ background: 'var(--dt-bg)', color: 'var(--dt-text-primary)' }}>
-
-// FORBIDDEN: const styles object
-const styles = { card: { background: colors.bg, padding: `${spacing.md}px` } }
-
-// FORBIDDEN: inline style with token import
-<div style={{ background: colors.white, padding: `${spacing.lg}px` }}>
-```
-
-**Approved pattern:**
-```tsx
-<div className="bg-bg text-text-primary p-4">
-```
+**Quick reference:**
+- All layout, spacing, colors, typography use Tailwind utility classes
+- Design tokens consumed via `@theme` block in `src/index.css`
+- Dark mode: use Tailwind's `dark:` variant
+- Mockups must also use Tailwind classes
 
 ## 7b. Mockups Are Living References (NON-NEGOTIABLE)
 
 Approved mockup files in `mockups/` are **living design references** — they always reflect the current approved visual design.
 
 - When modifying a component's visual style in React, **update the corresponding mockup to match**
-- When the user requests a style change, make it in **both** the React component and the mockup
-- Mockups are the source of truth for approved visual design — the React implementation must match
-- File naming: `mockups/<component-name>.html` (e.g., `header.html`, `chore-create-modal.html`)
-- Legacy reference files prefixed `00-legacy-` are read-only SVG/icon references — do not modify
+- Mockups are the source of truth for approved visual design
+- File naming: `mockups/<component-name>.html`
+
+## 7c. No Hardcoded Values — Ask Before Hardcoding (NON-NEGOTIABLE)
+
+**Hardcoding is a code smell. Never hardcode values without explicit user approval.**
+
+See [Styling Guide](docs/guides/styling.md#no-hardcoded-values--ask-before-hardcoding-non-negotiable) for detailed rules and examples.
+
+**Quick reference:**
+- Shell dimensions use CSS custom properties (`--shell-header-height`, etc.)
+- Colors use design tokens (`bg-primary`, `text-text-muted`, etc.)
+- If you're about to write a magic number or pixel value — **stop and ask**
+
+## 7d. Common Patterns — When to Extract (NON-NEGOTIABLE)
+
+**When to extract shared components, hooks, and when to use Context API.**
+
+See [Styling Guide](docs/guides/styling.md#common-patterns--when-to-extract-non-negotiable) for detailed rules and examples.
+
+**Quick reference:**
+- Same markup in 2+ views → Extract to shared component
+- Same logic in 2+ components → Extract to shared hook
+- Props passed through 3+ levels → Use Context API
 
 ## 8. Architecture & design principles
 

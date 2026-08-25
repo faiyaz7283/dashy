@@ -272,8 +272,8 @@ export const zIndices = {
   /** Hover popup (event details on hover). */
   popup: 1000,
 
-  /** Modal overlay. */
-  modal: 1000,
+  /** Modal overlay (higher than popup to ensure modals appear above hover popups). */
+  modal: 1100,
 
   /** Floating action button. */
   fab: 50,

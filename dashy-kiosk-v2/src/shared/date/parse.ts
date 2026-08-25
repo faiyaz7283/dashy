@@ -59,6 +59,7 @@ export interface RawCalendarEvent {
     display_name: string
     status: 'accepted' | 'declined' | 'tentative' | 'needsAction'
     color: string
+    color_key: string | null
   }>
   recurring_event_id?: string | null
   is_recurring_instance?: boolean

@@ -73,6 +73,12 @@
   --dt-shadow-fab: 0 4px 12px rgba(79, 70, 229, 0.4);
   --dt-shadow-fab-hover: 0 6px 16px rgba(79, 70, 229, 0.5);
   --dt-shadow-sidebar: 2px 0 4px rgba(0, 0, 0, 0.06);
+
+  /* Shell dimensions */
+  --shell-header-height: 57px;
+  --shell-status-bar-height: 28px;
+  --shell-sidebar-expanded: 224px;
+  --shell-sidebar-collapsed: 64px;
 }
 
 .dark {
@@ -172,11 +178,58 @@
   --color-trisha: var(--dt-member-trisha);
   --color-arya: var(--dt-member-arya);
   --color-raya: var(--dt-member-raya);
+
+  /* Density */
+  --color-density-none: var(--dt-density-none);
+  --color-density-low: var(--dt-density-low);
+  --color-density-medium: var(--dt-density-medium);
+  --color-density-high: var(--dt-density-high);
+
+  /* Chores status */
+  --color-chores-open: var(--dt-chores-open);
+  --color-chores-claimed: var(--dt-chores-claimed);
+  --color-chores-assigned: var(--dt-chores-assigned);
+  --color-chores-in-progress: var(--dt-chores-in-progress);
+  --color-chores-pending: var(--dt-chores-pending-signoff);
+  --color-chores-completed: var(--dt-chores-completed);
+  --color-chores-overdue: var(--dt-chores-overdue);
+  --color-chores-expiring-soon: var(--dt-chores-expiring-soon);
+
+  /* Surfaces & status */
+  --color-bg-sidebar: var(--dt-bg-sidebar);
+  --color-danger-bg: var(--dt-danger-bg);
+  --color-danger-text: var(--dt-danger-text);
+
+  /* Shadows */
   --shadow-view-btn: var(--dt-shadow-view-btn);
   --shadow-sidebar: var(--dt-shadow-sidebar);
+  --shadow-card: var(--dt-shadow-card);
+  --shadow-card-hover: var(--dt-shadow-card-hover);
+  --shadow-side-nav: var(--dt-shadow-side-nav);
+  --shadow-side-nav-hover: var(--dt-shadow-side-nav-hover);
+  --shadow-popup: var(--dt-shadow-popup);
+  --shadow-modal: var(--dt-shadow-modal);
+  --shadow-fab: var(--dt-shadow-fab);
+  --shadow-fab-hover: var(--dt-shadow-fab-hover);
 }
 
 @custom-variant dark (&:where(.dark, .dark *));
+
+/* ---------------------------------------------------------------------------
+ * Utility classes
+ * --------------------------------------------------------------------------- */
+
+/**
+ * Hidden scrollbar utility — allows scroll but hides scrollbar UI.
+ * Used in WeekView day cards for smooth scrolling without visual clutter.
+ */
+.scrollbar-hide {
+  -ms-overflow-style: none;  /* IE and Edge */
+  scrollbar-width: none;     /* Firefox */
+}
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;  /* Chrome, Safari and Opera */
+}
 
 /* ---------------------------------------------------------------------------
  * Base styles

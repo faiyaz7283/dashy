@@ -28,8 +28,10 @@ export interface Attendee {
   display_name: string
   /** RSVP status. */
   status: AttendeeStatus
-  /** Member color or default grey for external guests. */
+  /** Member color (hex) or default grey for external guests. */
   color: string
+  /** Palette key for Tailwind class mapping, or null for guests. */
+  color_key: string | null
 }
 
 /** Common fields shared by all calendar events. */

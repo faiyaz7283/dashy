@@ -16,7 +16,9 @@ import { Combobox } from '@/shared/components/Combobox'
 import { TagInput } from '@/shared/components/TagInput'
 import { DifficultySlider } from '@/shared/components/DifficultySlider'
 import { useChoreActions } from '../hooks/useChoreActions'
-import type { ChoreCategory, ChoreTag, ChoreFrequency, ExpirationBehavior } from '@/types/chores'
+import { paletteBgClasses, type PaletteKey } from '@/shared/utils/memberColors'
+import { findFirstAdult } from '@/shared/utils/family'
+import type { ChoreCategory, ChoreTag, ChoreFrequency, ExpirationBehavior, CreateMasterChoreRequest } from '@/types/chores'
 import type { FamilyMember } from '@/types'
 
 /** Entry point for the create modal. */
@@ -73,19 +75,26 @@ export function ChoreCreateModal({
 
   // Handle category create
   const handleCreateCategory = async (categoryName: string) => {
-    await actions.createCategory(categoryName)
+    const newCategory = await actions.createCategory(categoryName)
+    setCategoryId(newCategory.id)
   }
 
   // Handle tag create
   const handleCreateTag = async (tagName: string) => {
-    await actions.createTag(tagName)
+    const newTag = await actions.createTag(tagName)
+    setTagIds((prev) => [...prev, newTag.id])
   }
 
   // Handle form submission
   const handleSubmit = async () => {
     if (!name.trim() || !categoryId) return
 
-    const data: Record<string, unknown> = {
+    // Find first adult member as creator (backend requires created_by)
+    // Backend auto-approves chores created by adults
+    const adult = findFirstAdult(members)
+    const createdBy = adult?.key ?? members[0]?.key ?? 'unknown'
+
+    const data: CreateMasterChoreRequest = {
       name: name.trim(),
       category_id: categoryId,
       tag_ids: tagIds,
@@ -95,11 +104,7 @@ export function ChoreCreateModal({
       due_time: dueTime || null,
       due_date: dueDate || null,
       expiration_behavior: expirationBehavior,
-    }
-
-    // Only include assigned_to for member and sidebar entry points
-    if (entryPoint.type !== 'open-pool' && assignedTo) {
-      data.assigned_to = assignedTo
+      created_by: createdBy,
     }
 
     await actions.createMaster(data)
@@ -229,11 +234,21 @@ export function ChoreCreateModal({
             <div>
               <label className="mb-1.5 block text-xs font-medium text-text-secondary">Assigned to</label>
               <div className="flex items-center gap-2 rounded-lg border border-border bg-bg-hover px-3 py-2 opacity-75">
-                <div className="flex h-5 w-5 items-center justify-center rounded-full bg-faiyaz text-[9px] font-bold leading-none text-white">
-                  {getAssignedMemberName()?.[0] ?? '?'}
-                </div>
-                <span className="text-sm text-text-muted">{getAssignedMemberName() ?? 'Unknown'}</span>
-                <span className="ml-auto text-[10px] text-text-faint">locked</span>
+                {(() => {
+                  const member = members.find(m => m.key === assignedTo)
+                  const paletteKey = member && member.color_key in paletteBgClasses
+                    ? member.color_key as PaletteKey
+                    : 'blue'
+                  return (
+                    <>
+                      <div className={`flex h-5 w-5 items-center justify-center rounded-full ${paletteBgClasses[paletteKey]} text-[9px] font-bold leading-none text-white`}>
+                        {member?.initial ?? '?'}
+                      </div>
+                      <span className="text-sm text-text-muted">{getAssignedMemberName() ?? 'Unknown'}</span>
+                      <span className="ml-auto text-[10px] text-text-faint">locked</span>
+                    </>
+                  )
+                })()}
               </div>
             </div>
           )}

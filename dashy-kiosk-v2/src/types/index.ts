@@ -17,5 +17,7 @@ export type {
   ExpirationBehavior,
   MasterChoreStatus,
   InstanceStatus,
+  CreateMasterChoreRequest,
+  UpdateMasterChoreRequest,
 } from './chores'
 export type { WeatherResponse, WeatherCurrent, WeatherCondition, HourlyForecast, DailyForecast } from './weather'

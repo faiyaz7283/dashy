@@ -10,7 +10,6 @@
  */
 
 import { Calendar, ClipboardList, RefreshCw, Plus, ChevronRight } from 'lucide-react'
-import { layout } from '@/theme/tokens'
 
 /** Available features for navigation. */
 export type Feature = 'calendar' | 'chores'
@@ -25,6 +24,10 @@ export interface SidebarProps {
   activeFeature: Feature
   /** Callback when a feature is selected. */
   onFeatureChange: (feature: Feature) => void
+  /** Callback when the refresh button is clicked in the Calendar nav item. */
+  onRefreshCalendar?: () => void
+  /** Callback when the add-chore button is clicked in the Chores nav item. */
+  onAddChore?: () => void
 }
 
 /**
@@ -33,13 +36,11 @@ export interface SidebarProps {
  * @param props - Sidebar configuration and state.
  * @returns The sidebar navigation UI.
  */
-export function Sidebar({ isExpanded, onToggle, activeFeature, onFeatureChange }: SidebarProps) {
-  const width = isExpanded ? layout.sidebarFull : layout.sidebarCollapsed
-
+export function Sidebar({ isExpanded, onToggle, activeFeature, onFeatureChange, onRefreshCalendar, onAddChore }: SidebarProps) {
   return (
     <aside
       className="absolute left-0 top-0 bottom-0 z-40 flex flex-col border-r border-border bg-white shadow-sidebar transition-[width] duration-300 ease-in-out"
-      style={{ width }}
+      style={{ width: isExpanded ? 'var(--shell-sidebar-expanded)' : 'var(--shell-sidebar-collapsed)' }}
     >
       {/* Navigation items */}
       <nav className="relative flex flex-1 flex-col pt-4">
@@ -49,6 +50,7 @@ export function Sidebar({ isExpanded, onToggle, activeFeature, onFeatureChange }
             icon={<Calendar className="size-6 shrink-0" />}
             label="Calendar"
             actionIcon={<RefreshCw className="size-4 shrink-0" />}
+            {...(onRefreshCalendar ? { onAction: onRefreshCalendar } : {})}
             isActive={activeFeature === 'calendar'}
             isExpanded={isExpanded}
             onClick={() => onFeatureChange('calendar')}
@@ -59,6 +61,7 @@ export function Sidebar({ isExpanded, onToggle, activeFeature, onFeatureChange }
             icon={<ClipboardList className="size-6 shrink-0" />}
             label="Chores"
             actionIcon={<Plus className="size-4 shrink-0" />}
+            {...(onAddChore ? { onAction: onAddChore } : {})}
             isActive={activeFeature === 'chores'}
             isExpanded={isExpanded}
             onClick={() => onFeatureChange('chores')}
@@ -90,11 +93,13 @@ interface NavItemProps {
   label: string
   /** The action icon shown on hover when expanded. */
   actionIcon: React.ReactNode
+  /** Callback when the action icon is clicked. */
+  onAction?: () => void
   /** Whether this item is currently active. */
   isActive: boolean
   /** Whether the sidebar is expanded. */
   isExpanded: boolean
-  /** Click handler. */
+  /** Click handler for the nav item itself. */
   onClick: () => void
 }
 
@@ -104,7 +109,7 @@ interface NavItemProps {
  * Shows the icon always, label and action icon only when expanded.
  * Active items have a highlighted background.
  */
-function NavItem({ icon, label, actionIcon, isActive, isExpanded, onClick }: NavItemProps) {
+function NavItem({ icon, label, actionIcon, onAction, isActive, isExpanded, onClick }: NavItemProps) {
   return (
     <li>
       <button
@@ -135,7 +140,22 @@ function NavItem({ icon, label, actionIcon, isActive, isExpanded, onClick }: Nav
             isExpanded ? 'opacity-0 group-hover:opacity-100' : 'opacity-0'
           }`}
         >
-          {actionIcon}
+          <span
+            role="button"
+            tabIndex={0}
+            onClick={(e) => {
+              e.stopPropagation()
+              onAction?.()
+            }}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.stopPropagation()
+                onAction?.()
+              }
+            }}
+          >
+            {actionIcon}
+          </span>
         </span>
       </button>
     </li>

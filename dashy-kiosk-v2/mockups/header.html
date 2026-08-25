@@ -76,7 +76,7 @@
     <header class="absolute top-0 left-0 right-0 z-50 bg-white border-b border-border shadow-sm h-16">
         <div class="flex items-center justify-between h-full px-4">
 
-            <!-- LEFT: Date + Clock + Weather -->
+            <!-- LEFT: Date + Clock + Weather — ALWAYS VISIBLE (all features) -->
             <div class="flex items-center gap-4">
                 <!-- Date (2 rows) -->
                 <div class="flex flex-col leading-tight">
@@ -119,35 +119,64 @@
                 </div>
             </div>
 
-            <!-- CENTER: Family Pills + Total Events -->
+            <!-- CENTER: Feature-Aware Member Pills + Total Count
+                 Calendar feature: shows per-member event counts + total events
+                 Chores feature: shows per-member chore counts + total chores
+                 Format: [member 1, member 2, …, total count] -->
             <div class="flex items-center gap-2">
-                <!-- Faiyaz: 3 events — pill with border -->
+                <!-- Calendar feature: Faiyaz: 3 events -->
                 <div class="inline-flex items-center gap-1.5 rounded-full bg-faiyaz/10 px-2 py-1 text-xs font-medium text-faiyaz inset-ring inset-ring-faiyaz/20">
                     <div class="w-4 h-4 rounded-full bg-faiyaz flex items-center justify-center text-white text-[9px] font-bold leading-none">F</div>
                     <span>3</span>
                 </div>
-                <!-- Trisha: 2 events -->
+                <!-- Calendar feature: Trisha: 2 events -->
                 <div class="inline-flex items-center gap-1.5 rounded-full bg-trisha/10 px-2 py-1 text-xs font-medium text-trisha inset-ring inset-ring-trisha/20">
                     <div class="w-4 h-4 rounded-full bg-trisha flex items-center justify-center text-white text-[9px] font-bold leading-none">T</div>
                     <span>2</span>
                 </div>
-                <!-- Arya: 1 event -->
+                <!-- Calendar feature: Arya: 1 event -->
                 <div class="inline-flex items-center gap-1.5 rounded-full bg-arya/10 px-2 py-1 text-xs font-medium text-arya inset-ring inset-ring-arya/20">
                     <div class="w-4 h-4 rounded-full bg-arya flex items-center justify-center text-white text-[9px] font-bold leading-none">A</div>
                     <span>1</span>
                 </div>
-                <!-- Raya: 0 events (dimmed) -->
+                <!-- Calendar feature: Raya: 0 events (dimmed) -->
                 <div class="inline-flex items-center gap-1.5 rounded-full bg-raya/10 px-2 py-1 text-xs font-medium text-raya inset-ring inset-ring-raya/20 opacity-50">
                     <div class="w-4 h-4 rounded-full bg-raya flex items-center justify-center text-white text-[9px] font-bold leading-none">R</div>
                     <span>0</span>
                 </div>
-                <!-- Total events -->
+                <!-- Calendar feature: Total count -->
                 <div class="ml-1 inline-flex items-center rounded-full bg-primary-light px-2 py-1 text-xs font-medium text-primary inset-ring inset-ring-primary/20">
                     6 events
                 </div>
+
+                <!-- Chores feature (hidden by default, shown when activeFeature === 'chores'):
+                     Faiyaz: 2 chores, Trisha: 1 chore, Arya: 0 chores (dimmed), Raya: 0 chores (dimmed)
+                     Total: 3 chores -->
+                <!--
+                <div class="inline-flex items-center gap-1.5 rounded-full bg-faiyaz/10 px-2 py-1 text-xs font-medium text-faiyaz inset-ring inset-ring-faiyaz/20">
+                    <div class="w-4 h-4 rounded-full bg-faiyaz flex items-center justify-center text-white text-[9px] font-bold leading-none">F</div>
+                    <span>2</span>
+                </div>
+                <div class="inline-flex items-center gap-1.5 rounded-full bg-trisha/10 px-2 py-1 text-xs font-medium text-trisha inset-ring inset-ring-trisha/20">
+                    <div class="w-4 h-4 rounded-full bg-trisha flex items-center justify-center text-white text-[9px] font-bold leading-none">T</div>
+                    <span>1</span>
+                </div>
+                <div class="inline-flex items-center gap-1.5 rounded-full bg-arya/10 px-2 py-1 text-xs font-medium text-arya inset-ring inset-ring-arya/20 opacity-50">
+                    <div class="w-4 h-4 rounded-full bg-arya flex items-center justify-center text-white text-[9px] font-bold leading-none">A</div>
+                    <span>0</span>
+                </div>
+                <div class="inline-flex items-center gap-1.5 rounded-full bg-raya/10 px-2 py-1 text-xs font-medium text-raya inset-ring inset-ring-raya/20 opacity-50">
+                    <div class="w-4 h-4 rounded-full bg-raya flex items-center justify-center text-white text-[9px] font-bold leading-none">R</div>
+                    <span>0</span>
+                </div>
+                <div class="ml-1 inline-flex items-center rounded-full bg-primary-light px-2 py-1 text-xs font-medium text-primary inset-ring inset-ring-primary/20">
+                    3 chores
+                </div>
+                -->
             </div>
 
-            <!-- RIGHT: View Switcher + Today + Date Picker -->
+            <!-- RIGHT: Calendar Feature Only — [Day, Week, Month, Year, Today, Date Picker]
+                 Hidden when Chores feature is active (activeFeature !== 'calendar') -->
             <div class="flex items-center gap-3">
                 <!-- View switcher (custom Tailwind segmented control) -->
                 <div class="flex items-center bg-bg-hover rounded-lg p-0.5">
@@ -169,6 +198,14 @@
                     </svg>
                 </button>
             </div>
+
+            <!-- RIGHT: Chores Feature (hidden by default, shown when activeFeature === 'chores')
+                 Empty — no controls needed for Chores feature -->
+            <!--
+            <div class="flex items-center gap-3">
+                <span class="text-sm text-text-muted">Chores feature active — no header controls</span>
+            </div>
+            -->
 
         </div>
     </header>

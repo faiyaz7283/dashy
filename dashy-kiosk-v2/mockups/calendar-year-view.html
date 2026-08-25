@@ -1,4 +1,17 @@
 <!DOCTYPE html>
+<!--
+  YEAR VIEW — Corner Color Indicator Logic
+
+  Each day cell with events shows a colored corner triangle (top-left).
+  The color is determined by the member who has the FIRST event of that day:
+
+  1. Sort all events for the day by start time (earliest first)
+  2. If one member has the earliest event → use their color
+  3. If multiple members have events at the same earliest time → pick alphabetically first member name
+     (e.g., Arya before Faiyaz before Raya before Trisha)
+
+  This ensures deterministic, meaningful color assignment — not random.
+-->
 <html lang="en">
 <head>
     <meta charset="UTF-8">

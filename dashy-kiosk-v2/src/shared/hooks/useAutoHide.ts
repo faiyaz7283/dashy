@@ -66,16 +66,21 @@ const TRANSITION_DURATION_MS = 450
 export function useAutoHide(options: UseAutoHideOptions): UseAutoHideResult {
   const { edge } = options
   const [isVisible, setIsVisible] = useState(false)
-  const [isHovering, setIsHovering] = useState(false)
   const elementRef = useRef<HTMLDivElement | null>(null)
   /** Prevents hide() during CSS transition — getBoundingClientRect() returns
    *  intermediate positions that cause false bounds-check failures. */
   const isTransitioningRef = useRef(false)
   const transitionTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  /** Track hover state in a ref to avoid listener churn in mousemove effect. */
+  const isHoveringRef = useRef(false)
 
   // Show the element immediately; block hide() until transition completes
   const show = useCallback(() => {
-    setIsVisible(true)
+    setIsVisible((prev) => {
+      // Only update if actually changing state
+      if (prev) return prev
+      return true
+    })
     isTransitioningRef.current = true
     if (transitionTimerRef.current) clearTimeout(transitionTimerRef.current)
     transitionTimerRef.current = setTimeout(() => {
@@ -108,7 +113,7 @@ export function useAutoHide(options: UseAutoHideOptions): UseAutoHideResult {
 
       if (nearEdge) {
         show()
-      } else if (!isTransitioningRef.current && !isHovering) {
+      } else if (!isTransitioningRef.current && !isHoveringRef.current) {
         // Check if mouse is within the element's bounds before hiding
         const element = elementRef.current
         if (element) {
@@ -136,7 +141,7 @@ export function useAutoHide(options: UseAutoHideOptions): UseAutoHideResult {
 
     window.addEventListener('mousemove', handleMouseMove)
     return () => window.removeEventListener('mousemove', handleMouseMove)
-  }, [edge, show, hide, isHovering])
+  }, [edge, show, hide])
 
   // Track hover state on the element itself
   useEffect(() => {
@@ -144,12 +149,12 @@ export function useAutoHide(options: UseAutoHideOptions): UseAutoHideResult {
     if (!element) return
 
     function handleMouseEnter() {
-      setIsHovering(true)
+      isHoveringRef.current = true
       show()
     }
 
     function handleMouseLeave() {
-      setIsHovering(false)
+      isHoveringRef.current = false
       // Don't hide here - let mousemove handler decide based on actual bounds
       // This prevents false hides due to z-index layering with header/status bar
     }

@@ -45,21 +45,6 @@
 </head>
 <body class="bg-bg text-text-primary font-sans h-screen overflow-hidden flex flex-col">
 
-    <!-- Theme toggle (top-right, moved away from status bar) -->
-    <button id="theme-toggle" class="fixed top-4 right-4 z-[9999] p-2 bg-white text-text-secondary border border-border rounded-lg cursor-pointer hover:bg-bg-hover hover:text-text-primary"
-            onclick="toggleTheme()"
-            title="Toggle theme">
-        <svg id="icon-sun" class="w-5 h-5 hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"/>
-        </svg>
-        <svg id="icon-moon" class="w-5 h-5 hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/>
-        </svg>
-        <svg id="icon-auto" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/>
-        </svg>
-    </button>
-
     <!-- STATUS BAR — always visible for mockup review (no auto-hide) -->
     <footer class="absolute bottom-0 left-0 right-0 z-50 bg-white border-t border-border shadow-sm h-12">
         <div class="flex items-center justify-between px-4 py-2 h-full">
@@ -72,7 +57,8 @@
                 </svg>
             </button>
 
-            <!-- Center: Calendar + Weather Countdowns -->
+            <!-- Center: Calendar Feature Only — [Calendar Refresh Timer, Weather Refresh Timer]
+                 Hidden when Chores feature is active (activeFeature !== 'calendar') -->
             <div class="flex items-center gap-4 text-sm text-text-muted">
                 <!-- Calendar refresh countdown -->
                 <div class="flex items-center gap-2">
@@ -90,9 +76,23 @@
                 </div>
             </div>
 
-            <!-- Right: Theme Toggle (icon only, shows current mode) -->
-            <button class="p-2 text-text-muted hover:text-text-primary hover:bg-bg-hover rounded-md transition-colors" title="Theme: Auto">
-                <svg id="status-theme-icon" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <!-- Center: Chores Feature (hidden by default, shown when activeFeature === 'chores')
+                 Empty — no status bar content needed for Chores feature -->
+            <!--
+            <div class="flex items-center gap-4 text-sm text-text-muted">
+                <span>Chores feature active — no status bar timers</span>
+            </div>
+            -->
+
+            <!-- Right: Theme Toggle Icon (cycles: auto → light → dark) -->
+            <button id="theme-toggle" class="p-2 text-text-muted hover:text-text-primary hover:bg-bg-hover rounded-md transition-colors" title="Theme: Auto">
+                <svg id="icon-sun" class="w-5 h-5 hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"/>
+                </svg>
+                <svg id="icon-moon" class="w-5 h-5 hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/>
+                </svg>
+                <svg id="icon-auto" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/>
                 </svg>
             </button>
@@ -103,14 +103,16 @@
     <!-- Content area placeholder (standardized content card pattern) -->
     <main class="flex-1 flex flex-col p-2 bg-bg">
         <div class="grow rounded-lg bg-white shadow-xs ring-1 ring-border overflow-hidden flex flex-col items-center justify-center">
-            <h1 class="text-xl font-semibold text-text-primary mb-1">Status Bar — Mockup #4</h1>
-            <p class="text-sm text-text-muted">Settings · Calendar/Weather Countdowns · Theme Toggle</p>
-            <p class="text-xs text-text-faint mt-3">Theme toggle in top-right cycles: auto → light → dark</p>
+            <h1 class="text-xl font-semibold text-text-primary mb-1">Status Bar</h1>
+            <p class="text-sm text-text-muted">Left: Settings · Center: Calendar Refresh Timers · Right: Theme Toggle</p>
+            <p class="text-xs text-text-faint mt-3">Theme toggle cycles: auto → light → dark</p>
         </div>
     </main>
 
     <script>
         let currentTheme = 'auto';
+
+        document.getElementById('theme-toggle').addEventListener('click', toggleTheme);
 
         function toggleTheme() {
             const themes = ['auto', 'light', 'dark'];
@@ -121,9 +123,7 @@
             const iconSun = document.getElementById('icon-sun');
             const iconMoon = document.getElementById('icon-moon');
             const iconAuto = document.getElementById('icon-auto');
-            const statusThemeIcon = document.getElementById('status-theme-icon');
 
-            // Hide all icons
             iconSun.classList.add('hidden');
             iconMoon.classList.add('hidden');
             iconAuto.classList.add('hidden');
@@ -131,11 +131,9 @@
             if (currentTheme === 'light') {
                 html.classList.remove('dark');
                 iconSun.classList.remove('hidden');
-                statusThemeIcon.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"/>';
             } else if (currentTheme === 'dark') {
                 html.classList.add('dark');
                 iconMoon.classList.remove('hidden');
-                statusThemeIcon.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/>';
             } else {
                 if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
                     html.classList.add('dark');
@@ -143,7 +141,6 @@
                     html.classList.remove('dark');
                 }
                 iconAuto.classList.remove('hidden');
-                statusThemeIcon.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/>';
             }
         }
     </script>

@@ -18,6 +18,8 @@ import { TagInput } from '@/shared/components/TagInput'
 import { DifficultySlider } from '@/shared/components/DifficultySlider'
 import { useChoreActions } from '../hooks/useChoreActions'
 import { getStatusLabel } from '@/shared/utils/chores'
+import { paletteBgClasses, type PaletteKey } from '@/shared/utils/memberColors'
+import { isAdult } from '@/shared/utils/family'
 import type {
   ChoreInstance,
   MasterChore,
@@ -26,6 +28,7 @@ import type {
   InstanceStatus,
   ChoreFrequency,
   ExpirationBehavior,
+  UpdateMasterChoreRequest,
 } from '@/types/chores'
 import type { FamilyMember } from '@/types'
 
@@ -87,30 +90,51 @@ export function ChoreEditModal({
 
   // Handle instance save
   const handleInstanceSave = async () => {
-    const updates: Record<string, unknown> = { status }
+    // Determine what changed and call appropriate action(s)
+    const statusChanged = status !== instance.status
+    const assignmentChanged = assignmentType !== (instance.claimed_by ? 'claimed' : instance.assigned_to ? 'assigned' : 'open')
+    const signoffChanged = signoffBy !== (instance.signoff_by ?? '')
 
-    if (assignmentType === 'claimed') {
-      updates.claimed_by = instance.claimed_by
-      updates.assigned_to = null
-    } else if (assignmentType === 'assigned') {
-      updates.assigned_to = instance.assigned_to
-      updates.claimed_by = null
-    } else {
-      updates.claimed_by = null
-      updates.assigned_to = null
+    // Handle status change
+    if (statusChanged) {
+      // Find the actor (who is making this change)
+      const actor = members[0] // Default to first member as actor
+      if (!actor) return
+
+      const actorIsAdult = isAdult(actor)
+      await actions.updateInstanceStatus(instance.id, status, actor.key, actorIsAdult)
     }
 
-    if (completedBy) updates.completed_by = completedBy
-    if (signoffBy) updates.signoff_by = signoffBy
+    // Handle assignment change
+    if (assignmentChanged) {
+      if (assignmentType === 'claimed') {
+        // Claim the instance
+        const memberKey = instance.claimed_by
+        if (memberKey) {
+          await actions.claimInstance(instance.id, memberKey)
+        }
+      } else if (assignmentType === 'assigned') {
+        // Assign the instance
+        const assigneeKey = instance.assigned_to
+        const assignerKey = members[0]?.key // First member as assigner
+        if (assigneeKey && assignerKey) {
+          await actions.assignInstance(instance.id, assigneeKey, assignerKey)
+        }
+      }
+      // If 'open', no action needed (backend handles clearing via claim/assign)
+    }
 
-    await actions.updateInstanceStatus(instance.id, status, instance.assigned_to ?? instance.claimed_by ?? '')
-    await actions.updateMaster(instance.master_chore_id, updates)
+    // Handle signoff
+    if (signoffChanged && signoffBy) {
+      await actions.signoffInstance(instance.id, signoffBy)
+    }
+
     onClose()
   }
 
   // Handle template save
   const handleTemplateSave = async () => {
-    const data: Record<string, unknown> = {
+    const data: UpdateMasterChoreRequest = {
       name: name.trim(),
       category_id: categoryId,
       tag_ids: tagIds,
@@ -135,12 +159,14 @@ export function ChoreEditModal({
 
   // Handle category create
   const handleCreateCategory = async (categoryName: string) => {
-    await actions.createCategory(categoryName)
+    const newCategory = await actions.createCategory(categoryName)
+    setCategoryId(newCategory.id)
   }
 
   // Handle tag create
   const handleCreateTag = async (tagName: string) => {
-    await actions.createTag(tagName)
+    const newTag = await actions.createTag(tagName)
+    setTagIds((prev) => [...prev, newTag.id])
   }
 
   return (
@@ -217,13 +243,24 @@ export function ChoreEditModal({
                   />
                   {(assignmentType === 'claimed' || assignmentType === 'assigned') && (
                     <div className="flex items-center gap-2 rounded-lg border border-border bg-bg px-3 py-2">
-                      <div className="flex h-5 w-5 items-center justify-center rounded-full bg-faiyaz text-[9px] font-bold leading-none text-white">
-                        {(instance.claimed_by ?? instance.assigned_to ?? '?').charAt(0).toUpperCase()}
-                      </div>
-                      <span className="text-sm text-text-primary">
-                        {members.find((m) => m.key === (instance.claimed_by ?? instance.assigned_to))?.name ?? 'Unknown'}
-                      </span>
-                      <span className="ml-auto text-[10px] text-text-faint">{assignmentType}</span>
+                      {(() => {
+                        const memberKey = instance.claimed_by ?? instance.assigned_to
+                        const member = members.find((m) => m.key === memberKey)
+                        const colorKey = member?.color_key && member.color_key in paletteBgClasses
+                          ? member.color_key as PaletteKey
+                          : 'blue'
+                        return (
+                          <>
+                            <div className={`flex h-5 w-5 items-center justify-center rounded-full ${paletteBgClasses[colorKey]} text-[9px] font-bold leading-none text-white`}>
+                              {member?.initial ?? '?'}
+                            </div>
+                            <span className="text-sm text-text-primary">
+                              {member?.name ?? 'Unknown'}
+                            </span>
+                            <span className="ml-auto text-[10px] text-text-faint">{assignmentType}</span>
+                          </>
+                        )
+                      })()}
                     </div>
                   )}
                 </div>

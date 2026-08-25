@@ -8,7 +8,7 @@
 
 import { Clock, AlertTriangle, CheckCircle, Play, Pause } from 'lucide-react'
 import type { ChoreInstance, MasterChore, ChoreCategory, InstanceStatus } from '@/types/chores'
-import { memberBorderClasses, type MemberColorKey } from '@/shared/utils/memberColors'
+import { paletteBorderClasses, getMemberPaletteKey, type PaletteKey } from '@/shared/utils/memberColors'
 
 /** Props for the ChoreCard component. */
 export interface ChoreCardProps {
@@ -18,6 +18,8 @@ export interface ChoreCardProps {
   masterChore: MasterChore
   /** All available categories. */
   categories: ChoreCategory[]
+  /** Member color map. */
+  colorMap: Map<string, PaletteKey>
   /** Callback when the card is clicked. */
   onClick?: () => void
 }
@@ -59,13 +61,14 @@ function getStatusIcon(status: InstanceStatus) {
  * @param props - Component props.
  * @returns The chore card UI.
  */
-export function ChoreCard({ instance, masterChore, categories, onClick }: ChoreCardProps) {
+export function ChoreCard({ instance, masterChore, categories, colorMap, onClick }: ChoreCardProps) {
   // Get category name
   const category = categories.find((c) => c.id === masterChore.category.id)
   const categoryName = category?.name ?? 'Uncategorized'
 
   // Get member color for left border
-  const memberColor: MemberColorKey = (instance.claimed_by ?? instance.assigned_to ?? 'faiyaz') as MemberColorKey
+  const memberKey = instance.claimed_by ?? instance.assigned_to
+  const paletteKey = getMemberPaletteKey(memberKey, colorMap)
 
   // Difficulty dots (filled = active, empty = inactive)
   const difficultyDots = Array.from({ length: 5 }, (_, i) => (
@@ -94,7 +97,7 @@ export function ChoreCard({ instance, masterChore, categories, onClick }: ChoreC
   return (
     <div
       onClick={onClick}
-      className={`cursor-pointer rounded-lg border-l-4 ${memberBorderClasses[memberColor]} bg-white p-3 transition-colors hover:bg-bg-hover dark:bg-bg`}
+      className={`cursor-pointer rounded-lg border-l-4 ${paletteBorderClasses[paletteKey]} bg-white p-3 transition-colors hover:bg-bg-hover dark:bg-bg`}
     >
       {/* Title and status icon */}
       <div className="mb-2 flex items-center justify-between gap-2">

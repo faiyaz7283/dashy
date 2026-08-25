@@ -92,6 +92,8 @@ export interface MasterChore {
   created_at: string
   /** ISO datetime when last updated. */
   updated_at: string
+  /** ISO datetime when soft-deleted, or null if active. */
+  deleted_at: string | null
 }
 
 /**
@@ -126,6 +128,10 @@ export interface ChoreInstance {
   completed_at: string | null
   /** ISO datetime when parent signed off, or null. */
   signed_off_at: string | null
+  /** ISO datetime when created. */
+  created_at: string
+  /** ISO datetime when last updated. */
+  updated_at: string
 }
 
 /**
@@ -143,4 +149,50 @@ export interface ChoresData {
   master_chores: MasterChore[]
   /** Active chore instances. */
   instances: ChoreInstance[]
+}
+
+/** Request payload for creating a new master chore. */
+export interface CreateMasterChoreRequest {
+  /** Chore name. */
+  name: string
+  /** Category ID. */
+  category_id: string
+  /** Tag IDs to associate. */
+  tag_ids?: string[]
+  /** Difficulty level (1–5). */
+  difficulty?: number
+  /** How often instances are generated. */
+  frequency?: ChoreFrequency
+  /** Estimated time in minutes. */
+  estimated_minutes?: number | null
+  /** Due time-of-day (ISO time string). */
+  due_time?: string | null
+  /** Due date (ISO date string) for one-off chores. */
+  due_date?: string | null
+  /** What happens when the instance period expires. */
+  expiration_behavior?: ExpirationBehavior
+  /** Member ID of the creator (required). */
+  created_by: string
+  /** Member ID of the approver (optional, for kid creators). */
+  approved_by?: string | null
+}
+
+/** Request payload for updating a master chore. */
+export interface UpdateMasterChoreRequest {
+  /** Chore name. */
+  name?: string
+  /** Category ID. */
+  category_id?: string
+  /** Tag IDs to associate. */
+  tag_ids?: string[]
+  /** Difficulty level (1–5). */
+  difficulty?: number
+  /** How often instances are generated. */
+  frequency?: ChoreFrequency
+  /** Estimated time in minutes. */
+  estimated_minutes?: number | null
+  /** Due time-of-day (ISO time string). */
+  due_time?: string | null
+  /** What happens when the instance period expires. */
+  expiration_behavior?: ExpirationBehavior
 }

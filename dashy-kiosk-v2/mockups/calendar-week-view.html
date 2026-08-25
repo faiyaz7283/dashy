@@ -15,6 +15,12 @@
   NOTE: This is a static visual mockup. Dynamic behavior (event overflow calculation,
   density color computation) will be handled in React via custom hooks.
   Do NOT translate any JavaScript from this mockup into the implementation.
+
+  📌 SCROLLABLE OVERFLOW INTENT:
+  - Day cards: Events scroll within the card using hidden scrollbar (overflow-y-auto + scrollbar-hide)
+  - Scroll respects card padding (px-3 pb-3) for consistent look
+  - No "+N more" overflow calculation — all events accessible via scroll
+  - Last card (row 2, col 4): Shows upcoming events for next week, same scrollable treatment
 -->
 <html lang="en">
 <head>
@@ -52,6 +58,15 @@
         }
 
         @custom-variant dark (&:where(.dark, .dark *));
+
+        /* Hidden scrollbar utility — allows scroll but hides scrollbar UI */
+        .scrollbar-hide {
+            -ms-overflow-style: none;  /* IE and Edge */
+            scrollbar-width: none;  /* Firefox */
+        }
+        .scrollbar-hide::-webkit-scrollbar {
+            display: none;  /* Chrome, Safari and Opera */
+        }
     </style>
     <link rel="stylesheet" href="tokens.css">
 </head>
@@ -107,7 +122,7 @@
                             </div>
                             <span class="inline-flex items-center rounded-full bg-bg-hover px-2 py-0.5 text-xs font-medium text-text-muted ring-1 ring-border">3 events</span>
                         </div>
-                        <div class="px-3 pb-3 flex-1 space-y-1.5 overflow-hidden">
+                        <div class="px-3 pb-3 flex-1 space-y-1.5 overflow-y-auto scrollbar-hide">
                             <div class="border-l-4 border-faiyaz bg-faiyaz/10 rounded-md px-2 py-1 hover:bg-faiyaz/20 transition-colors cursor-pointer">
                                 <div class="flex items-center justify-between">
                                     <div class="min-w-0">
@@ -147,7 +162,7 @@
                             </div>
                             <span class="inline-flex items-center rounded-full bg-bg-hover px-2 py-0.5 text-xs font-medium text-text-muted ring-1 ring-border">4 events</span>
                         </div>
-                        <div class="px-3 pb-3 flex-1 space-y-1.5 overflow-hidden">
+                        <div class="px-3 pb-3 flex-1 space-y-1.5 overflow-y-auto scrollbar-hide">
                             <div class="border-l-4 border-faiyaz bg-faiyaz/10 rounded-md px-2 py-1 hover:bg-faiyaz/20 transition-colors cursor-pointer">
                                 <div class="flex items-center justify-between">
                                     <div class="min-w-0">
@@ -196,7 +211,7 @@
                             </div>
                             <span class="inline-flex items-center rounded-full bg-bg-hover px-2 py-0.5 text-xs font-medium text-text-muted ring-1 ring-border">3 events</span>
                         </div>
-                        <div class="px-3 pb-3 flex-1 space-y-1.5 overflow-hidden">
+                        <div class="px-3 pb-3 flex-1 space-y-1.5 overflow-y-auto scrollbar-hide">
                             <div class="border-l-4 border-faiyaz bg-faiyaz/10 rounded-md px-2 py-1 hover:bg-faiyaz/20 transition-colors cursor-pointer">
                                 <div class="flex items-center justify-between">
                                     <div class="min-w-0">
@@ -229,21 +244,19 @@
 
                     <!-- Thu 20 (today) — 2 events (low density) -->
                     <div class="rounded-lg bg-white dark:bg-bg ring-1 ring-border border-t-4 border-t-density-low border-l-2 border-r-2 border-b-2 border-primary flex flex-col overflow-hidden h-full">
-                        <div class="px-3 pt-3 pb-2 flex items-center justify-between">
+                        <div class="px-3 pt-3 pb-2 flex items-center justify-between gap-2">
                             <div class="flex items-center gap-2">
                                 <span class="text-base font-semibold text-text-primary">Thu</span>
                                 <span class="inline-flex items-center justify-center w-6 h-6 rounded-full bg-primary text-white text-xs font-bold">20</span>
                             </div>
-                            <div class="flex items-center gap-2">
-                                <div class="flex items-center gap-1 text-xs text-text-muted">
-                                    <svg class="w-4 h-4 text-warning" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 2a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zm4 8a4 4 0 11-8 0 4 4 0 018 0zm-.464 4.95l.707.707a1 1 0 001.414-1.414l-.707-.707a1 1 0 00-1.414 1.414zm2.12-10.607a1 1 0 010 1.414l-.706.707a1 1 0 11-1.414-1.414l.707-.707a1 1 0 011.414 0zM17 11a1 1 0 100-2h-1a1 1 0 100 2h1zm-7 4a1 1 0 011 1v1a1 1 0 11-2 0v-1a1 1 0 011-1zM5.05 6.464A1 1 0 106.465 5.05l-.708-.707a1 1 0 00-1.414 1.414l.707.707zm1.414 8.486l-.707.707a1 1 0 01-1.414-1.414l.707-.707a1 1 0 011.414 1.414zM4 11a1 1 0 100-2H3a1 1 0 000 2h1z" clip-rule="evenodd"/></svg>
-                                    <span class="font-medium text-text-primary">83°</span>
-                                    <span>68°</span>
-                                </div>
-                                <span class="inline-flex items-center rounded-full bg-bg-hover px-2 py-0.5 text-xs font-medium text-text-muted ring-1 ring-border">2 events</span>
+                            <div class="flex items-center gap-1 text-xs text-text-muted">
+                                <svg class="w-4 h-4 text-warning" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 2a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zm4 8a4 4 0 11-8 0 4 4 0 018 0zm-.464 4.95l.707.707a1 1 0 001.414-1.414l-.707-.707a1 1 0 00-1.414 1.414zm2.12-10.607a1 1 0 010 1.414l-.706.707a1 1 0 11-1.414-1.414l.707-.707a1 1 0 011.414 0zM17 11a1 1 0 100-2h-1a1 1 0 100 2h1zm-7 4a1 1 0 011 1v1a1 1 0 11-2 0v-1a1 1 0 011-1zM5.05 6.464A1 1 0 106.465 5.05l-.708-.707a1 1 0 00-1.414 1.414l.707.707zm1.414 8.486l-.707.707a1 1 0 01-1.414-1.414l.707-.707a1 1 0 011.414 1.414zM4 11a1 1 0 100-2H3a1 1 0 000 2h1z" clip-rule="evenodd"/></svg>
+                                <span class="font-medium text-text-primary">83°</span>
+                                <span>68°</span>
                             </div>
+                            <span class="inline-flex items-center rounded-full bg-bg-hover px-2 py-0.5 text-xs font-medium text-text-muted ring-1 ring-border">2 events</span>
                         </div>
-                        <div class="px-3 pb-3 flex-1 space-y-1.5 overflow-hidden">
+                        <div class="px-3 pb-3 flex-1 space-y-1.5 overflow-y-auto scrollbar-hide">
                             <div class="border-l-4 border-faiyaz bg-faiyaz/10 rounded-md px-2 py-1 hover:bg-faiyaz/20 transition-colors cursor-pointer">
                                 <div class="flex items-center justify-between">
                                     <div class="min-w-0">
@@ -272,16 +285,14 @@
                                 <span class="text-base font-semibold text-text-primary">Fri</span>
                                 <span class="text-base font-semibold text-text-primary">21</span>
                             </div>
-                            <div class="flex items-center gap-2">
-                                <div class="flex items-center gap-1 text-xs text-text-muted">
-                                    <svg class="w-4 h-4 text-text-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 15a4 4 0 004 4h9a5 5 0 10-.1-9.999 5.002 5.002 0 10-9.78 2.096A4.001 4.001 0 003 15z"/></svg>
-                                    <span class="font-medium text-text-primary">80°</span>
-                                    <span>65°</span>
-                                </div>
-                                <span class="inline-flex items-center rounded-full bg-bg-hover px-2 py-0.5 text-xs font-medium text-text-muted ring-1 ring-border">3 events</span>
+                            <div class="flex items-center gap-1 text-xs text-text-muted">
+                                <svg class="w-4 h-4 text-text-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 15a4 4 0 004 4h9a5 5 0 10-.1-9.999 5.002 5.002 0 10-9.78 2.096A4.001 4.001 0 003 15z"/></svg>
+                                <span class="font-medium text-text-primary">80°</span>
+                                <span>65°</span>
                             </div>
+                            <span class="inline-flex items-center rounded-full bg-bg-hover px-2 py-0.5 text-xs font-medium text-text-muted ring-1 ring-border">3 events</span>
                         </div>
-                        <div class="px-3 pb-3 flex-1 space-y-1.5 overflow-hidden">
+                        <div class="px-3 pb-3 flex-1 space-y-1.5 overflow-y-auto scrollbar-hide">
                             <div class="border-l-4 border-faiyaz bg-faiyaz/10 rounded-md px-2 py-1 hover:bg-faiyaz/20 transition-colors cursor-pointer">
                                 <div class="flex items-center justify-between">
                                     <div class="min-w-0">
@@ -328,7 +339,7 @@
                                 <span class="inline-flex items-center rounded-full bg-bg-hover px-2 py-0.5 text-xs font-medium text-text-muted ring-1 ring-border">2 events</span>
                             </div>
                         </div>
-                        <div class="px-3 pb-3 flex-1 space-y-1.5 overflow-hidden">
+                        <div class="px-3 pb-3 flex-1 space-y-1.5 overflow-y-auto scrollbar-hide">
                             <div class="border-l-4 border-faiyaz bg-faiyaz/10 rounded-md px-2 py-1 hover:bg-faiyaz/20 transition-colors cursor-pointer">
                                 <div class="flex items-center justify-between">
                                     <div class="min-w-0">
@@ -366,7 +377,7 @@
                                 <span class="inline-flex items-center rounded-full bg-bg-hover px-2 py-0.5 text-xs font-medium text-text-muted ring-1 ring-border">2 events</span>
                             </div>
                         </div>
-                        <div class="px-3 pb-3 flex-1 space-y-1.5 overflow-hidden">
+                        <div class="px-3 pb-3 flex-1 space-y-1.5 overflow-y-auto scrollbar-hide">
                             <div class="border-l-4 border-faiyaz bg-faiyaz/10 rounded-md px-2 py-1 hover:bg-faiyaz/20 transition-colors cursor-pointer">
                                 <div class="flex items-center justify-between">
                                     <div class="min-w-0">
@@ -394,7 +405,7 @@
                             <span class="text-base font-semibold text-text-muted">Aug 24 – 30</span>
                             <span class="inline-flex items-center rounded-full bg-bg-hover px-2 py-0.5 text-xs font-medium text-text-muted ring-1 ring-border">6 events</span>
                         </div>
-                        <div class="px-3 pb-3 flex-1 space-y-1.5 overflow-hidden">
+                        <div class="px-3 pb-3 flex-1 space-y-1.5 overflow-y-auto scrollbar-hide">
                             <div class="border-l-4 border-arya bg-arya/10 rounded-md px-2 py-1 hover:bg-arya/20 transition-colors cursor-pointer">
                                 <div class="flex items-center justify-between">
                                     <div class="min-w-0">

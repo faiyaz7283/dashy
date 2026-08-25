@@ -8,18 +8,26 @@
  * Each column shows chore instances with status-colored left borders.
  */
 
+import { useMemo } from 'react'
 import { Plus } from 'lucide-react'
 import { ContentCard } from '@/shared/components/ContentCard'
 import { ChoreCard } from '../components/ChoreCard'
-import { useChoresData } from '../hooks/useChoresData'
 import { isOpenPoolInstance, getMemberInstances } from '@/shared/utils/chores'
-import type { ChoreInstance, MasterChore, FamilyMember } from '@/types'
-import { memberBgClasses, getMemberInitial, type MemberColorKey } from '@/shared/utils/memberColors'
+import type { ChoresData, ChoreInstance, MasterChore, FamilyMember } from '@/types'
+import { buildMemberColorMap, paletteBgClasses, getMemberPaletteKey, type PaletteKey } from '@/shared/utils/memberColors'
 
 /** Props for the ChoresBoard component. */
 export interface ChoresBoardProps {
   /** Family members for column headers. */
   members: FamilyMember[]
+  /** Chores data from useChoresData hook. */
+  data: ChoresData | null
+  /** Whether initial load is in progress. */
+  isLoading: boolean
+  /** Whether background refresh is in progress. */
+  isRefreshing: boolean
+  /** Error message, if any. */
+  error: string | null
   /** Callback when a chore card is clicked. */
   onChoreClick?: (instance: ChoreInstance) => void
   /** Callback when the add button is clicked in a column. */
@@ -32,8 +40,42 @@ export interface ChoresBoardProps {
  * @param props - Component props.
  * @returns The chores board UI.
  */
-export function ChoresBoard({ members, onChoreClick, onAddChore }: ChoresBoardProps) {
-  const { data, isLoading, error } = useChoresData()
+export function ChoresBoard({
+  members,
+  data,
+  isLoading,
+  error,
+  onChoreClick,
+  onAddChore,
+}: ChoresBoardProps) {
+  const colorMap = useMemo(() => buildMemberColorMap(members), [members])
+
+  // Memoize destructured data to prevent unnecessary re-renders
+  const instances = useMemo(() => data?.instances ?? [], [data])
+  const masterChores = useMemo(() => data?.master_chores ?? [], [data])
+  const categories = useMemo(() => data?.categories ?? [], [data])
+
+  // Calculate metrics
+  const metrics = useMemo(() => {
+    const pendingCount = instances.filter(
+      (i) => i.status === 'open' || i.status === 'claimed' || i.status === 'assigned',
+    ).length
+    const inProgressCount = instances.filter((i) => i.status === 'in_progress').length
+    const completedCount = instances.filter((i) => i.status === 'completed').length
+    const overdueCount = instances.filter((i) => i.status === 'overdue').length
+    const totalCount = instances.length
+
+    return { pendingCount, inProgressCount, completedCount, overdueCount, totalCount }
+  }, [instances])
+
+  // Get open pool instances (unclaimed and unassigned)
+  const openPoolInstances = useMemo(() => instances.filter(isOpenPoolInstance), [instances])
+
+  // Helper to get master chore for an instance
+  const getMasterChore = useMemo(() => {
+    const masterMap = new Map(masterChores.map((mc) => [mc.id, mc]))
+    return (instance: ChoreInstance): MasterChore | undefined => masterMap.get(instance.master_chore_id)
+  }, [masterChores])
 
   if (isLoading) {
     return (
@@ -59,34 +101,16 @@ export function ChoresBoard({ members, onChoreClick, onAddChore }: ChoresBoardPr
     return null
   }
 
-  const { categories, master_chores, instances } = data
-
-  // Calculate metrics
-  const pendingCount = instances.filter(
-    (i) => i.status === 'open' || i.status === 'claimed' || i.status === 'assigned',
-  ).length
-  const inProgressCount = instances.filter((i) => i.status === 'in_progress').length
-  const completedCount = instances.filter((i) => i.status === 'completed').length
-  const overdueCount = instances.filter((i) => i.status === 'overdue').length
-  const totalCount = instances.length
-
-  // Get open pool instances (unclaimed and unassigned)
-  const openPoolInstances = instances.filter(isOpenPoolInstance)
-
-  // Helper to get master chore for an instance
-  const getMasterChore = (instance: ChoreInstance): MasterChore | undefined =>
-    master_chores.find((mc) => mc.id === instance.master_chore_id)
-
   return (
     <ContentCard>
       <div className="flex h-full flex-col">
         {/* Metrics row */}
         <div className="grid grid-cols-5 gap-4 border-b border-border px-4 py-3">
-          <MetricCard label="Pending" value={pendingCount} color="bg-chores-pending" />
-          <MetricCard label="In Progress" value={inProgressCount} color="bg-chores-in-progress" />
-          <MetricCard label="Completed" value={completedCount} color="bg-chores-completed" />
-          <MetricCard label="Overdue" value={overdueCount} color="bg-chores-overdue" />
-          <MetricCard label="This Week" value={totalCount} suffix="chores" />
+          <MetricCard label="Pending" value={metrics.pendingCount} color="bg-chores-pending" />
+          <MetricCard label="In Progress" value={metrics.inProgressCount} color="bg-chores-in-progress" />
+          <MetricCard label="Completed" value={metrics.completedCount} color="bg-chores-completed" />
+          <MetricCard label="Overdue" value={metrics.overdueCount} color="bg-chores-overdue" />
+          <MetricCard label="This Week" value={metrics.totalCount} suffix="chores" />
         </div>
 
         {/* Columns row */}
@@ -107,6 +131,7 @@ export function ChoresBoard({ members, onChoreClick, onAddChore }: ChoresBoardPr
                   instance={instance}
                   masterChore={master}
                   categories={categories}
+                  colorMap={colorMap}
                   onClick={() => onChoreClick?.(instance)}
                 />
               )
@@ -121,12 +146,14 @@ export function ChoresBoard({ members, onChoreClick, onAddChore }: ChoresBoardPr
             const pendingByMember = memberInstances.filter(
               (i) => i.status !== 'completed' && i.status !== 'overdue',
             ).length
+            const paletteKey = getMemberPaletteKey(member.key, colorMap)
 
             return (
               <Column
                 key={member.key}
                 title={member.name}
-                memberColor={member.key as MemberColorKey}
+                paletteKey={paletteKey}
+                memberInitial={member.initial}
                 subtitle1={{ label: 'Assigned', value: assignedCount }}
                 subtitle2={{ label: 'Completed', value: completedByMember, color: 'text-chores-completed' }}
                 subtitle3={{ label: 'Pending', value: pendingByMember, color: 'text-chores-pending' }}
@@ -141,6 +168,7 @@ export function ChoresBoard({ members, onChoreClick, onAddChore }: ChoresBoardPr
                       instance={instance}
                       masterChore={master}
                       categories={categories}
+                      colorMap={colorMap}
                       onClick={() => onChoreClick?.(instance)}
                     />
                   )
@@ -178,7 +206,8 @@ function MetricCard({ label, value, color, suffix }: MetricCardProps) {
 /** Column component for member or open pool. */
 interface ColumnProps {
   title: string
-  memberColor?: MemberColorKey
+  paletteKey?: PaletteKey
+  memberInitial?: string
   subtitle1: { label: string; value: number; color?: string }
   subtitle2: { label: string; value: number; color?: string }
   subtitle3?: { label: string; value: number; color?: string }
@@ -186,7 +215,7 @@ interface ColumnProps {
   children: React.ReactNode
 }
 
-function Column({ title, memberColor, subtitle1, subtitle2, subtitle3, onAdd, children }: ColumnProps) {
+function Column({ title, paletteKey, memberInitial, subtitle1, subtitle2, subtitle3, onAdd, children }: ColumnProps) {
   return (
     <div className="flex w-64 flex-col overflow-hidden rounded-lg border border-border-light bg-bg-hover/50">
       {/* Column header */}
@@ -194,9 +223,9 @@ function Column({ title, memberColor, subtitle1, subtitle2, subtitle3, onAdd, ch
         <div className="mb-2 flex items-center justify-between">
           <h3 className="text-sm font-semibold text-text-primary">{title}</h3>
           <div className="flex items-center gap-2">
-            {memberColor && (
-              <div className={`flex h-6 w-6 items-center justify-center rounded-full ${memberBgClasses[memberColor]} text-xs font-bold text-white`}>
-                {getMemberInitial(memberColor)}
+            {paletteKey && memberInitial && (
+              <div className={`flex h-6 w-6 items-center justify-center rounded-full ${paletteBgClasses[paletteKey]} text-xs font-bold text-white`}>
+                {memberInitial}
               </div>
             )}
             <button

@@ -1,11 +1,33 @@
 # Dashy Kiosk v2 — Implementation Plan
 
-> **Status:** In Progress — Phases 0-4 implemented, under review. Phases 3, 5, 6, 7 pending.
+> **Status:** In Progress — Phases 0-7 complete. Track 2 (Repo Swap) next.
 > **Created:** 2026-08-21
-> **Last Updated:** 2026-08-22
+> **Last Updated:** 2026-08-25
 > **Prerequisites:** All 14 mockups approved, mockup files renamed to living references
 
 ---
+
+## Current Status
+
+**✅ Completed:** Phases 0-7 (Foundation, Shell, Calendar UI, Chores UI, Calendar Wiring, Chores Wiring, Shell Feature-Awareness, Integration & Polish)
+** Next:** Track 2 — Repo Swap (replace v1 with v2)
+**📊 Test Coverage:** 303 tests passing, 2 skipped
+
+### Recent Fixes (Phase 4.5 — Popup Positioning)
+
+**Problem:** Event and weather popups used inconsistent positioning logic. Weather popups used static `absolute top-full` (no mouse tracking). Event popups had jarring jumps when near screen edges.
+
+**Solution:**
+- Created `usePopupPosition` shared hook (`src/shared/hooks/usePopupPosition.ts`) — unified mouse-tracked positioning with smart edge detection
+- Refactored `useEventPopup` to use shared hook
+- Created `useWeatherPopup` hook for weather badges
+- Improved positioning logic: checks available space on all sides, chooses best position based on cursor location
+- Fixed DayView weather bar — added hover popup (was removed during refactor)
+- Fixed YearView today pill — increased size from `size-3.5` to `size-4` so text doesn't clip
+- All popups now use `fixed` positioning to escape parent containers
+
+**Quality gates:** ✅ All passing (290 tests, 0 lint errors, 0 type errors, build success)
+
 
 ## Tech Stack & Tools (Latest Stable)
 
@@ -142,7 +164,7 @@ Implementation must complete and pass all quality gates before the swap begins.
 
 #### Phase 0 Completion Summary
 
-**Status:** 🔄 Under Review
+**Status:** ✅ Signed Off
 
 **What was delivered:**
 - All domain types ported from v1 (`calendar.ts`, `chores.ts`, `family.ts`, `weather.ts`)
@@ -176,6 +198,17 @@ Implementation must complete and pass all quality gates before the swap begins.
 - TS 7 compatibility: Temporal API global declarations, indexed access with `noUncheckedIndexedAccess`
 - Test setup: Added Temporal polyfill global, `matchMedia` mock, `fetch` mock
 
+**Architecture Decision — Palette-Based Color System:**
+- **Problem:** Original `memberColors.ts` used hardcoded member names as keys (`'faiyaz'`, `'trisha'`, etc.), violating the principle that frontend should not know member identities
+- **Solution:** Redesigned to palette-based system with generic keys (`'blue'`, `'pink'`, `'green'`, etc.)
+- **Implementation:**
+  - `FamilyMember` type now includes `color_key: string` field from API
+  - `Attendee` type includes `color_key: string | null` for external guests
+  - `memberColors.ts` exports `PaletteKey` type and static lookup maps (`paletteBgClasses`, `paletteBorderClasses`, etc.)
+  - `buildMemberColorMap(members)` utility creates `Map<string, PaletteKey>` from member key → palette key
+  - `getMemberPaletteKey(memberKey, colorMap)` resolves member key to palette key with fallback to `'blue'`
+- **Benefits:** No hardcoded names, fully data-driven, backend controls color assignment, frontend only renders
+
 ---
 
 ### Phase 1 — Shell & Navigation
@@ -196,7 +229,7 @@ Implementation must complete and pass all quality gates before the swap begins.
 
 #### Phase 1 Completion Summary
 
-**Status:** 🔄 Under Review
+**Status:** ✅ Signed Off
 
 **What was delivered:**
 - `Header` component — date, clock, weather summary, family pills with event counts, density badge, view switcher, Today button, calendar icon
@@ -237,7 +270,7 @@ Implementation must complete and pass all quality gates before the swap begins.
 |------|------|--------|--------|
 | 2.1 | **Copy useViewNavigation from v1** — Port `src/shared/hooks/useViewNavigation.ts` to v2. Prev/next/today navigation. Shares selected-date state with header's date picker. | — | `src/shared/hooks/useViewNavigation.ts` + test |
 | 2.2 | **Day view** — Single column, time slots, event cards, scrollable. Sub-hour compact cards. | `calendar-day-view.html` | `src/features/calendar/views/DayView.tsx` + test |
-| 2.3 | **Week view** — 7-day grid, colored top borders per member (density heatmap), event cards, weather per day. Dynamic "+N more" overflow via `useEventOverflow` hook. | `calendar-week-view.html` | `src/features/calendar/views/WeekView.tsx`, `src/shared/hooks/useEventOverflow.ts` + tests |
+| 2.3 | **Week view** — 4×2 grid layout, colored top borders per member (density heatmap), event cards, weather per day. Events scroll within day cards (hidden scrollbar, respects card padding). Last card shows upcoming events for next week (same scrollable treatment). | `calendar-week-view.html` | `src/features/calendar/views/WeekView.tsx` + test |
 | 2.4 | **Month view** — Full grid, day cells with event dots/counts, density-colored week indicators. Fits viewport. | `calendar-month-view.html` | `src/features/calendar/views/MonthView.tsx` + test |
 | 2.5 | **Year view** — 12-month grid, day indicators, member-colored dots, weekly + monthly density heatmap. | `calendar-year-view.html` | `src/features/calendar/views/YearView.tsx` + test |
 | 2.6 | **Event popup** — Hover popup: title, time, location, description, recurrence, attendees (2-col grid). Content-sized height. No redundant labels. | `event-popup.html` | `src/features/calendar/components/EventPopup.tsx` + test |
@@ -250,12 +283,12 @@ Implementation must complete and pass all quality gates before the swap begins.
 
 #### Phase 2 Completion Summary
 
-**Status:** 🔄 Under Review
+**Status:** ✅ Signed Off
 
 **What was delivered:**
 - `useViewNavigation` hook — prev/next/today navigation, shared selected-date state
 - `DayView` — single column, time slots, event cards, scrollable, sub-hour compact cards
-- `WeekView` — 4×2 grid layout (not 7 columns), density-colored top borders, event cards, weather per day
+- `WeekView` — 4×2 grid layout, density-colored top borders, event cards, weather per day, scrollable events within day cards (hidden scrollbar)
 - `MonthView` — full grid, day cells with event dots/counts, density-colored week indicators
 - `YearView` — 12-month grid, day indicators, member-colored dots, weekly + monthly density heatmap
 - `EventPopup` — hover popup with title, time, location, description, recurrence, attendees (2-col grid)
@@ -280,6 +313,7 @@ Implementation must complete and pass all quality gates before the swap begins.
 **Key Decisions:**
 - **Static lookup maps for dynamic Tailwind classes** — Tailwind cannot detect `bg-${color}/10` at build time. Created `memberColors.ts` with static maps (`memberBgClasses`, `memberBgOpacityClasses`, `memberBorderClasses`, `memberTextClasses`, `memberRingClasses`). This is the canonical pattern — never use inline styles as a workaround.
 - **Week view 4×2 grid** — Changed from 7-column grid to match mockup. Density heatmap uses top borders with static lookup maps.
+- **Week view scrollable overflow (no "+N more")** — Events scroll within day cards using hidden scrollbar (`overflow-y-auto` + `scrollbar-hide` utility). No `useEventOverflow` hook needed — simpler approach that respects card padding and keeps all events accessible. Last card (row 2, col 4) shows upcoming events for next week with same scrollable treatment.
 - **Temporal locale strings require explicit calendar** — All `toLocaleString` calls use `'en-US-u-ca-iso8601'` (not `'en-US'`). The Temporal polyfill is strict about calendar matching. Without this, `RangeError: Mismatched calendars` crashes the component tree.
 - **Content area fills entire viewport** — Shell elements (header, sidebar, status bar) are absolute overlays. No gap between sidebar and content.
 
@@ -309,7 +343,7 @@ Implementation must complete and pass all quality gates before the swap begins.
 
 #### Phase 3 Completion Summary
 
-**Status:** 🔄 Under Review
+**Status:** ✅ Signed Off
 
 **What was delivered:**
 - `ChoresBoard` — metrics row (Pending, In Progress, Completed, Overdue, This Week) + member columns + open pool column
@@ -351,6 +385,82 @@ Implementation must complete and pass all quality gates before the swap begins.
 
 ---
 
+### Phase 3.5 — Test Coverage & Quality Hardening
+
+**Goal:** Close the test coverage gap. Phases 0-3 delivered 26 components/hooks with zero tests. This phase adds component tests for all deliverables that lack them.
+
+**Prerequisites:** Phases 0-3 signed off. All quality gates passing.
+
+**Test strategy:**
+- **Shared hooks** — `useApi`, `useTheme`, `useAutoHide` need tests (already have: `useUiScale`, `useSidebarState`, `useViewNavigation`)
+- **Shared components** — `ContentCard`, `NavArrows`, `Combobox`, `TagInput`, `DifficultySlider`, `SegmentedControl`
+- **Shell components** — `Header`, `Sidebar`, `StatusBar`, `ViewSwitcher`, `AppShell`
+- **Calendar views** — `DayView`, `WeekView`, `MonthView`, `YearView`
+- **Calendar components** — `EventPopup`, `DatePicker`
+- **Weather components** — `WeatherPopup`
+- **Chores views** — `ChoresBoard`, `ChoresView`
+- **Chores components** — `ChoreCreateModal`, `ChoreEditModal`, `ChoreCard`
+
+**Minimum per component:** Render test (mounts without crashing, verifies key elements present).
+
+**Nice to have:** Interaction tests for stateful components (modals, combobox, date picker).
+
+| Step | What | Output |
+|------|------|--------|
+| 3.5.1 | **Shared hooks tests** — `useApi`, `useTheme`, `useAutoHide` | 3 test files |
+| 3.5.2 | **Shared components tests** — `ContentCard`, `NavArrows`, `Combobox`, `TagInput`, `DifficultySlider`, `SegmentedControl` | 6 test files |
+| 3.5.3 | **Shell components tests** — `Header`, `Sidebar`, `StatusBar`, `ViewSwitcher`, `AppShell` | 5 test files |
+| 3.5.4 | **Calendar views tests** — `DayView`, `WeekView`, `MonthView`, `YearView` | 4 test files |
+| 3.5.5 | **Calendar components tests** — `EventPopup`, `DatePicker` | 2 test files |
+| 3.5.6 | **Weather components tests** — `WeatherPopup` | 1 test file |
+| 3.5.7 | **Chores views tests** — `ChoresBoard`, `ChoresView` | 2 test files |
+| 3.5.8 | **Chores components tests** — `ChoreCreateModal`, `ChoreEditModal`, `ChoreCard` | 3 test files |
+
+**Quality gate:** All previous gates pass. Test count increases from 94 to 200+ (estimated).
+
+**Status:** ✅ Complete
+
+#### Phase 3.5 Completion Summary
+
+**What was delivered:**
+- **26 new test files** covering all components and hooks from Phases 0-3
+- **273 tests passing** (up from 94), 2 skipped (HeadlessUI dropdown interactions)
+- **100% component coverage** — every component now has at least a render test
+- **Interaction tests** for stateful components (modals, combobox, date picker, navigation)
+
+**Test breakdown by category:**
+| Category | Test Files | Tests Added |
+|----------|-----------|-------------|
+| Shared hooks | 3 (useApi, useTheme, useAutoHide) | 25 tests |
+| Shared components | 6 (ContentCard, NavArrows, Combobox, TagInput, DifficultySlider, SegmentedControl) | 34 tests |
+| Shell components | 5 (Header, Sidebar, StatusBar, ViewSwitcher, AppShell) | 22 tests |
+| Calendar views | 4 (DayView, WeekView, MonthView, YearView) | 20 tests |
+| Calendar components | 2 (EventPopup, DatePicker) | 20 tests |
+| Weather components | 1 (WeatherPopup) | 15 tests |
+| Chores views | 2 (ChoresBoard, ChoresView) | 12 tests |
+| Chores components | 3 (ChoreCreateModal, ChoreEditModal, ChoreCard) | 25 tests |
+
+**Key improvements:**
+- Added `ResizeObserver` mock to test setup for HeadlessUI components
+- Fixed `useViewNavigation` test mock path (`@/shared/date` barrel export)
+- Used `getAllByText` for elements that appear multiple times (metrics, dates)
+- Proper TypeScript types for all test fixtures (FamilyMember, CalendarEvent, ChoreInstance)
+- Hidden scrollbar tests use DOM queries instead of role queries for icon buttons
+
+**Quality gates:** ✅ All passing
+- Lint: 0 errors (3 React Compiler warnings — acceptable)
+- Typecheck: 0 errors
+- Test: 273 passing, 2 skipped
+- Build: Success (399KB JS, 51KB CSS)
+
+**Issues resolved:**
+- `exactOptionalPropertyTypes` strict mode — removed `undefined` from optional fields in test fixtures
+- `noUncheckedIndexedAccess` — added null checks for array access in tests
+- HeadlessUI dropdown tests — skipped 2 tests that require complex interaction mocking
+- Weather icon type mismatch — used valid `WeatherCondition` values in test fixtures
+
+---
+
 ### Phase 4 — Calendar Feature Wiring
 
 **Goal:** Wire all calendar dynamic content — API data, navigation, popups, date picker. Verify everything works end-to-end for the calendar feature.
@@ -369,7 +479,44 @@ Implementation must complete and pass all quality gates before the swap begins.
 
 **Quality gate:** All previous gates pass. Calendar feature fully functional with live API data. All views render, navigation works, popups populate, date picker integrates.
 
-**Status:**  Pending
+**Status:** ✅ Complete
+
+#### Phase 4 Completion Summary
+
+**What was delivered:**
+- Live data wiring: Header shows current date, clock, weather, and per-member event counts
+- Event popup hover triggers added to DayView, WeekView, and MonthView
+- Weather popup hover trigger added to Header and DayView weather bar
+- DatePicker integrated with header calendar icon
+- StatusBar shows live refresh countdowns
+- Calendar integration smoke test with 13 test cases
+
+**Code quality refactor:**
+- Extracted shared `EventCard` component to `src/features/calendar/components/EventCard/` with size variants (sm/md/lg)
+- Created `useEventPopup` hook to centralize hover state management
+- Created `usePopupPosition` shared hook for unified mouse-tracked popup positioning
+- Created `useWeatherPopup` hook for weather badge popups
+- Refactored all calendar views to use shared components and hooks
+- Eliminated code duplication across DayView, WeekView, and MonthView
+
+**Popup positioning improvements:**
+- Unified positioning logic for all popups (event + weather)
+- Smart edge detection: checks available space on all sides before positioning
+- Horizontal: cursor in right half → popup goes left; left half → goes right
+- Vertical: cursor in bottom half → popup goes above; top half → goes below
+- All popups use `fixed` positioning to escape parent containers
+- No more jarring jumps when moving between events
+
+**Tokenization:**
+- Added CSS custom properties for shell dimensions: `--shell-header-height`, `--shell-status-bar-height`, `--shell-sidebar-expanded`, `--shell-sidebar-collapsed`
+- Updated Header, StatusBar, Sidebar, and AppShell to use CSS custom properties
+- Updated DayView timeline to use `layout.timelineHourHeight` token
+
+**Quality gates:** ✅ All passing
+- Lint: 0 errors (3 React Compiler warnings — acceptable)
+- Typecheck: 0 errors
+- Test: 290 passed, 2 skipped (292 total)
+- Build: Success (423KB JS, 51KB CSS)
 
 ---
 
@@ -389,7 +536,44 @@ Implementation must complete and pass all quality gates before the swap begins.
 
 **Quality gate:** All previous gates pass. Chores feature fully functional with live API data. Board renders, modals work, CRUD operations succeed.
 
-**Status:** ⏳ Pending
+**Status:** ✅ Complete
+
+#### Phase 5 Completion Summary
+
+**What was delivered:**
+- **Modal state lifted to AppShell** — Create/edit modal state moved from ChoresView to AppShell (lowest common ancestor of Sidebar and ChoresBoard). Modal state passed as props to ChoresView.
+- **Sidebar add-chore button wired** — Added `onAddChore` prop to Sidebar. Chores NavItem action icon (`+`) opens ChoreCreateModal. Uses spread operator for `exactOptionalPropertyTypes` compatibility.
+- **ChoresView refactored to receive props** — Modal state, callbacks, and data passed as props instead of managed internally.
+- **ChoresBoard refactored to receive props** — Data, loading states, and callbacks passed as props instead of calling `useChoresData()` directly.
+- **ChoreCreateModal fixed** — Uses `findFirstAdult()` from `src/shared/utils/family.ts` instead of hardcoded member names. Auto-selects newly created categories/tags.
+- **ChoreEditModal fixed** — Uses specific actions (`updateInstanceStatus`, `claimInstance`, `assignInstance`, `signoffInstance`) instead of non-existent `updateInstance`.
+- **Type fixes** — `FamilyMember` type updated with `email`, `date_of_birth`, `relation` fields. `MasterChore` and `ChoreInstance` types aligned with backend. Removed `UpdateInstanceRequest` (no matching endpoint).
+- **API fixes** — Removed `updateInstance()`, added `signoffInstance()`, fixed `updateInstanceStatus()` method (POST → PUT) with `isAdult` parameter.
+- **Shared utility created** — `src/shared/utils/family.ts` with `isAdult()` and `findFirstAdult()` functions (DOB-based, not hardcoded).
+- **Tests updated** — Added `useChoresData` mock to ChoresView tests. All 296 tests passing.
+
+**Quality gates:** ✅ All passing
+- Lint: 0 errors (8 warnings, pre-existing React Compiler warnings)
+- Typecheck: 0 errors
+- Test: 296 passed, 2 skipped (298 total)
+- Build: Success (424KB JS, 51KB CSS)
+
+**Issues resolved:**
+- **Hardcoded member names** — User flagged: "Why are you hardcoding member name 'Faiyaz', 'Trisha'?" Created `isAdult()`/`findFirstAdult()` utilities that check DOB ≥ 18 years. `FamilyMember` type now includes `date_of_birth` from backend API.
+- **Modal state not lifting** — Sidebar `+` button was purely decorative. Lifted modal state from ChoresView to AppShell (lowest common ancestor), added `onAddChore` prop to Sidebar, wired action button with proper event handling.
+- **TypeScript `exactOptionalPropertyTypes` error** — `onAction={onAddChore}` failed because `undefined` is not assignable to `() => void`. Fixed with spread operator: `{...(onAddChore ? { onAction: onAddChore } : {})}`.
+- **Test failures** — ChoresView tests showed "Loading chores..." because `useChoresData` wasn't mocked. Added `vi.mock` to ChoresView.test.tsx.
+- **Build error** — `UpdateInstanceRequest` removed from types but still exported from barrel. Removed from `src/types/index.ts`.
+
+**Backend gaps identified (not fixed in this phase):**
+- **P0:** No instance generation when master chore is created
+- **P0:** No recurring instance generation logic
+- **P1:** No expiration/rollover logic
+- **P1:** No overdue/missed status transitions
+- **P2:** Frontend/backend status enum mismatch
+- **P3:** `claimable_by` field missing
+
+**Decision:** Backend gaps documented in `dashy-api/docs/chores-backend-gaps.md`. Frontend wiring is complete and ready. Backend fixes will be tackled as a separate project after kiosk-v2 migration is complete. The frontend will work end-to-end once backend instance generation is implemented.
 
 ---
 
@@ -415,7 +599,23 @@ Implementation must complete and pass all quality gates before the swap begins.
 
 **Quality gate:** All previous gates pass. Shell components adapt to active feature. Mockups updated and approved.
 
-**Status:** ⏳ Pending
+**Status:** ✅ Complete
+
+#### Phase 6 Completion Summary
+
+**What was delivered:**
+- **Mockups updated** — `header.html` and `status-bar.html` annotated with feature-aware sections (Calendar vs Chores)
+- **Header feature-awareness** — CENTER shows event counts (calendar) or chore counts (chores); RIGHT shows view switcher/Today/date picker (calendar only) or empty (chores)
+- **StatusBar feature-awareness** — Center countdowns show for calendar only, hidden for chores
+- **Sidebar refresh wired** — Calendar `RefreshCw` icon now triggers `refetchCalendar()` via `onRefreshCalendar` prop
+- **AppShell integration** — Passes `activeFeature`, `members`, `events`, `choresData` to Header; `activeFeature` and refresh timestamps to StatusBar
+- **Tests** — Feature-awareness tests in `Header.test.tsx` and `StatusBar.test.tsx`; updated `integration.test.tsx` and `AppShell.test.tsx`
+
+**Quality gates:** ✅ All passing (303 tests, 0 lint errors, 0 type errors, build success)
+
+**Deferred items:**
+- Unused `cacheTtl` field in `ENDPOINTS` — no frontend caching layer reads it
+- No frontend request deduplication or SWR-style caching — backend Redis handles upstream protection
 
 ---
 
@@ -436,7 +636,17 @@ Implementation must complete and pass all quality gates before the swap begins.
 
 **Quality gate:** Full `make lint-kiosk-v2 && make typecheck-kiosk-v2 && make test-kiosk-v2 && make build-kiosk-v2` passes. Dev server at `dashy-v2.local` shows complete working app.
 
-**Status:** ⏳ Pending
+**Status:** ✅ Complete
+
+#### Phase 7 Completion Summary
+
+**What was delivered:**
+- **Cross-feature verification** — `useViewNavigation` state in AppShell shared across all 4 calendar views; auto-hide independent of active feature; `useTheme` applies `.dark` class uniformly
+- **End-to-end smoke test** — `App.test.tsx` expanded to 6 tests: render, header, sidebar, status bar, Calendar→Chores switch, Chores→Calendar switch
+- **Performance verified** — `useApi` split `isLoading`/`isRefreshing` prevents skeleton flashes; `useMemo` in ChoresBoard prevents unnecessary re-renders
+- **Final quality gate** — All 4 gates pass: 303 tests, 0 lint errors, 0 type errors, build success (421KB JS, 51KB CSS)
+
+**Quality gates:** ✅ All passing
 
 ---
 
@@ -484,6 +694,8 @@ If anything goes wrong after swap:
 | **Feature-scoped directories** — `src/features/calendar/`, `src/features/chores/`, `src/features/shell/` | Each feature owns its views, components, hooks, types, and tests. Shared logic goes in `src/shared/`. |
 | **No CSS Modules or styled-components** — Tailwind utility classes only | AGENTS.md rule. Mockup classes transfer directly to React. |
 | **useUiScale for all scaling** — CSS `zoom` at root | Uniform scaling. No responsive breakpoints for layout. Matches current Dashy behavior. |
+| **Week view scrollable overflow (no "+N more")** | Events scroll within day cards using hidden scrollbar. Simpler than calculating overflow, respects card padding, keeps all events accessible. Last card shows upcoming events for next week. |
+| **Palette-based color system** | No hardcoded member names in frontend. Backend assigns `color_key` to each `FamilyMember`, frontend resolves through static Tailwind lookup maps. Fully data-driven. |
 
 ---
 
@@ -496,7 +708,7 @@ src/
 │   ├── calendar/
 │   │   ├── views/       # DayView, WeekView, MonthView, YearView
 │   │   ├── components/  # EventPopup, DatePicker, ChoreCard (shared with chores)
-│   │   ├── hooks/       # useCalendarData, useEventOverflow
+│   │   ├── hooks/       # useCalendarData
 │   │   ├── api/         # Calendar API endpoints
 │   │   └── types.ts
 │   ├── chores/
@@ -549,3 +761,14 @@ src/
 - **Performance optimization** — Build correct first. Optimize only if profiling shows issues.
 - **Browser compatibility** — Target Chromium on Raspberry Pi (kiosk mode). No IE/Safari concerns.
 - **Rewriting business logic** — v1's domain types, utils, and hooks are copied as-is. Only UI components are built from scratch.
+
+---
+
+## Deferred Items (Post-v2 Migration)
+
+These were identified during implementation but deferred to avoid scope creep. They can be addressed after the v2 swap.
+
+| Item | Details | Priority |
+|------|---------|----------|
+| **Unused `cacheTtl` in `ENDPOINTS`** | The `cacheTtl` field exists in `EndpointConfig` (`src/shared/api/endpoints.ts`) but nothing reads it. Either remove the field or implement a client-side cache layer in `useApi`. Low priority — backend Redis already prevents upstream API hits. | Low |
+| **No frontend caching** | Every `refetchInterval` fires a fresh `fetch()` with no deduplication, no stale-while-revalidate, no request coalescing. Backend Redis cache (2min calendar, 10min weather) already handles the expensive part. Could add `AbortController` deduplication or SWR-style caching later if needed. | Low |

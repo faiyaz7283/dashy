@@ -13,14 +13,16 @@
  * - Content: fills entire viewport, shell elements overlay on top
  */
 
-import { useState } from 'react'
+import { useState, useCallback } from 'react'
 import { useUiScale } from '@/shared/hooks/useUiScale'
 import { useAutoHide } from '@/shared/hooks/useAutoHide'
 import { useSidebarState } from '@/shared/hooks/useSidebarState'
 import { useTheme } from '@/shared/hooks/useTheme'
 import { useViewNavigation } from '@/shared/hooks/useViewNavigation'
 import { useFamilyData } from '@/shared/hooks/useFamilyData'
-import { layout } from '@/theme/tokens'
+import { useCalendarData } from '@/features/calendar/hooks/useCalendarData'
+import { useWeatherData } from '@/features/weather/hooks/useWeatherData'
+import { useChoresData } from '@/features/chores/hooks/useChoresData'
 import { Header } from './Header'
 import { Sidebar, type Feature } from './Sidebar'
 import { StatusBar } from './StatusBar'
@@ -29,6 +31,8 @@ import { WeekView } from '@/features/calendar/views/WeekView'
 import { MonthView } from '@/features/calendar/views/MonthView'
 import { YearView } from '@/features/calendar/views/YearView'
 import { ChoresView } from '@/features/chores/views/ChoresView'
+import type { ChoreInstance } from '@/types'
+import type { CreateEntryPoint } from '@/features/chores/components/ChoreCreateModal'
 
 /**
  * Root application layout component.
@@ -43,8 +47,11 @@ export default function AppShell() {
   // UI scaling
   useUiScale()
 
-  // Family data
+  // Data hooks
   const { members } = useFamilyData()
+  const { events, lastRefresh: calendarLastRefresh, refetch: refetchCalendar } = useCalendarData()
+  const { lastRefresh: weatherLastRefresh } = useWeatherData()
+  const { data: choresData } = useChoresData()
 
   // Shell state
   const [activeFeature, setActiveFeature] = useState<Feature>('calendar')
@@ -52,15 +59,47 @@ export default function AppShell() {
   const { mode: themeMode, cycleMode: cycleTheme } = useTheme()
   const { currentView, setCurrentView, currentDate, navigatePrevious, navigateNext, navigateToday } = useViewNavigation()
 
+  // Chores modal state
+  const [showCreateModal, setShowCreateModal] = useState(false)
+  const [createEntryPoint, setCreateEntryPoint] = useState<CreateEntryPoint>({ type: 'sidebar' })
+  const [editingInstance, setEditingInstance] = useState<ChoreInstance | null>(null)
+
   // Auto-hide behavior
   const { isVisible: isHeaderVisible, elementRef: headerRef } = useAutoHide({ edge: 'top' })
   const { isVisible: isSidebarVisible, elementRef: sidebarRef } = useAutoHide({ edge: 'left' })
   const { isVisible: isStatusBarVisible, elementRef: statusBarRef } = useAutoHide({ edge: 'bottom' })
 
   // Feature navigation
-  const handleFeatureChange = (feature: Feature) => {
+  const handleFeatureChange = useCallback((feature: Feature) => {
     setActiveFeature(feature)
-  }
+  }, [])
+
+  // Chores modal handlers
+  const handleAddChore = useCallback((memberId?: string) => {
+    if (memberId) {
+      setCreateEntryPoint({ type: 'member', memberId })
+    } else {
+      setCreateEntryPoint({ type: 'open-pool' })
+    }
+    setShowCreateModal(true)
+  }, [])
+
+  const handleSidebarAddChore = useCallback(() => {
+    setCreateEntryPoint({ type: 'sidebar' })
+    setShowCreateModal(true)
+  }, [])
+
+  const handleCloseCreateModal = useCallback(() => {
+    setShowCreateModal(false)
+  }, [])
+
+  const handleChoreClick = useCallback((instance: ChoreInstance) => {
+    setEditingInstance(instance)
+  }, [])
+
+  const handleCloseEditModal = useCallback(() => {
+    setEditingInstance(null)
+  }, [])
 
   return (
     <div className="relative h-screen w-full overflow-hidden bg-bg font-sans text-text-primary">
@@ -71,7 +110,15 @@ export default function AppShell() {
           isHeaderVisible ? 'translate-y-0 opacity-100' : '-translate-y-full opacity-0 pointer-events-none'
         }`}
       >
-        <Header currentView={currentView} onViewChange={setCurrentView} onToday={navigateToday} />
+        <Header
+          activeFeature={activeFeature}
+          currentView={currentView}
+          onViewChange={setCurrentView}
+          onToday={navigateToday}
+          members={members}
+          events={events}
+          choresData={choresData}
+        />
       </div>
 
       {/* Sidebar with auto-hide — adjusts top/bottom to avoid header/status bar overlap */}
@@ -81,8 +128,8 @@ export default function AppShell() {
           isSidebarVisible ? 'translate-x-0 opacity-100' : '-translate-x-full opacity-0 pointer-events-none'
         }`}
         style={{
-          top: isHeaderVisible ? layout.headerHeight : 0,
-          bottom: isStatusBarVisible ? layout.statusBarHeight : 0,
+          top: isHeaderVisible ? 'var(--shell-header-height)' : 0,
+          bottom: isStatusBarVisible ? 'var(--shell-status-bar-height)' : 0,
         }}
       >
         <Sidebar
@@ -90,6 +137,8 @@ export default function AppShell() {
           onToggle={toggleSidebar}
           activeFeature={activeFeature}
           onFeatureChange={handleFeatureChange}
+          onRefreshCalendar={refetchCalendar}
+          onAddChore={handleSidebarAddChore}
         />
       </div>
 
@@ -100,7 +149,13 @@ export default function AppShell() {
           isStatusBarVisible ? 'translate-y-0 opacity-100' : 'translate-y-full opacity-0 pointer-events-none'
         }`}
       >
-        <StatusBar themeMode={themeMode} onThemeCycle={cycleTheme} />
+        <StatusBar
+          activeFeature={activeFeature}
+          themeMode={themeMode}
+          onThemeCycle={cycleTheme}
+          calendarLastRefresh={calendarLastRefresh}
+          weatherLastRefresh={weatherLastRefresh}
+        />
       </div>
 
       {/* Main content area — fills entire viewport, shell elements overlay on top */}
@@ -121,7 +176,18 @@ export default function AppShell() {
             )}
           </>
         )}
-        {activeFeature === 'chores' && <ChoresView members={members} />}
+        {activeFeature === 'chores' && (
+          <ChoresView
+            members={members}
+            showCreateModal={showCreateModal}
+            createEntryPoint={createEntryPoint}
+            editingInstance={editingInstance}
+            onCloseCreateModal={handleCloseCreateModal}
+            onCloseEditModal={handleCloseEditModal}
+            onAddChore={handleAddChore}
+            onChoreClick={handleChoreClick}
+          />
+        )}
       </main>
     </div>
   )

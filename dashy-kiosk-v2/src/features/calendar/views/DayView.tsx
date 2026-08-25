@@ -11,15 +11,28 @@
  * Follows the canonical event card pattern from day view.
  */
 
+import { useMemo } from 'react'
 import { useCalendarData } from '../hooks/useCalendarData'
+import { useWeatherData } from '@/features/weather/hooks/useWeatherData'
+import { useForecastMap } from '@/features/weather/hooks/useForecastMap'
+import { useWeatherPopup } from '@/features/weather/hooks/useWeatherPopup'
+import { useFamilyData } from '@/shared/hooks/useFamilyData'
 import { ContentCard } from '@/shared/components/ContentCard'
 import { NavArrows } from '@/shared/components/NavArrows'
+import { EventPopup } from '../components/EventPopup'
+import { EventCard } from '../components/EventCard'
+import { WeatherIcon } from '@/features/weather/components/WeatherIcon'
+import { WeatherPopup } from '@/features/weather/components/WeatherPopup'
+import { useEventPopup } from '../hooks/useEventPopup'
 import { getEventsForDate, getTimedEventsForDate, getAllDayEventsForDate } from '@/shared/utils/calendar'
-import { formatTime } from '@/shared/date/format'
+import { formatRelativeDay } from '@/shared/date/calendar'
 import { isTimedEvent } from '@/types/calendar'
 import { layout } from '@/theme/tokens'
-import { memberBgClasses, memberBgOpacityClasses, memberBgHoverClasses, getMemberInitial, type MemberColorKey } from '@/shared/utils/memberColors'
-import type { CalendarEvent, TimedCalendarEvent } from '@/types/calendar'
+import { buildMemberColorMap } from '@/shared/utils/memberColors'
+import type { TimedCalendarEvent } from '@/types/calendar'
+import type { FamilyMember } from '@/types/family'
+import type { PaletteKey } from '@/shared/utils/memberColors'
+import type { WeatherCondition } from '@/types/weather'
 
 /** Props for the DayView component. */
 export interface DayViewProps {
@@ -39,10 +52,20 @@ export interface DayViewProps {
  */
 export function DayView({ date, onPrevious, onNext }: DayViewProps) {
   const { events, isLoading } = useCalendarData()
+  const { forecast } = useWeatherData()
+  const { members } = useFamilyData()
+  const colorMap = useMemo(() => buildMemberColorMap(members), [members])
+  const { hoveredEvent, popupRef, EventPopupProvider } = useEventPopup()
+  const { popupRef: weatherPopupRef, handleMouseEnter: handleWeatherEnter, handleMouseMove: handleWeatherMove, handleMouseLeave: handleWeatherLeave } = useWeatherPopup()
+  const forecastByDate = useForecastMap(forecast)
 
-  const dayEvents = getEventsForDate(events, date)
-  const allDayEvents = getAllDayEventsForDate(dayEvents, date)
-  const timedEvents = getTimedEventsForDate(dayEvents, date)
+  const dayEvents = useMemo(() => getEventsForDate(events, date), [events, date])
+  const allDayEvents = useMemo(() => getAllDayEventsForDate(dayEvents, date), [dayEvents, date])
+  const timedEvents = useMemo(() => getTimedEventsForDate(dayEvents, date), [dayEvents, date])
+
+  const dayKey = date.toString()
+  const dayForecast = forecastByDate.get(dayKey)
+  const { dayLabel, dateLabel } = formatRelativeDay(date)
 
   if (isLoading) {
     return (
@@ -55,7 +78,7 @@ export function DayView({ date, onPrevious, onNext }: DayViewProps) {
   }
 
   return (
-    <>
+    <EventPopupProvider>
       <NavArrows
         onPrevious={onPrevious}
         onNext={onNext}
@@ -63,17 +86,35 @@ export function DayView({ date, onPrevious, onNext }: DayViewProps) {
         nextTitle="Next day"
       />
       <ContentCard>
-        {/* Weather bar (placeholder) */}
-        <div className="border-b border-border px-4 py-2">
-          <div className="flex items-center gap-3">
-            <div className="h-6 w-6 rounded-full bg-warning" />
-            <div className="flex items-baseline gap-2">
-              <span className="text-xl font-bold text-text-primary">83°</span>
-              <span className="text-sm text-text-muted">68°</span>
+        {/* Weather bar */}
+        {dayForecast && (
+          <>
+            <div
+              className="border-b border-border px-4 py-2 cursor-pointer"
+              onMouseEnter={handleWeatherEnter}
+              onMouseMove={handleWeatherMove}
+              onMouseLeave={handleWeatherLeave}
+            >
+              <div className="flex items-center gap-3">
+                <WeatherIcon condition={dayForecast.condition as WeatherCondition} size="md" className="text-warning" />
+                <div className="flex items-baseline gap-2">
+                  <span className="text-xl font-bold text-text-primary">{Math.round(dayForecast.high)}°</span>
+                  <span className="text-sm text-text-muted">{Math.round(dayForecast.low)}°</span>
+                </div>
+                <span className="text-sm text-text-muted">{dayForecast.condition}</span>
+              </div>
             </div>
-            <span className="text-sm text-text-muted">clear</span>
-          </div>
-        </div>
+
+            {/* Weather popup with fixed positioning */}
+            <div
+              ref={weatherPopupRef}
+              className="fixed z-50 opacity-0 transition-opacity duration-100"
+              style={{ left: -9999, top: -9999 }}
+            >
+              <WeatherPopup forecast={dayForecast} dateLabel={dayLabel} dateSublabel={dateLabel} />
+            </div>
+          </>
+        )}
 
         {/* All-day events */}
         {allDayEvents.length > 0 && (
@@ -83,7 +124,13 @@ export function DayView({ date, onPrevious, onNext }: DayViewProps) {
             </div>
             <div className="space-y-1">
               {allDayEvents.map((event) => (
-                <EventCard key={event.id} event={event} />
+                <EventCard
+                  key={event.id}
+                  event={event}
+                  colorMap={colorMap}
+                  members={members}
+                  size="lg"
+                />
               ))}
             </div>
           </div>
@@ -98,7 +145,7 @@ export function DayView({ date, onPrevious, onNext }: DayViewProps) {
                 <div
                   key={hour}
                   className="flex items-start justify-end border-b border-border pr-3 pt-2 text-xs text-text-muted"
-                  style={{ height: layout.timelineHourHeight }}
+                  style={{ height: `${layout.timelineHourHeight}px` }}
                 >
                   {hour === 0 ? '12 AM' : hour < 12 ? `${hour} AM` : hour === 12 ? '12 PM' : `${hour - 12} PM`}
                 </div>
@@ -111,53 +158,50 @@ export function DayView({ date, onPrevious, onNext }: DayViewProps) {
                 <div
                   key={hour}
                   className="border-b border-border bg-white hover:bg-bg-hover dark:bg-bg"
-                  style={{ height: layout.timelineHourHeight }}
+                  style={{ height: `${layout.timelineHourHeight}px` }}
                 />
               ))}
 
               {/* Timed events */}
               {timedEvents.filter(isTimedEvent).map((event) => (
-                <TimedEventBlock key={event.id} event={event} />
+                <TimedEventBlock
+                  key={event.id}
+                  event={event}
+                  colorMap={colorMap}
+                  members={members}
+                />
               ))}
             </div>
           </div>
         </div>
       </ContentCard>
-    </>
-  )
-}
 
-/**
- * Event card for all-day events.
- *
- * Follows the canonical pattern: colored left border, light background, member icon on right.
- */
-function EventCard({ event }: { event: CalendarEvent }) {
-  const memberColor = (event.members[0] ?? 'faiyaz') as MemberColorKey
-
-  return (
-    <div
-      className={`cursor-pointer rounded-md border-l-4 ${memberBgOpacityClasses[memberColor]} px-3 py-1.5 transition-colors ${memberBgHoverClasses[memberColor]}`}
-      style={{ borderLeftColor: `var(--dt-member-${memberColor})` }}
-    >
-      <div className="flex items-center justify-between">
-        <span className="text-sm font-medium text-text-primary">{event.title}</span>
-        <div
-          className={`flex h-5 w-5 items-center justify-center rounded-full ${memberBgClasses[memberColor]} text-[10px] font-bold leading-none text-white`}
-        >
-          {getMemberInitial(memberColor)}
-        </div>
+      {/* Event popup on hover — always mounted, positioned via DOM */}
+      <div
+        ref={popupRef}
+        className="pointer-events-none fixed z-50 opacity-0 transition-opacity duration-100"
+        style={{ left: -9999, top: -9999 }}
+      >
+        {hoveredEvent && <EventPopup event={hoveredEvent} />}
       </div>
-    </div>
+    </EventPopupProvider>
   )
 }
 
 /**
  * Timed event block positioned in the time grid.
  *
- * Calculates position based on start/end time and renders as an absolutely positioned card.
+ * Wraps the shared EventCard with absolute positioning based on start/end time.
  */
-function TimedEventBlock({ event }: { event: TimedCalendarEvent }) {
+function TimedEventBlock({
+  event,
+  colorMap,
+  members,
+}: {
+  event: TimedCalendarEvent
+  colorMap: Map<string, PaletteKey>
+  members: FamilyMember[]
+}) {
   const startHour = event.start.hour + event.start.minute / 60
   const endHour = event.end.hour + event.end.minute / 60
   const duration = endHour - startHour
@@ -165,30 +209,18 @@ function TimedEventBlock({ event }: { event: TimedCalendarEvent }) {
   const top = startHour * layout.timelineHourHeight
   const height = duration * layout.timelineHourHeight
 
-  const memberColor = (event.members[0] ?? 'faiyaz') as MemberColorKey
-
   return (
     <div
-      className={`absolute left-1 right-1 cursor-pointer rounded-md border-l-4 ${memberBgOpacityClasses[memberColor]} px-2 py-1 transition-colors ${memberBgHoverClasses[memberColor]}`}
-      style={{
-        top,
-        height,
-        borderLeftColor: `var(--dt-member-${memberColor})`,
-      }}
+      className="absolute left-1 right-1"
+      style={{ top, height }}
     >
-      <div className="flex h-full flex-col justify-between">
-        <div className="flex items-center justify-between">
-          <span className="text-xs font-medium text-text-primary truncate">{event.title}</span>
-          <div
-            className={`flex h-4 w-4 flex-shrink-0 items-center justify-center rounded-full ${memberBgClasses[memberColor]} ml-1 text-[8px] font-bold leading-none text-white`}
-          >
-            {getMemberInitial(memberColor)}
-          </div>
-        </div>
-        <div className="text-[10px] text-text-muted">
-          {formatTime(event.start.toPlainTime())} – {formatTime(event.end.toPlainTime())}
-        </div>
-      </div>
+      <EventCard
+        event={event}
+        colorMap={colorMap}
+        members={members}
+        size="md"
+        showTime={true}
+      />
     </div>
   )
 }

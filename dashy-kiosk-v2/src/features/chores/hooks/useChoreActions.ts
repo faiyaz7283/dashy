@@ -13,6 +13,7 @@ import {
   claimInstance,
   assignInstance,
   updateInstanceStatus,
+  signoffInstance,
   createCategory,
   createTag,
   approveMasterChore,
@@ -20,17 +21,21 @@ import {
 import type {
   MasterChore,
   ChoreInstance,
+  ChoreCategory,
+  ChoreTag,
   InstanceStatus,
+  CreateMasterChoreRequest,
+  UpdateMasterChoreRequest,
 } from '@/types/chores'
 
 /** Return type of useChoreActions. */
 export interface UseChoreActionsReturn {
   /** Create a new master chore template. */
-  createMaster: (data: Record<string, unknown>) => Promise<MasterChore>
+  createMaster: (data: CreateMasterChoreRequest) => Promise<MasterChore>
   /** Update an existing master chore template. */
   updateMaster: (
     choreId: string,
-    data: Record<string, unknown>,
+    data: UpdateMasterChoreRequest,
   ) => Promise<MasterChore>
   /** Soft-delete a master chore template. */
   deleteMaster: (choreId: string) => Promise<void>
@@ -47,11 +52,17 @@ export interface UseChoreActionsReturn {
     instanceId: string,
     status: InstanceStatus,
     actorId: string,
+    isAdult?: boolean,
+  ) => Promise<ChoreInstance>
+  /** Sign off on a kid-completed instance. */
+  signoffInstance: (
+    instanceId: string,
+    signoffMemberId: string,
   ) => Promise<ChoreInstance>
   /** Create a new chore category. */
-  createCategory: (name: string) => Promise<void>
+  createCategory: (name: string) => Promise<ChoreCategory>
   /** Create a new chore tag. */
-  createTag: (name: string) => Promise<void>
+  createTag: (name: string) => Promise<ChoreTag>
   /** Approve a pending master chore. */
   approveMaster: (choreId: string, approverId: string) => Promise<MasterChore>
 }
@@ -66,7 +77,7 @@ export function useChoreActions(
   refetch: () => void,
 ): UseChoreActionsReturn {
   const createMaster = useCallback(
-    async (data: Record<string, unknown>) => {
+    async (data: CreateMasterChoreRequest) => {
       const result = await createMasterChore(data)
       refetch()
       return result
@@ -75,7 +86,7 @@ export function useChoreActions(
   )
 
   const updateMaster = useCallback(
-    async (choreId: string, data: Record<string, unknown>) => {
+    async (choreId: string, data: UpdateMasterChoreRequest) => {
       const result = await updateMasterChore(choreId, data)
       refetch()
       return result
@@ -110,8 +121,27 @@ export function useChoreActions(
   )
 
   const updateInstanceStatusAction = useCallback(
-    async (instanceId: string, status: InstanceStatus, actorId: string) => {
-      const result = await updateInstanceStatus(instanceId, status, actorId)
+    async (
+      instanceId: string,
+      status: InstanceStatus,
+      actorId: string,
+      isAdult = true,
+    ) => {
+      const result = await updateInstanceStatus(
+        instanceId,
+        status,
+        actorId,
+        isAdult,
+      )
+      refetch()
+      return result
+    },
+    [refetch],
+  )
+
+  const signoffInstanceAction = useCallback(
+    async (instanceId: string, signoffMemberId: string) => {
+      const result = await signoffInstance(instanceId, signoffMemberId)
       refetch()
       return result
     },
@@ -120,16 +150,18 @@ export function useChoreActions(
 
   const createCategoryAction = useCallback(
     async (name: string) => {
-      await createCategory(name)
+      const result = await createCategory(name)
       refetch()
+      return result
     },
     [refetch],
   )
 
   const createTagAction = useCallback(
     async (name: string) => {
-      await createTag(name)
+      const result = await createTag(name)
       refetch()
+      return result
     },
     [refetch],
   )
@@ -150,6 +182,7 @@ export function useChoreActions(
     claimInstance: claimInstanceAction,
     assignInstance: assignInstanceAction,
     updateInstanceStatus: updateInstanceStatusAction,
+    signoffInstance: signoffInstanceAction,
     createCategory: createCategoryAction,
     createTag: createTagAction,
     approveMaster,
