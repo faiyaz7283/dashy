@@ -269,6 +269,16 @@ export function useCalendarData() {
 
 **Commit:** `feat: lift calendar data above view switcher with React Query context`
 
+**✅ Phase 3 Complete (2026-08-25):**
+- Created CalendarDataContext provider with React Query
+- Migrated useCalendarData hook to read from context instead of fetching
+- Wrapped calendar views with CalendarDataProvider in AppShell
+- Added tests for CalendarDataContext (4 tests)
+- Fixed vitest config deprecation warning (poolOptions → top-level options)
+- All quality gates passed (lint, typecheck, test, build)
+- Code review passed — no violations
+- **UX improvement:** Switching views no longer triggers refetch or shows skeleton. React Query caches by date range, so navigating back to a previously viewed range is instant.
+
 ---
 
 ### Phase 4: Migrate Chores
