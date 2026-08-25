@@ -34,9 +34,9 @@ Dashy is an **orchestrator repo** with git submodules:
 - `CALENDAR_USE_MOCK=true` — Use mock calendar data (API rate limit protection)
 - `CHORES_USE_MOCK=false` — Use real chores data from local database (no rate limit concerns)
 
-**After changing `.env.dev`, restart the API container** to pick up new values:
+**After changing `.env.dev`, restart the dev environment** to pick up new values:
 ```bash
-cd /Users/admin/dashy && docker compose -f compose/docker-compose.dev-v2.yml restart api
+cd /Users/admin/dashy && make dev-restart
 ```
 
 ## 2. Docker-first development (NON-NEGOTIABLE)
