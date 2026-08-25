@@ -54,6 +54,7 @@ services:
     volumes:
       - ../dashy-api:/app
       - api-data:/app/data
+      - /Users/admin/Downloads/dashy-504518-355c1ee5c25b.json:/app/credentials/dashy-504518-355c1ee5c25b.json:ro
     environment:
       - PYTHONUNBUFFERED=1
       - REDIS_URL=redis://redis:6379

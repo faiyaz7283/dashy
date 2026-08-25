@@ -1,14 +1,12 @@
 .PHONY: help \
         sync \
         dev-up dev-down dev-logs dev-shell dev-shell-kiosk dev-restart dev-build dev-rebuild \
-        dev-up-v2 dev-down-v2 dev-logs-v2 dev-shell-v2 dev-shell-kiosk-v2 dev-restart-v2 dev-build-v2 dev-rebuild-v2 \
         migrate migrate-status migrate-check migrate-rollback migrate-create \
-        test test-kiosk test-api test-kiosk-v2 \
-        lint lint-kiosk lint-api format format-kiosk format-api lint-kiosk-v2 format-kiosk-v2 \
-        typecheck typecheck-kiosk typecheck-kiosk-v2 \
-        build build-kiosk build-api build-kiosk-v2 \
+        test test-kiosk test-api \
+        lint lint-kiosk lint-api format format-kiosk format-api \
+        typecheck typecheck-kiosk \
+        build build-kiosk build-api \
         install-kiosk install-api add-kiosk add-kiosk-dev add-api remove-kiosk remove-kiosk-dev remove-api fix-kiosk-store \
-        install-kiosk-v2 add-kiosk-v2 add-kiosk-v2-dev remove-kiosk-v2 fix-kiosk-v2-store \
         deploy deploy-status deploy-logs deploy-down deploy-restart \
         submodule-update \
         clean setup
@@ -508,7 +506,6 @@ submodule-update:
 clean:
 	@echo " Cleaning all environments..."
 	@docker compose -f compose/docker-compose.dev.yml down -v --remove-orphans 2>/dev/null || true
-	@docker compose -f compose/docker-compose.dev-v2.yml down -v --remove-orphans 2>/dev/null || true
 	@echo "✅ Cleaned"
 
 # ==============================================================================
@@ -530,127 +527,4 @@ _check-traefik:
 	@echo "✅ Traefik is running"
 
 # ==============================================================================
-# V2 DEVELOPMENT ENVIRONMENT
-# ==============================================================================
-
-dev-up-v2: _check-traefik
-	@echo "🚀 Starting V2 DEVELOPMENT environment..."
-	@docker compose -f compose/docker-compose.dev-v2.yml up -d --build --remove-orphans
-	@echo ""
-	@echo "✅ V2 Development services started!"
-	@echo ""
-	@echo " Access (HTTPS via Traefik):"
-	@echo "   Kiosk v2: https://dashy-v2.local"
-	@echo "   API v2:   https://api.dashy-v2.local"
-	@echo "   API Docs: https://api.dashy-v2.local/docs"
-	@echo ""
-	@echo " Commands:"
-	@echo "   Logs:  make dev-logs-v2"
-	@echo "   Shell: make dev-shell-v2"
-
-dev-down-v2:
-	@echo "🛑 Stopping V2 DEVELOPMENT environment..."
-	@docker compose -f compose/docker-compose.dev-v2.yml down
-	@echo "✅ V2 Development stopped"
-
-dev-logs-v2:
-	@docker compose -f compose/docker-compose.dev-v2.yml logs -f
-
-dev-shell-v2:
-	@docker compose -f compose/docker-compose.dev-v2.yml exec api /bin/bash
-
-dev-shell-kiosk-v2:
-	@docker compose -f compose/docker-compose.dev-v2.yml exec kiosk-v2 /bin/sh
-
-dev-restart-v2: dev-down-v2 dev-up-v2
-
-dev-build-v2:
-	@echo " Building V2 DEVELOPMENT containers..."
-	@docker compose -f compose/docker-compose.dev-v2.yml build
-	@echo "✅ V2 Development containers built"
-
-dev-rebuild-v2:
-	@echo " Rebuilding V2 DEVELOPMENT containers (no cache)..."
-	@docker compose -f compose/docker-compose.dev-v2.yml build --no-cache
-	@docker compose -f compose/docker-compose.dev-v2.yml up -d --remove-orphans
-	@echo "✅ V2 Development containers rebuilt"
-
-# ==============================================================================
-# V2 TESTING
-# ==============================================================================
-
-test-kiosk-v2:
-	@echo "🧪 Running v2 kiosk tests..."
-	@docker compose -f compose/docker-compose.dev-v2.yml exec -T kiosk-v2 pnpm run test
-
-# ==============================================================================
-# V2 CODE QUALITY
-# ==============================================================================
-
-lint-kiosk-v2:
-	@echo "🔍 Linting v2 kiosk..."
-	@docker compose -f compose/docker-compose.dev-v2.yml exec -T kiosk-v2 pnpm run lint
-
-format-kiosk-v2:
-	@echo "✨ Formatting v2 kiosk..."
-	@docker compose -f compose/docker-compose.dev-v2.yml exec -T kiosk-v2 pnpm run format
-
-typecheck-kiosk-v2:
-	@echo " TypeScript type check (v2 kiosk)..."
-	@docker compose -f compose/docker-compose.dev-v2.yml exec -T kiosk-v2 pnpm run typecheck
-
-# ==============================================================================
-# V2 BUILD
-# ==============================================================================
-
-build-kiosk-v2:
-	@echo " Building v2 kiosk for production..."
-	@docker compose -f compose/docker-compose.dev-v2.yml exec -T kiosk-v2 pnpm run build
-	@echo "✅ V2 Kiosk built"
-
-# ==============================================================================
-# V2 PACKAGE MANAGEMENT
-# ==============================================================================
-
-install-kiosk-v2:
-	@echo "📦 Installing v2 kiosk dependencies..."
-	@docker compose -f compose/docker-compose.dev-v2.yml exec -T kiosk-v2 pnpm install
-	@echo "✅ V2 Kiosk dependencies installed"
-
-add-kiosk-v2:
-ifndef PACKAGE
-	$(error PACKAGE is required. Usage: make add-kiosk-v2 PACKAGE=<package-name>)
-endif
-	@echo " Adding $(PACKAGE) to v2 kiosk..."
-	@docker compose -f compose/docker-compose.dev-v2.yml exec -T kiosk-v2 pnpm add $(PACKAGE)
-	@echo "✅ Added $(PACKAGE) to v2 kiosk"
-
-add-kiosk-v2-dev:
-ifndef PACKAGE
-	$(error PACKAGE is required. Usage: make add-kiosk-v2-dev PACKAGE=<package-name>)
-endif
-	@echo " Adding $(PACKAGE) to v2 kiosk (dev)..."
-	@docker compose -f compose/docker-compose.dev-v2.yml exec -T kiosk-v2 pnpm add -D $(PACKAGE)
-	@echo "✅ Added $(PACKAGE) to v2 kiosk (dev)"
-
-remove-kiosk-v2:
-ifndef PACKAGE
-	$(error PACKAGE is required. Usage: make remove-kiosk-v2 PACKAGE=<package-name>)
-endif
-	@echo "🗑️  Removing $(PACKAGE) from v2 kiosk..."
-	@docker compose -f compose/docker-compose.dev-v2.yml exec -T kiosk-v2 pnpm remove $(PACKAGE)
-	@echo "✅ Removed $(PACKAGE) from v2 kiosk"
-
-fix-kiosk-v2-store:
-	@echo "🔧 Fixing v2 kiosk pnpm store mismatch..."
-	@docker compose -f compose/docker-compose.dev-v2.yml exec -T kiosk-v2 sh -c "rm -rf node_modules/.pnpm && pnpm install"
-	@echo "✅ V2 Kiosk pnpm store fixed"
-
-# ==============================================================================
-# V2 CLEAN
-# ==============================================================================
-
-clean-v2:
-	@echo " Cleaning V2 environment..."
-	@docker compose -f compose/docker-compose.dev-v2.yml down -v --remove-orphans 2>/dev/null || true
-	@echo "✅ V2 Cleaned"
+# End of Makefile
