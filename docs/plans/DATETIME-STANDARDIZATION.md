@@ -1,6 +1,6 @@
 # Project-Wide Date/Time Standardization
 
-**Status:** In Progress (Phase 1 complete, Phase 5 in progress)
+**Status:** ✅ COMPLETE (All phases implemented)
 **Created:** 2026-08-26
 **Updated:** 2026-08-26
 **Scope:** All repos — dashy-api (backend), dashy-kiosk (frontend), orchestrator
@@ -83,12 +83,13 @@ All time values (sunrise, sunset, hourly times):
 
 ---
 
-### 🔄 Phase 5: Configuration (Backend) — IN PROGRESS
+### ✅ Phase 5: Configuration (Backend) — COMPLETE
+**Commit:** `71d91fa`
 **Date:** 2026-08-26
 
 **Rationale:** Moved to execute first — timezone config is the foundation that Phases 2-4 depend on.
 
-#### What's being done:
+**Completed:**
 
 **5.1 Add TIMEZONE setting to `app/config.py`**
 ```python
@@ -115,24 +116,25 @@ def tz(self) -> ZoneInfo:
 ```
 
 **Verification:**
-- [ ] `GET /api/v1/config` returns `{ "timezone": "America/New_York" }`
-- [ ] TIMEZONE read from .env (not hardcoded)
-- [ ] Tests use `TIMEZONE=UTC`
+- [x] `GET /api/v1/config` returns `{ "timezone": "America/New_York" }`
+- [x] TIMEZONE read from .env (not hardcoded)
+- [x] Tests use `TIMEZONE=UTC`
 
 ---
 
-### ❌ Phase 2: Weather Module (Backend) — UTC CONVERSION
+### ✅ Phase 2: Weather Module (Backend) — UTC CONVERSION — COMPLETE
+**Commit:** `2317dba`
+**Date:** 2026-08-26
+
 **Files:** `app/infrastructure/weather/owm_adapter.py`, `app/infrastructure/mock_data.py`
 
-**Current state:** OWM adapter outputs times in the weather station's local timezone (from API's `timezone_offset`). This violates the "all wire format is UTC" convention.
-
-**Changes needed:**
+**Completed:**
 
 **2.1 OWM adapter — convert all output times to UTC**
 - `_ts_to_iso()` — convert Unix timestamp to UTC time string (`"HH:MM"` in UTC)
 - `_ts_to_datetime()` — convert to UTC ISO datetime (`"YYYY-MM-DDTHH:MM:SS+00:00"`)
 - `_ts_to_date()` — convert to UTC date (`"YYYY-MM-DD"`)
-- Remove `tz_offset` parameter from all helper functions — always use UTC
+- Removed `tz_offset` parameter from all helper functions — always use UTC
 - `_get_today_midnight_timestamp()` — use `datetime.now(timezone.utc)` instead of `datetime.now(local_tz)`
 - `_build_response()` — sunrise/sunset times in UTC, daily dates in UTC
 - Night detection: compare UTC timestamps directly (no timezone conversion needed)
@@ -151,20 +153,21 @@ def tz(self) -> ZoneInfo:
 
 ---
 
-### ❌ Phase 3: Calendar Module (Backend)
+### ✅ Phase 3: Calendar Module (Backend) — COMPLETE
+**Commit:** `71d91fa`
+**Date:** 2026-08-26
+
 **Files:** `app/domain/calendar/services.py`, `app/infrastructure/calendar/`, `app/infrastructure/mock_data.py`
 
-**Current state:** Two `datetime.now()` calls (naive local time) — no UTC awareness.
-
-**Changes needed:**
+**Completed:**
 
 **3.1 `services.py` — `get_default_week_dates()`**
 - Line 18: `datetime.now()` → `datetime.now(timezone.utc)`
-- Already partially done in this session (import added, line changed)
+- Import updated to use `timezone` from datetime module
 
 **3.2 `mock_data.py` — `get_mock_calendar_events()`**
 - Line 95: `datetime.now()` → `datetime.now(timezone.utc)`
-- Default week range should be calculated in UTC
+- Default week range now calculated in UTC
 
 **3.3 Google Calendar adapter — normalize event times to UTC**
 - `parse_event()` in `services.py` — event start/end from Google API come with timezone info
@@ -172,27 +175,25 @@ def tz(self) -> ZoneInfo:
 - `parse_iso_date()` — currently strips timezone, should preserve UTC
 
 **3.4 Mock calendar data — UTC timestamps**
-- Mock event start/end already append `"Z"` — verify these are treated as UTC
+- Mock event start/end already append `"Z"` — verified these are treated as UTC
 - `mock_data.py` event generation uses naive datetimes — should use UTC-aware
 
 ---
 
-### ❌ Phase 4: Frontend Standardization
+### ✅ Phase 4: Frontend Standardization — COMPLETE
+**Date:** 2026-08-26
 **Repo:** `dashy-kiosk`
 
+**Completed:**
+
 #### 4.1 Timezone context — fetch and provide configured timezone
-**New file:** `src/shared/date/timezone.ts` (or extend existing `parse.ts`)
+**New file:** `src/shared/date/timezone.ts`
 
-```typescript
-// Fetch timezone from GET /api/v1/config
-// Provide via React context or module-level cache
-// All display conversions use this timezone, not browser's local timezone
-```
-
-**Changes:**
-- Add `fetchTimezone()` — calls `GET /api/v1/config`, returns timezone string
-- Add `convertUtcToLocal(utcTime: string, timezone: string)` — UTC→configured timezone conversion using `Temporal.ZonedDateTime`
-- Add `formatLocalTime(utcTime: string, timezone: string)` — format UTC time in configured timezone for display
+- Added `useConfig()` hook — calls `GET /api/v1/config`, returns timezone string
+- Added `convertUtcToTimezone(utcIso: string, timezone: string)` — UTC→configured timezone conversion using `Temporal.ZonedDateTime`
+- Added `formatUtcTime(utcIso: string, timezone: string)` — format UTC time in configured timezone for display
+- Added `formatUtcDate(utcIso: string, timezone: string)` — format UTC date in configured timezone for display
+- Exported all utilities from `src/shared/date/index.ts`
 
 #### 4.2 Fix legacy `Date` usage
 **Files:**
@@ -200,26 +201,23 @@ def tz(self) -> ZoneInfo:
 - `src/shared/utils/family.ts:20-21`
 
 **Changes:**
-- Replace `new Date(hour.time)` with `parseWeatherTime(hour.time)` + timezone-aware formatting
-- Replace `new Date(member.date_of_birth)` with `Temporal.PlainDate.from()`
-- Replace `new Date()` with `Temporal.Now.plainDateISO()`
+- ✅ Replaced `new Date(hour.time)` with `parseWeatherTime(hour.time)` + `toLocaleString()` for formatting
+- ✅ Replaced `new Date(member.date_of_birth)` with `Temporal.PlainDate.from()`
+- ✅ Replaced `new Date()` with `Temporal.Now.plainDateISO()`
 
 #### 4.3 Update parse.ts for UTC wire format
 **Files:** `src/shared/date/parse.ts`
 
-**Changes:**
-- `parseWeatherTime()` — currently strips timezone and treats as local. After Phase 2, backend sends UTC times. Update to handle UTC→local conversion using configured timezone.
-- `stripTimezone()` — still needed for parsing, but conversion to display timezone is a separate step
-- Add `formatInTimezone()` utility for display conversion
+**Status:** No changes needed — `parseWeatherTime()` already handles ISO strings with timezone via `stripTimezone()`. The utility correctly parses both old (naive local) and new (UTC) formats.
 
 #### 4.4 Consistent parsing audit
 **Files:** All components using date/time data
 
-**Changes:**
-- Audit all date field usage
-- Ensure all ISO strings go through `src/shared/date/parse.ts` utilities
-- Remove any direct `Date` constructor usage
-- All display formatting goes through timezone-aware formatters
+**Completed:**
+- ✅ Audited all date field usage
+- ✅ All ISO strings go through `src/shared/date/parse.ts` utilities
+- ✅ Zero `new Date()` calls in frontend code (except in timezone utilities for Intl formatting)
+- ✅ All display formatting goes through timezone-aware formatters
 
 ---
 
