@@ -50,13 +50,13 @@ curl -sk https://api.dashy.local/api/v1/weather
 **Local Development** (`ENVIRONMENT=development`):
 - `WEATHER_USE_MOCK=true` → mock weather data
 - `CALENDAR_USE_MOCK=true` → mock calendar data
-- Database: SQLite at `/app/data/dashy.db` (dev volume, persists across restarts)
-- Test database: Separate `test.db` (used by `make test-api`, isolated from dev data)
+- Database: PostgreSQL on `postgres-data` volume (dev container, persists across restarts)
+- Test database: Separate `dashy_test` PostgreSQL database (used by `make test-api`, isolated from dev data)
 
 **Production** (`ENVIRONMENT=production`):
 - `WEATHER_USE_MOCK=false` → real OpenWeatherMap API
 - `CALENDAR_USE_MOCK=false` → real Google Calendar API
-- Database: SQLite at `/app/data/dashy.db` (prod volume, persistent)
+- Database: PostgreSQL on `postgres-data` volume (prod container, persistent)
 
 ### 4. Test Kiosk
 

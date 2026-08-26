@@ -9,7 +9,7 @@ Add a new infrastructure service (database, message queue, monitoring, etc.) to 
 
 ## When to use
 
-- Adding PostgreSQL (if migrating from SQLite)
+- Adding PostgreSQL (already present — use as reference for new databases)
 - Adding message queues (RabbitMQ, Redis Streams)
 - Adding monitoring tools (Prometheus, Grafana)
 - Adding any infrastructure dependency
@@ -259,27 +259,29 @@ All services are automatically started with `make dev-up`.
 
 ## Examples
 
-### PostgreSQL (migrating from SQLite)
+### PostgreSQL (already configured — reference)
+
+PostgreSQL 18 is already set up in both dev and prod compose files. Key configuration:
 
 ```yaml
 # compose/docker-compose.dev.yml
 services:
   postgres:
-    image: postgres:16-alpine
+    image: postgres:18-alpine
     container_name: dashy-dev-postgres
     expose:
       - "5432"
     volumes:
       - postgres-data:/var/lib/postgresql/data
     environment:
-      - POSTGRES_DB=dashy
-      - POSTGRES_USER=dashy
-      - POSTGRES_PASSWORD=dashy
+      - POSTGRES_DB=${POSTGRES_DB}
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
     networks:
       - dashy-dev-network
     restart: unless-stopped
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U dashy"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER}"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -288,11 +290,15 @@ volumes:
   postgres-data:
 ```
 
-API configuration:
+API configuration uses individual `POSTGRES_*` settings (not a single URL):
 
 ```python
-# app/config.py
-DATABASE_URL: str = "postgresql+asyncpg://dashy:dashy@postgres:5432/dashy"
+# app/config.py — constructs URL from individual settings
+POSTGRES_USER: str
+POSTGRES_PASSWORD: str
+POSTGRES_DB: str
+POSTGRES_HOST: str = "postgres"
+POSTGRES_PORT: int = 5432
 ```
 
 ### RabbitMQ (message queue)

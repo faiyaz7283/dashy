@@ -93,21 +93,21 @@ make clean
 
 | Volume | Path | Purpose | Survives rebuild? |
 |--------|------|---------|-------------------|
-| `api-data` | `/app/data` | SQLite database (`dashy.db`) | ✅ Yes |
+| `postgres-data` | `/var/lib/postgresql/data` | PostgreSQL database | ✅ Yes |
 | `redis-data` | `/data` | Redis cache | ✅ Yes |
 | Source code | `/app` | Bind mount from host | ✅ Yes (host files) |
 | `node_modules` | `/app/node_modules` | Kiosk dependencies | ✅ Yes (anonymous volume) |
 
 ### Database persistence
 
-The dev database lives on the `api-data` volume at `/app/data/dashy.db`. It persists across:
+The dev database lives on the `postgres-data` volume at `/var/lib/postgresql/data`. It persists across:
 - Container restarts (`make dev-restart`)
 - Image rebuilds (`make dev-build`, `make dev-rebuild`)
 - System reboots
 
 It is **deleted** by:
 - `make clean` (removes volumes)
-- Manual `docker volume rm dashy-dev-api-data`
+- Manual `docker volume rm dashy-dev-postgres-data`
 
 ### Viewing volume contents
 
@@ -116,20 +116,20 @@ It is **deleted** by:
 docker volume ls | grep dashy
 
 # Inspect volume mount point
-docker volume inspect dashy-dev-api-data
+docker volume inspect dashy-dev-postgres-data
 
 # Access volume contents (temporary container)
-docker run --rm -v dashy-dev-api-data:/data alpine ls -la /data
+docker run --rm -v dashy-dev-postgres-data:/data alpine ls -la /data
 ```
 
 ### Backing up the database
 
 ```bash
-# Copy database file from volume
-docker run --rm -v dashy-dev-api-data:/data -v $(pwd):/backup alpine cp /data/dashy.db /backup/dashy-backup.db
+# Copy database from volume (pg_dump)
+docker compose -f compose/docker-compose.dev.yml exec -T postgres pg_dump -U dashy dashy > backup.sql
 
 # Restore from backup
-docker run --rm -v dashy-dev-api-data:/data -v $(pwd):/backup alpine cp /backup/dashy-backup.db /data/dashy.db
+docker compose -f compose/docker-compose.dev.yml exec -T postgres psql -U dashy dashy < backup.sql
 ```
 
 ## Common Issues
@@ -213,10 +213,10 @@ make migrate-status
 make migrate-rollback
 make migrate
 
-# If that fails, check if tables exist from previous create_db_and_tables() call
-# Only as last resort: delete database
-# docker compose -f compose/docker-compose.dev.yml exec -T api rm /app/data/dashy.db
-# make dev-restart
+# If that fails, check PostgreSQL state
+# Only as last resort: recreate database volume
+# docker compose -f compose/docker-compose.dev.yml down -v
+# make dev-up
 ```
 
 **Why:** This happens when `create_db_and_tables()` was called (creates tables) but Alembic migrations weren't run (doesn't record in `alembic_version` table).
@@ -266,7 +266,7 @@ docker compose -f compose/docker-compose.dev.yml up -d
 - **Hot reload:** Vite dev server (kiosk), uvicorn --reload (API)
 - **Source mounts:** Code bind-mounted from host for live editing
 - **Mock data:** `WEATHER_USE_MOCK=true`, `CALENDAR_USE_MOCK=true`
-- **Database:** SQLite on Docker volume
+- **Database:** PostgreSQL on Docker volume
 - **Traefik:** Self-signed certificates, `dashy.local` domain
 - **Logging:** Verbose, development-friendly
 
@@ -275,7 +275,7 @@ docker compose -f compose/docker-compose.dev.yml up -d
 - **Static builds:** Vite build output (kiosk), uvicorn without --reload (API)
 - **No source mounts:** Code baked into images
 - **Real data:** `WEATHER_USE_MOCK=false`, `CALENDAR_USE_MOCK=false`
-- **Database:** SQLite on Docker volume (separate from dev)
+- **Database:** PostgreSQL on Docker volume (separate from dev)
 - **Traefik:** Real certificates (Let's Encrypt), production domain
 - **Logging:** Structured, production-ready
 
@@ -287,7 +287,7 @@ docker compose -f compose/docker-compose.dev.yml up -d
 | `WEATHER_USE_MOCK` | `true` | `false` |
 | `CALENDAR_USE_MOCK` | `true` | `false` |
 | `CHORES_USE_MOCK` | `true` | `false` |
-| `DATABASE_URL` | `sqlite+aiosqlite:////app/data/dashy.db` | Same path, different volume |
+| `POSTGRES_HOST` | `postgres` | `postgres` (separate volume) |
 
 ## docker compose exec Patterns
 

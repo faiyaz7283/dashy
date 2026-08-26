@@ -21,21 +21,18 @@ Dashy uses a three-tier testing strategy with strict isolation between environme
 
 **Critical rule:** Tests never use the development database.
 
-- **Dev database:** `/app/data/dashy.db` on Docker volume (persists across restarts)
-- **Test database:** `test.db` in container working directory (isolated, ephemeral)
+- **Dev database:** PostgreSQL `dashy` database on `postgres-data` Docker volume (persists across restarts)
+- **Test database:** PostgreSQL `dashy_test` database (isolated, cleaned between tests via savepoint rollback)
 
-The test database is configured in `tests/conftest.py`:
+The test database is configured via `POSTGRES_*` env vars in `.env.test`:
 
 ```python
-# Set test environment BEFORE importing app modules
-import os
-os.environ["ENVIRONMENT"] = "testing"
-os.environ["DATABASE_URL"] = "sqlite+aiosqlite:///./test.db"
-
-from app.config import Settings  # noqa: E402
+# conftest.py sets up test database connection
+# POSTGRES_DB=dashy_test in .env.test ensures tests use isolated database
+# Savepoint-based rollback cleans data between tests without dropping tables
 ```
 
-**Why this order matters:** If you import app modules before setting `DATABASE_URL`, the config is already loaded with the dev database path. Setting environment variables after imports has no effect.
+**Why isolation matters:** Tests connect to a separate `dashy_test` database so they never modify development data. Savepoint rollback ensures each test starts with a clean state.
 
 ### Environment isolation
 
@@ -301,30 +298,18 @@ def test_config_loads_correct_env():
     """Test configuration loads correct environment."""
     settings = Settings(_env_file=".env.test")
     assert settings.ENVIRONMENT == "testing"
-    assert settings.DATABASE_URL == "sqlite+aiosqlite:///./test.db"
+    assert settings.POSTGRES_DB == "dashy_test"
 ```
 
 ## Troubleshooting
 
 ### Tests are using dev database
 
-**Symptom:** Tests modify `/app/data/dashy.db` instead of `test.db`
+**Symptom:** Tests modify dev database instead of test database
 
-**Cause:** Environment variables set after imports in `conftest.py`
+**Cause:** `.env.test` not loaded or `POSTGRES_DB` not set to `dashy_test`
 
-**Fix:** Ensure `os.environ` is set BEFORE any app imports:
-
-```python
-# ✅ Correct
-import os
-os.environ["DATABASE_URL"] = "sqlite+aiosqlite:///./test.db"
-from app.config import Settings
-
-# ❌ Wrong
-from app.config import Settings
-import os
-os.environ["DATABASE_URL"] = "sqlite+aiosqlite:///./test.db"  # Too late!
-```
+**Fix:** Ensure `.env.test` is loaded by conftest.py and contains `POSTGRES_DB=dashy_test`. The test database is configured via environment variables, not hardcoded URLs.
 
 ### Tests are slow
 

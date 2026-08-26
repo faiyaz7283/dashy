@@ -103,10 +103,10 @@ Migrations run **automatically** on `make dev-up` via `entrypoint.sh` — no man
 
 ### Database architecture
 
-- SQLite database lives on Docker volume `api-data:/app/data/dashy.db`
-- Database files are **not** git-tracked (`.gitignore` excludes `*.db`)
-- Dev and production use separate databases on separate volumes
-- Tests use an isolated `test.db` (configured via `DATABASE_URL` in `conftest.py`)
+- PostgreSQL 18 service on Docker volume `postgres-data:/var/lib/postgresql/data`
+- Dev and production use separate PostgreSQL databases on separate volumes
+- Tests use an isolated `dashy_test` database (configured via `POSTGRES_*` env vars in `.env.test`)
+- Database connection uses `postgresql+asyncpg://` (async) and `postgresql+psycopg://` (Alembic migrations)
 
 ## Troubleshooting
 
