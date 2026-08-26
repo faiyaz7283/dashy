@@ -275,50 +275,50 @@ Each phase: implement → quality gate → commit → push.
 - [x] Chores module: Replace `datetime.utcnow()`
 - [x] Chores module: Convert TEXT → Date/DateTime columns
 - [x] Family module: Update DB model defaults
-- [ ] Config: Add `TIMEZONE` setting to `config.py`
-- [ ] Config: Add `GET /api/v1/config` endpoint
-- [ ] Config: Add `TIMEZONE` to all .env files
-- [ ] Weather: Convert all output times to UTC
-- [ ] Weather: Remove `tz_offset` from helper functions
-- [ ] Weather: Mock data — use UTC timestamps
-- [ ] Calendar: Fix `get_default_week_dates()` to use `datetime.now(timezone.utc)`
-- [ ] Calendar: Fix `mock_data.py` to use `datetime.now(timezone.utc)`
-- [ ] Calendar: Normalize Google Calendar event times to UTC
+- [x] Config: Add `TIMEZONE` setting to `config.py`
+- [x] Config: Add `GET /api/v1/config` endpoint
+- [x] Config: Add `TIMEZONE` to all .env files
+- [x] Weather: Convert all output times to UTC
+- [x] Weather: Remove `tz_offset` from helper functions
+- [x] Weather: Mock data — use UTC timestamps
+- [x] Calendar: Fix `get_default_week_dates()` to use `datetime.now(timezone.utc)`
+- [x] Calendar: Fix `mock_data.py` to use `datetime.now(timezone.utc)`
+- [x] Calendar: Normalize Google Calendar event times to UTC
 
 ### Frontend
-- [ ] Add timezone fetch from `GET /api/v1/config`
-- [ ] Add UTC→local conversion utilities
-- [ ] Fix `WeatherPopup.tsx` — replace `new Date()` with Temporal
-- [ ] Fix `family.ts` — replace `new Date()` with Temporal
-- [ ] Update `parse.ts` for UTC wire format
-- [ ] Audit all date field usage
+- [x] Add timezone fetch from `GET /api/v1/config`
+- [x] Add UTC→local conversion utilities
+- [x] Fix `WeatherPopup.tsx` — replace `new Date()` with Temporal
+- [x] Fix `family.ts` — replace `new Date()` with Temporal
+- [x] Update `parse.ts` for UTC wire format (no changes needed — already handles UTC)
+- [x] Audit all date field usage
 
 ### Tests
-- [ ] Config endpoint test
-- [ ] Timezone conversion tests (backend)
-- [ ] UTC→local conversion tests (frontend)
-- [ ] Wire format consistency tests
+- [x] Config endpoint test
+- [x] Timezone conversion tests (backend)
+- [x] UTC→local conversion tests (frontend)
+- [x] Wire format consistency tests
 
 ### Env files
-- [ ] `env/.env.dev` — add `TIMEZONE=America/New_York`
-- [ ] `env/.env.dev.example` — add `TIMEZONE=America/New_York`
-- [ ] `env/.env.test` — add `TIMEZONE=UTC`
-- [ ] `env/.env.test.example` — add `TIMEZONE=UTC`
+- [x] `env/.env.dev` — add `TIMEZONE=America/New_York`
+- [x] `env/.env.dev.example` — add `TIMEZONE=America/New_York`
+- [x] `env/.env.test` — add `TIMEZONE=UTC`
+- [x] `env/.env.test.example` — add `TIMEZONE=UTC`
 
 ---
 
 ## Success Criteria
 
 - [x] Zero `datetime.utcnow()` calls in backend (already achieved)
-- [ ] Zero `datetime.now()` (naive) calls in backend
-- [ ] Zero `new Date()` calls in frontend (except polyfill)
-- [ ] All API responses use consistent ISO 8601 in UTC
-- [ ] All database temporal fields use proper column types (enforced by PostgreSQL)
-- [ ] Timezone configurable via `.env` (`TIMEZONE` variable)
-- [ ] Frontend fetches timezone from `GET /api/v1/config`
-- [ ] Frontend converts all UTC times to configured timezone for display
-- [ ] All tests pass
-- [ ] No data loss during migration
+- [x] Zero `datetime.now()` (naive) calls in backend
+- [x] Zero `new Date()` calls in frontend (except polyfill)
+- [x] All API responses use consistent ISO 8601 in UTC
+- [x] All database temporal fields use proper column types (enforced by PostgreSQL)
+- [x] Timezone configurable via `.env` (`TIMEZONE` variable)
+- [x] Frontend fetches timezone from `GET /api/v1/config`
+- [x] Frontend converts all UTC times to configured timezone for display
+- [x] All tests pass
+- [x] No data loss during migration
 
 ---
 
