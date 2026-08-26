@@ -131,7 +131,7 @@ For any kiosk or API change:
 
 All four must pass before you tell the user the task is complete.
 
-**Test isolation:** API tests use a separate `test.db` database (not the dev `dashy.db`). This is configured via `DATABASE_URL` set before imports in `tests/conftest.py`. Tests never modify the development database.
+**Test isolation:** API tests use a separate PostgreSQL database (`dashy_test`) configured via `POSTGRES_*` env vars in `.env.test`. The `tests/conftest.py` sets up the test database and handles table cleanup between tests. Tests never modify the development database.
 
 ## 4. Git workflow
 
@@ -266,11 +266,11 @@ When a feature touches multiple repos (orchestrator + kiosk + api), use the **pl
 
 ## 10. Database & migrations
 
-Dashy uses SQLite with Alembic for schema migrations. The database architecture is designed for isolation and persistence.
+Dashy uses PostgreSQL with Alembic for schema migrations. The database architecture is designed for isolation and persistence.
 
 ### Migration automation
 
-- **`make dev-up`** runs `alembic upgrade head` automatically via `entrypoint.sh` — no manual step needed
+- **`make dev-up`** runs `alembic upgrade head` automatically via `entrypoint.sh` — the entrypoint waits for PostgreSQL readiness before running migrations
 - **`make sync`** also applies pending migrations if the dev environment is already running
 - Migrations are idempotent — running `make migrate` multiple times is safe
 
@@ -294,10 +294,10 @@ Dashy uses SQLite with Alembic for schema migrations. The database architecture 
 
 ### Database architecture
 
-- **Dev database:** SQLite at `/app/data/dashy.db` on Docker volume `api-data` (persists across restarts)
-- **Production database:** Separate SQLite file on Pi's Docker volume (persists independently)
-- **Test database:** Isolated `test.db` created by `tests/conftest.py` (never touches dev data)
-- **Not git-tracked:** `.gitignore` excludes `*.db` — database files never enter version control
+- **Dev database:** PostgreSQL via Docker service `postgres:18-alpine`, configured via `POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_DB` env vars. Data persists on `postgres-data` volume (not git-tracked)
+- **Production database:** Separate PostgreSQL database on Pi's Docker volume, configured via `POSTGRES_*` env vars in production `.env`
+- **Test database:** Tests use the same PostgreSQL instance but connect to a separate `dashy_test` database configured in `.env.test`
+- **Not git-tracked:** Database data lives on Docker volumes, never in version control
 
 ### uv run pattern
 

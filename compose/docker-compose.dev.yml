@@ -1,6 +1,27 @@
 name: dashy-dev
 
 services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:18-alpine
+    container_name: dashy-dev-postgres
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-dashy}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-dashy}
+      POSTGRES_DB: ${POSTGRES_DB:-dashy}
+    expose:
+      - "5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    networks:
+      - dashy-dev-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-dashy}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
   # Redis Cache
   redis:
     image: redis:7-alpine
@@ -53,14 +74,20 @@ services:
       - "8000"
     volumes:
       - ../dashy-api:/app
-      - api-data:/app/data
       - /Users/admin/Downloads/dashy-504518-355c1ee5c25b.json:/app/credentials/dashy-504518-355c1ee5c25b.json:ro
     environment:
       - PYTHONUNBUFFERED=1
       - REDIS_URL=redis://redis:6379
-      - DATABASE_URL=sqlite+aiosqlite:////app/data/dashy.db
+      - POSTGRES_USER=${POSTGRES_USER:-dashy}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-dashy}
+      - POSTGRES_DB=${POSTGRES_DB:-dashy}
+      - POSTGRES_HOST=postgres
+      - POSTGRES_PORT=5432
     depends_on:
-      - redis
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
     networks:
       - dashy-dev-network
       - traefik-public
@@ -81,4 +108,4 @@ networks:
 
 volumes:
   redis-data:
-  api-data:
+  postgres-data:

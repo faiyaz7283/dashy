@@ -21,7 +21,7 @@ A DIY family command center dashboard inspired by [Skylight Calendar](https://my
 - **Views:** Day, Week, Month, Year with navigation and auto-refresh
 - **Weather integration:** Current conditions and forecasts displayed across all views with 1:1 OWM condition icons (15 unique SVG icons with day/night variants), detailed hover tooltips with value-aware metric icons
 - **Header:** Auto-hiding (proximity-based), single row, responsive compaction tiers; no logo/hamburger
-- **Backend:** Domain-driven architecture with dependency injection, protocol-based adapters, Redis caching, SQLite persistence, structured logging, and API versioning (`/api/v1/`)
+- **Backend:** Domain-driven architecture with dependency injection, protocol-based adapters, Redis caching, PostgreSQL persistence, structured logging, and API versioning (`/api/v1/`)
 - **Frontend:** Unified event architecture — `EventItem` (card/strip/block) + `useEventInteraction` across all views; see `dashy-kiosk/src/docs/event-architecture-analysis.md`
 - **Event interactions:** Uniform across views — hover event = popup, click event = modal, click day = drill down (year view is navigation-only)
 - **Layout:** Fluid full-viewport — all views fill available width and height. On monitors wider than 1920 CSS px the whole UI scales up uniformly via CSS `zoom` on the app root (`useUiScale`); it never scales down, so 1080p-class displays keep a constant design-size text. Popups/modals portal to `body` and apply the same scale factor to their content only.
@@ -38,7 +38,7 @@ A DIY family command center dashboard inspired by [Skylight Calendar](https://my
 | **Calendar** | Google Calendar API (service account) | — |
 | **Weather** | OpenWeatherMap API (free tier) | One Call 4.0 |
 | **Cache** | Redis | 7 (Alpine) |
-| **Database** | SQLite + SQLModel + Alembic | For family member persistence |
+| **Database** | PostgreSQL + SQLModel + Alembic | For family member persistence |
 | **Logging** | structlog | Structured JSON logging |
 | **Reverse Proxy** | Traefik (shared infrastructure) | v3.7.10 |
 | **Containerization** | Docker + Docker Compose | Docker 29.7, Compose v5.4 |
@@ -257,9 +257,9 @@ The backend follows a domain-driven design with clean separation of concerns:
 ### Layer Structure
 
 - **`domain/`** — Pure business logic with zero framework dependencies. Contains value objects (Temperature, DateRange), protocols (WeatherProvider, CalendarProvider), and domain services.
-- **`infrastructure/`** — External integrations behind protocol interfaces. Adapters for OpenWeatherMap, Google Calendar, SQLite, and Redis. Each adapter is independently testable and swappable.
+- **`infrastructure/`** — External integrations behind protocol interfaces. Adapters for OpenWeatherMap, Google Calendar, PostgreSQL, and Redis. Each adapter is independently testable and swappable.
 - **`api/`** — HTTP layer with thin controllers. Routes use FastAPI dependency injection to receive providers and repositories.
-- **`core/`** — Cross-cutting concerns: configuration (pydantic-settings), DI container, structured logging (structlog), caching (Redis with fail-open design), database (SQLite + SQLModel + Alembic), and custom exceptions (RFC 9457 error responses).
+- **`core/`** — Cross-cutting concerns: configuration (pydantic-settings), DI container, structured logging (structlog), caching (Redis with fail-open design), database (PostgreSQL + SQLModel + Alembic), and custom exceptions (RFC 9457 error responses).
 - **`services/`** — Service orchestration layer that coordinates between domain logic and infrastructure adapters.
 
 ### Key Patterns
@@ -276,7 +276,7 @@ The backend follows a domain-driven design with clean separation of concerns:
 ```
 GET /api/v1/weather?units=imperial     → WeatherResponse (current + 19-day forecast)
 GET /api/v1/calendar?start_date=...&end_date=...  → WeekCalendar (events with deduplication)
-GET /api/v1/family                     → FamilyMember[] (from SQLite database)
+GET /api/v1/family                     → FamilyMember[] (from PostgreSQL database)
 GET /health                            → Health status with cache stats
 ```
 
@@ -614,7 +614,8 @@ This intelligent deployment command:
   - `FAMILY_MEMBERS` — JSON array of family member configs
   - `REDIS_URL` — Redis connection URL (default: `redis://redis:6379`)
   - `CORS_ORIGINS` — comma-separated list of allowed CORS origins
-  - `DATABASE_URL` — SQLite database URL (default: `sqlite+aiosqlite:///./dashy.db`)
+  - `POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_DB` — PostgreSQL connection
+  - `POSTGRES_HOST`, `POSTGRES_PORT` — PostgreSQL host/port (defaults: `postgres`, `5432`)
 - **Weather control:** `WEATHER_USE_MOCK=true` in development (all dev machines use mock data), `WEATHER_USE_MOCK=false` in production (Pi only, calls real API to stay within 1000 calls/day limit)
 
 ### MCP Servers

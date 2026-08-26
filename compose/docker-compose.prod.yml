@@ -23,6 +23,41 @@ services:
       - "traefik.http.routers.dashboard.entrypoints=websecure"
       - "traefik.http.routers.dashboard.tls=true"
 
+  # PostgreSQL Database
+  postgres:
+    image: postgres:18-alpine
+    container_name: dashy-prod-postgres
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    expose:
+      - "5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    networks:
+      - dashy-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    command: >
+      postgres
+        -c shared_buffers=128MB
+        -c work_mem=4MB
+        -c maintenance_work_mem=64MB
+        -c max_connections=20
+        -c wal_buffers=4MB
+        -c checkpoint_completion_target=0.9
+        -c log_min_duration_statement=1000
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: '1.0'
+
   # Redis Cache
   redis:
     image: redis:7-alpine
@@ -67,13 +102,19 @@ services:
     expose:
       - "8000"
     volumes:
-      - api-data:/app/data
       - /home/rpi4_main/dashy-504518-355c1ee5c25b.json:/app/credentials/dashy-504518-355c1ee5c25b.json:ro
     environment:
       - REDIS_URL=redis://redis:6379
-      - DATABASE_URL=sqlite+aiosqlite:////app/data/dashy.db
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_DB=${POSTGRES_DB}
+      - POSTGRES_HOST=postgres
+      - POSTGRES_PORT=5432
     depends_on:
-      - redis
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
     networks:
       - dashy-network
     labels:
@@ -90,4 +131,4 @@ networks:
 
 volumes:
   redis-data:
-  api-data:
+  postgres-data:
