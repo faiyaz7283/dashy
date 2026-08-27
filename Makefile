@@ -399,7 +399,7 @@ deploy:
 	@ssh $(PI_HOST) "cd $(PI_DIR) && git pull origin development && git submodule update --init --remote && docker compose -f compose/docker-compose.dev.yml up -d --build"
 
 deploy-status:
-	@ssh $(PI_HOST) "cd $(PI_DIR) && docker compose -f compose/docker-compose.prod.yml ps"
+	@ssh $(PI_HOST) "cd $(PI_DIR) && docker compose -f compose/docker-compose.prod.yml --env-file env/.env.prod ps"
 
 deploy-pi:
 	@echo "🚀 Deploying to Raspberry Pi (production)..."
@@ -438,31 +438,32 @@ fi; \
 	echo "⚙️  Configuring Chromium kiosk..."; \
 	ssh $(PI_HOST) "cp $(PI_DIR)/scripts/start-chromium-kiosk.sh ~/start-chromium-kiosk.sh && chmod +x ~/start-chromium-kiosk.sh"; \
 	ssh $(PI_HOST) "mkdir -p ~/.config/autostart && cp $(PI_DIR)/scripts/chromium-kiosk.desktop ~/.config/autostart/"; \
+	COMPOSE_CMD="docker compose -f compose/docker-compose.prod.yml --env-file env/.env.prod"; \
 	if [ "$$CHANGED" = "all" ]; then \
 		echo "🔄 Stopping all containers..."; \
-		ssh $(PI_HOST) "cd $(PI_DIR) && docker compose -f compose/docker-compose.prod.yml down"; \
+		ssh $(PI_HOST) "cd $(PI_DIR) && $$COMPOSE_CMD down"; \
 		echo "🔨 Building kiosk..."; \
-		ssh $(PI_HOST) "cd $(PI_DIR) && docker compose -f compose/docker-compose.prod.yml build --no-cache kiosk"; \
+		ssh $(PI_HOST) "cd $(PI_DIR) && $$COMPOSE_CMD build --no-cache kiosk"; \
 		echo "🔨 Building API..."; \
-		ssh $(PI_HOST) "cd $(PI_DIR) && docker compose -f compose/docker-compose.prod.yml build api"; \
+		ssh $(PI_HOST) "cd $(PI_DIR) && $$COMPOSE_CMD build api"; \
 		echo "🚀 Starting all containers..."; \
-		ssh $(PI_HOST) "cd $(PI_DIR) && docker compose -f compose/docker-compose.prod.yml up -d"; \
+		ssh $(PI_HOST) "cd $(PI_DIR) && $$COMPOSE_CMD up -d"; \
 		echo "🔄 Restarting Chromium kiosk..."; \
 		ssh $(PI_HOST) "pkill -9 chromium; sleep 2; sudo systemctl restart lightdm"; \
 	else \
 		if [ -n "$$KIOSK_CHANGED" ]; then \
 			echo "🔨 Rebuilding kiosk..."; \
-			ssh $(PI_HOST) "cd $(PI_DIR) && docker compose -f compose/docker-compose.prod.yml build --no-cache kiosk"; \
+			ssh $(PI_HOST) "cd $(PI_DIR) && $$COMPOSE_CMD build --no-cache kiosk"; \
 			echo "🚀 Restarting kiosk..."; \
-			ssh $(PI_HOST) "cd $(PI_DIR) && docker compose -f compose/docker-compose.prod.yml up -d kiosk"; \
+			ssh $(PI_HOST) "cd $(PI_DIR) && $$COMPOSE_CMD up -d kiosk"; \
 			echo "🔄 Restarting Chromium kiosk..."; \
 			ssh $(PI_HOST) "pkill -9 chromium; sleep 2; sudo systemctl restart lightdm"; \
 		fi; \
 		if [ -n "$$API_CHANGED" ]; then \
 			echo "🔨 Rebuilding API..."; \
-			ssh $(PI_HOST) "cd $(PI_DIR) && docker compose -f compose/docker-compose.prod.yml build api"; \
+			ssh $(PI_HOST) "cd $(PI_DIR) && $$COMPOSE_CMD build api"; \
 			echo "🚀 Restarting API..."; \
-			ssh $(PI_HOST) "cd $(PI_DIR) && docker compose -f compose/docker-compose.prod.yml up -d api"; \
+			ssh $(PI_HOST) "cd $(PI_DIR) && $$COMPOSE_CMD up -d api"; \
 		fi; \
 	fi; \
 	echo "🔍 Verifying deployment..."; \
@@ -482,13 +483,13 @@ fi; \
 	@echo "   Traefik: https://traefik.local:8080"
 
 deploy-logs:
-	@ssh $(PI_HOST) "cd $(PI_DIR) && docker compose -f compose/docker-compose.prod.yml logs -f"
+	@ssh $(PI_HOST) "cd $(PI_DIR) && docker compose -f compose/docker-compose.prod.yml --env-file env/.env.prod logs -f"
 
 deploy-down:
-	@ssh $(PI_HOST) "cd $(PI_DIR) && docker compose -f compose/docker-compose.prod.yml down"
+	@ssh $(PI_HOST) "cd $(PI_DIR) && docker compose -f compose/docker-compose.prod.yml --env-file env/.env.prod down"
 
 deploy-restart:
-	@ssh $(PI_HOST) "cd $(PI_DIR) && docker compose -f compose/docker-compose.prod.yml restart"
+	@ssh $(PI_HOST) "cd $(PI_DIR) && docker compose -f compose/docker-compose.prod.yml --env-file env/.env.prod restart"
 
 # ==============================================================================
 # SUBMODULES
