@@ -2,6 +2,7 @@
         sync \
         dev-up dev-down dev-logs dev-shell dev-shell-kiosk dev-restart dev-build dev-rebuild \
         migrate migrate-status migrate-check migrate-rollback migrate-create \
+        db-status db-clean-chores db-clean-categories db-clean-tags db-clean-full db-reset \
         test test-kiosk test-api \
         lint lint-kiosk lint-api format format-kiosk format-api \
         typecheck typecheck-kiosk \
@@ -42,12 +43,20 @@ help:
 	@echo "  make dev-build           - Build development containers"
 	@echo "  make dev-rebuild         - Rebuild containers (no cache)"
 	@echo ""
-	@echo "🗄️  Database Migrations:"
+	@echo "️  Database Migrations:"
 	@echo "  make migrate             - Run pending migrations (also runs on dev-up)"
 	@echo "  make migrate-status      - Show current migration state"
 	@echo "  make migrate-check       - Check if models are in sync with migrations"
 	@echo "  make migrate-rollback    - Rollback last migration"
 	@echo "  make migrate-create MESSAGE=<msg> - Generate new migration from model changes"
+	@echo ""
+	@echo "🧹 Database Cleanup (dev only — refuses production DBs):"
+	@echo "  make db-status           - Show row counts for all tables"
+	@echo "  make db-clean-chores     - Truncate all chore tables (keep family/categories/tags)"
+	@echo "  make db-clean-categories - Truncate chore categories"
+	@echo "  make db-clean-tags       - Truncate chore tags"
+	@echo "  make db-clean-full CONFIRM=1 - Truncate ALL tables (fresh start)"
+	@echo "  make db-reset CONFIRM=1  - Drop & recreate database via migrations"
 	@echo ""
 	@echo "🧪 Testing:"
 	@echo "  make test                - Run all tests"
@@ -231,6 +240,54 @@ endif
 	@echo "⚠️  Review the generated migration file before committing!"
 
 # ==============================================================================
+# DATABASE CLEANUP (dev only)
+# ==============================================================================
+# All destructive targets require CONFIRM=1 to prevent accidental data loss.
+# The Python script also refuses to run against production database names.
+
+_db_cleanup:
+	@docker compose -f compose/docker-compose.dev.yml exec -T api uv run python /app/scripts/db_cleanup.py $(SCOPE)
+
+db-status:
+	@echo "📊 Database row counts..."
+	@$(MAKE) _db_cleanup SCOPE=status
+
+db-clean-chores:
+	@echo "🧹 Cleaning all chore data (keeping family, categories, tags)..."
+	@$(MAKE) _db_cleanup SCOPE=chores
+
+db-clean-categories:
+	@echo "🧹 Cleaning chore categories..."
+	@$(MAKE) _db_cleanup SCOPE=categories
+
+db-clean-tags:
+	@echo "🧹 Cleaning chore tags..."
+	@$(MAKE) _db_cleanup SCOPE=tags
+
+db-clean-full:
+ifndef CONFIRM
+	$(error This will TRUNCATE ALL TABLES. Add CONFIRM=1 to proceed: make db-clean-full CONFIRM=1)
+endif
+	@echo "⚠️  Truncating ALL tables — complete fresh start..."
+	@$(MAKE) _db_cleanup SCOPE=full
+
+db-reset:
+ifndef CONFIRM
+	$(error This will DROP and RECREATE the database. Add CONFIRM=1 to proceed: make db-reset CONFIRM=1)
+endif
+	@echo "⚠️  Dropping and recreating database..."
+	@docker compose -f compose/docker-compose.dev.yml exec -T api uv run python -c "\
+import os, psycopg; \
+conn = psycopg.connect(host=os.environ['POSTGRES_HOST'], port=int(os.environ.get('POSTGRES_PORT','5432')), user=os.environ['POSTGRES_USER'], password=os.environ['POSTGRES_PASSWORD'], dbname='postgres', autocommit=True); \
+conn.execute('DROP DATABASE IF EXISTS ' + os.environ['POSTGRES_DB']); \
+conn.execute('CREATE DATABASE ' + os.environ['POSTGRES_DB']); \
+conn.close(); \
+print('Database dropped and recreated.')"
+	@echo "🗄️  Running migrations on fresh database..."
+	@docker compose -f compose/docker-compose.dev.yml exec -T api uv run alembic upgrade head
+	@echo "✅ Database reset complete"
+
+# ==============================================================================
 # TESTING
 # ==============================================================================
 
@@ -244,8 +301,8 @@ test-kiosk:
 	@docker compose -f compose/docker-compose.dev.yml exec -T kiosk pnpm run test
 
 test-api:
-	@echo "🧪 Running API tests..."
-	@docker compose -f compose/docker-compose.dev.yml exec -T api uv run pytest tests/ -v
+	@echo " Running API tests (isolated test database)..."
+	@docker compose -f compose/docker-compose.dev.yml exec -T -e POSTGRES_DB=dashy_test -e POSTGRES_USER=dashy_test -e POSTGRES_PASSWORD=test_password api uv run pytest tests/ -v
 
 # ==============================================================================
 # CODE QUALITY
