@@ -1,8 +1,9 @@
 # Chores Feature — Regression Test Suite
 
 **Date:** 2026-08-28
-**Scope:** Chores module (Phases 1-7 complete)
-**Status:** Draft — ready for automation
+**Updated:** 2026-08-29 (Bug fixes applied — Bugs #1-13 resolved)
+**Scope:** Chores module (Phases 1-7 complete + bug fixes)
+**Status:** Draft — ready for Playwright automation
 **Linked:** [Bug Report](CHORES-BUG-REPORT.md)
 
 ---
@@ -10,11 +11,30 @@
 ## 1. Overview
 
 This document defines the complete regression test suite for the Chores feature. It covers:
-- All 13 bugs found during manual testing (Phases 1-7)
+- All 13 bugs found during manual testing (Phases 1-7) — **all fixed as of 2026-08-29**
 - Additional edge cases and scenarios identified during inspection
 - End-to-end user flows across the full chore lifecycle
+- New features: Associations tab in edit modal, two-step delete confirmation, open pool metrics
 
-### 1.1 Recommended Tooling: Playwright
+### 1.1 Bug Fix Status
+
+| Bug ID | Title | Status | Fixed Date |
+|--------|-------|--------|------------|
+| #1 | Board not updating after actions | ✅ Fixed | 2026-08-28 |
+| #2 | Delete instance | ✅ Fixed | 2026-08-29 |
+| #3 | Undo start/complete | ✅ Fixed | 2026-08-29 |
+| #4 | Collaborative double-assignment | ✅ Fixed | 2026-08-28 |
+| #5 | Non-collaborative allows 2 associations | ✅ Fixed | 2026-08-28 |
+| #6 | Open pool metrics | ✅ Fixed | 2026-08-29 |
+| #7 | Archive safety (active instances) | ✅ Fixed | 2026-08-29 |
+| #8 | Permanent delete | ✅ Fixed | 2026-08-29 |
+| #9 | Timezone conversion | ✅ Fixed | 2026-08-28 |
+| #10 | expiration_behavior "disappear" | ✅ Fixed | 2026-08-28 |
+| #11 | stay_visible behavior | ✅ Verified (not a bug) | 2026-08-29 |
+| #12 | max_occurrences enforcement | ✅ Fixed | 2026-08-28 |
+| #13 | carry_over removal | ✅ Fixed | 2026-08-29 |
+
+### 1.2 Recommended Tooling: Playwright
 
 **Why Playwright over Selenium:**
 - Native TypeScript support (matches our stack)
@@ -28,7 +48,7 @@ This document defines the complete regression test suite for the Chores feature.
 
 **Alternative considered:** Cypress — more opinionated, single-browser focus, less flexible for our Docker-based dev environment.
 
-### 1.2 Test Environment
+### 1.3 Test Environment
 
 | Component | Setup |
 |-----------|-------|
@@ -37,7 +57,7 @@ This document defines the complete regression test suite for the Chores feature.
 | Test DB | Separate `dashy_test` database (configured via `.env.test`) |
 | Cleanup | `make db-clean-chores` before each test run (or per-suite setup) |
 
-### 1.3 Test Structure
+### 1.4 Test Structure
 
 ```
 dashy-kiosk/
@@ -73,6 +93,8 @@ dashy-kiosk/
 | **Type** | Functional, UI, Integration, Edge Case |
 | **Bug** | Links to bug report ID (if applicable) |
 
+**Total test cases:** 75+ (67 original + 8 new for bug fixes and associations tab)
+
 ---
 
 ### 2.1 Master Chore CRUD
@@ -97,8 +119,6 @@ dashy-kiosk/
 - Success toast appears
 - New chore appears on board with correct data
 - Board updates without manual refresh
-
-**Linked Bug:** #1 (board refresh)
 
 ---
 
@@ -154,8 +174,6 @@ dashy-kiosk/
 - Changes saved
 - Board reflects updated data
 - No manual refresh needed
-
-**Linked Bug:** #1 (board refresh)
 
 ---
 
@@ -235,6 +253,128 @@ dashy-kiosk/
 
 ---
 
+#### TC-009: Edit Modal — Associations Tab
+
+**Priority:** P1 | **Type:** Functional
+
+**Preconditions:**
+- Master chore exists with at least one association
+
+**Steps:**
+1. Open "Manage Current" → Edit
+2. Check for tab bar at top of modal
+3. Click "Associations" tab
+4. View current associations list
+
+**Expected:**
+- Tab bar visible with "Template" and "Associations" tabs
+- Associations tab shows count badge
+- Current associations listed with member names
+- Each association has remove button
+
+---
+
+#### TC-009b: Associations Tab — Add Member
+
+**Priority:** P1 | **Type:** Functional
+
+**Preconditions:**
+- Edit modal open on Associations tab
+- Master chore has available members not yet assigned
+
+**Steps:**
+1. Click "Add Member" button
+2. Select a member from dropdown
+3. Verify association created
+
+**Expected:**
+- Member added to associations list
+- Success toast appears
+- Board updates with new instance
+
+---
+
+#### TC-009c: Associations Tab — Reassign Member
+
+**Priority:** P1 | **Type:** Functional
+
+**Preconditions:**
+- Edit modal open on Associations tab
+- Master chore has at least one member association
+- At least one other member available
+
+**Steps:**
+1. Find member association in list
+2. Use "Reassign to..." dropdown
+3. Select different member
+
+**Expected:**
+- Old association removed
+- New association created with selected member
+- Success toast appears
+- Board updates
+
+---
+
+#### TC-009d: Associations Tab — Send to Open Pool
+
+**Priority:** P1 | **Type:** Functional
+
+**Preconditions:**
+- Edit modal open on Associations tab
+- Master chore has member association
+- No open pool association exists
+
+**Steps:**
+1. Find member association in list
+2. Click "Send to open pool" button (Users icon)
+
+**Expected:**
+- Member association removed
+- Open pool association created
+- Success toast appears
+- Board updates
+
+---
+
+#### TC-009e: Associations Tab — Add to Open Pool
+
+**Priority:** P1 | **Type:** Functional
+
+**Preconditions:**
+- Edit modal open on Associations tab
+- No open pool association exists
+
+**Steps:**
+1. Scroll to bottom of associations list
+2. Click "Add to Open Pool" button
+
+**Expected:**
+- Open pool association created
+- Success toast appears
+- Board updates
+
+---
+
+#### TC-009f: Associations Tab — Remove Association
+
+**Priority:** P1 | **Type:** Functional
+
+**Preconditions:**
+- Edit modal open on Associations tab
+- Master chore has at least one association
+
+**Steps:**
+1. Find association in list
+2. Click trash/delete button
+
+**Expected:**
+- Association removed
+- Success toast appears
+- Board updates (instance removed)
+
+---
+
 ### 2.2 Associations & Open Pool
 
 #### TC-010: Associate Chore to Member via Member Column
@@ -253,8 +393,6 @@ dashy-kiosk/
 **Expected:**
 - Instance appears in member's column
 - Board updates immediately
-
-**Linked Bug:** #1 (board refresh)
 
 ---
 
@@ -336,8 +474,6 @@ dashy-kiosk/
 - Instance moves from open pool to member's column
 - Board updates immediately
 
-**Linked Bug:** #1 (board refresh)
-
 ---
 
 #### TC-015: Open Pool — Assign Instance to Member
@@ -395,8 +531,6 @@ dashy-kiosk/
 - `started_at` timestamp set
 - Board updates immediately
 
-**Linked Bug:** #1 (board refresh)
-
 ---
 
 #### TC-021: Complete Instance
@@ -418,60 +552,92 @@ dashy-kiosk/
 
 ---
 
-#### TC-022: Undo Start/Complete (If Implemented)
+#### TC-022: Undo Complete — Revert to In-Progress
 
-**Priority:** P2 | **Type:** Functional | **Bug:** #3
+**Priority:** P2 | **Type:** Functional
 
 **Preconditions:**
 - Instance in `completed` status
 
 **Steps:**
-1. Click instance card
-2. Look for "Undo" or status revert option
+1. View completed instance card on board
+2. Click "Undo Complete" button
 
 **Expected:**
-- Option to revert: completed → in_progress → active
-- OR: 5-second undo toast after action
-
-**Actual (Bug #3):** No undo option exists. Status transitions are one-way.
+- Instance status reverts to `in_progress`
+- `completed_at` and `completed_by` cleared
+- Board updates immediately
 
 ---
 
-#### TC-023: Delete Instance
+#### TC-022b: Undo Start — Revert to Active
 
-**Priority:** P2 | **Type:** Functional | **Bug:** #2
+**Priority:** P2 | **Type:** Functional
 
 **Preconditions:**
-- Instance exists
+- Instance in `in_progress` status
 
 **Steps:**
-1. Click instance card
-2. Look for "Delete" or "Remove" option
+1. View in-progress instance card on board
+2. Click the undo/revert button (Undo2 icon)
+
+**Expected:**
+- Instance status reverts to `active`
+- `started_at` cleared
+- Board updates immediately
+
+---
+
+#### TC-023: Delete Active Instance
+
+**Priority:** P2 | **Type:** Functional
+
+**Preconditions:**
+- Instance in `active` status
+
+**Steps:**
+1. View active instance card on board
+2. Click the delete/archive button (Archive icon)
 
 **Expected:**
 - Instance removed from board
-- Association removed (or instance count decremented)
-
-**Actual (Bug #2):** No delete option exists.
+- Board updates immediately
+- Instance status set to `archived`
 
 ---
 
-#### TC-024: Open Pool Instance — No Start Button
+#### TC-023b: Delete Instance — Status Restriction
 
-**Priority:** P2 | **Type:** UI | **Bug:** #6
+**Priority:** P2 | **Type:** Functional
 
 **Preconditions:**
-- Unclaimed open pool instance exists
+- Instance in `in_progress` or `completed` status
 
 **Steps:**
-1. View open pool instance card
-2. Check available action buttons
+1. View in-progress or completed instance card
+2. Check for delete button
 
 **Expected:**
-- Only "Claim" and "Assign" buttons visible
-- No "Start" or "Complete" buttons
+- No delete button visible for in-progress or completed instances
+- Only active/archived instances can be deleted
 
-**Actual (Bug #6):** Start button visible but non-functional.
+---
+
+#### TC-024: Open Pool Metrics — Custom Display
+
+**Priority:** P2 | **Type:** UI
+
+**Preconditions:**
+- Open pool column visible on board
+
+**Steps:**
+1. View open pool column header
+2. Check metric cards displayed
+
+**Expected:**
+- 3 metrics shown: Total, Overdue, Due Today
+- NOT the standard 5 metrics (Asn/Clm/Prog/Done/Over)
+- Member columns still show standard 5 metrics
 
 ---
 
@@ -680,13 +846,11 @@ dashy-kiosk/
 **Expected:**
 - Completed instance removed/hidden from board
 
-**Actual (Bug #10):** Instance remains visible.
-
 ---
 
 #### TC-041: expiration_behavior "disappear" — UI Option
 
-**Priority:** P2 | **Type:** UI | **Bug:** #10
+**Priority:** P2 | **Type:** UI
 
 **Preconditions:**
 - Edit modal open
@@ -697,15 +861,14 @@ dashy-kiosk/
 
 **Expected:**
 - "Disappear" option visible and selectable
-- OR: Clear indication that "disappear" is default when both toggles are off
-
-**Actual (Bug #10):** No "disappear" option in UI.
+- "Stay visible" option visible and selectable
+- "Convert to open pool" option visible and selectable
 
 ---
 
 #### TC-042: expiration_behavior "stay_visible" — Instance Marked Missed
 
-**Priority:** P2 | **Type:** Functional | **Bug:** #11 (blocked)
+**Priority:** P2 | **Type:** Functional
 
 **Preconditions:**
 - Master chore with `expiration_behavior: "stay_visible"`
@@ -721,13 +884,11 @@ dashy-kiosk/
 - Instance marked as `missed`
 - Instance still visible on board
 
-**Dependency:** Blocked by Bug #9 (timezone conversion).
-
 ---
 
 #### TC-043: expiration_behavior "convert_to_open" — Instance Moves to Open Pool
 
-**Priority:** P2 | **Type:** Functional | **Bug:** #13
+**Priority:** P2 | **Type:** Functional
 
 **Preconditions:**
 - Master chore with `expiration_behavior: "convert_to_open"`
@@ -743,13 +904,11 @@ dashy-kiosk/
 - Instance moved from member column to open pool
 - Instance status updated
 
-**Linked Bug:** #13 (UI option missing)
-
 ---
 
 #### TC-044: expiration_behavior "convert_to_open" — UI Option
 
-**Priority:** P2 | **Type:** UI | **Bug:** #13
+**Priority:** P2 | **Type:** UI
 
 **Preconditions:**
 - Edit modal open
@@ -759,9 +918,7 @@ dashy-kiosk/
 2. Check expiration behavior options
 
 **Expected:**
-- "Convert to Open Pool" option visible and selectable
-
-**Actual (Bug #13):** Only "disappear" and "stay_visible" accessible.
+- All three options visible: "Disappear", "Stay visible", "Convert to Open Pool"
 
 ---
 
@@ -785,9 +942,9 @@ dashy-kiosk/
 
 ---
 
-#### TC-051: Archive Chore — With Active Instances
+#### TC-051: Archive Chore — With Active Instances (Blocked)
 
-**Priority:** P1 | **Type:** Functional | **Bug:** #7
+**Priority:** P1 | **Type:** Functional
 
 **Preconditions:**
 - Collaborative master chore with:
@@ -801,9 +958,9 @@ dashy-kiosk/
 3. Observe behavior
 
 **Expected:**
-- Either: (a) Archive blocked with warning, OR (b) All instances auto-archived
-
-**Actual (Bug #7):** Archive succeeds, instances orphaned (remain in current status).
+- Archive blocked with error message
+- Active/in-progress instances must be resolved first
+- Completed/missed instances would be cascade-archived if no active ones exist
 
 ---
 
@@ -893,24 +1050,49 @@ dashy-kiosk/
 
 ---
 
-#### TC-056: Permanent Delete — Soft Delete Only
+#### TC-056: Permanent Delete — Hard Delete with Cascade
 
-**Priority:** P2 | **Type:** Functional | **Bug:** #8
+**Priority:** P2 | **Type:** Functional
 
 **Preconditions:**
-- Archived chore exists
+- Archived chore exists with associations and instances
 
 **Steps:**
 1. Navigate to "Archived" view
-2. Click on archived chore
-3. Click "Delete"
-4. Confirm "Permanently delete chore?"
+2. Click on archived chore card
+3. Click "Delete" button (danger styled)
+4. Confirm "Permanently delete chore?" dialog
 5. Check database (via `make dev-shell` → query)
 
 **Expected:**
-- Master + associations + instances removed from database
+- Master chore removed from database
+- All associations removed
+- All instances removed
+- Archived view updates immediately
 
-**Actual (Bug #8):** Only soft-delete (`deleted_at` set). Data remains in DB.
+---
+
+#### TC-056b: Two-Step Delete Confirmation
+
+**Priority:** P2 | **Type:** UI
+
+**Preconditions:**
+- Active chore exists in "Current" view
+
+**Steps:**
+1. Navigate to "Current" view
+2. Click on active chore card
+3. Click "Archive" button
+4. Verify confirmation dialog says "Archive chore?" (not "Permanently delete")
+5. Click "Cancel"
+6. Navigate to "Archived" view
+7. Click on archived chore card
+8. Click "Delete" button
+9. Verify confirmation dialog says "Permanently delete chore?" with danger styling
+
+**Expected:**
+- Current view: "Archive chore?" dialog (soft delete)
+- Archived view: "Permanently delete chore?" dialog (hard delete, danger styling)
 
 ---
 
@@ -918,7 +1100,7 @@ dashy-kiosk/
 
 #### TC-060: Board Refresh After Actions
 
-**Priority:** P1 | **Type:** UI | **Bug:** #1
+**Priority:** P1 | **Type:** UI
 
 **Preconditions:**
 - Board visible with at least one chore
@@ -931,13 +1113,11 @@ dashy-kiosk/
 - Board updates immediately after action
 - No manual refresh needed
 
-**Actual (Bug #1):** Board stale until manual refresh.
-
 ---
 
 #### TC-061: Timezone Conversion — due_time Display
 
-**Priority:** P1 | **Type:** UI | **Bug:** #9
+**Priority:** P1 | **Type:** UI
 
 **Preconditions:**
 - Master chore with `due_time: "03:57"` (3:57 AM)
@@ -949,8 +1129,6 @@ dashy-kiosk/
 
 **Expected:**
 - Instance card shows 3:57 AM (local time)
-
-**Actual (Bug #9):** Shows 11:57 PM (8-hour offset, UTC vs local mismatch).
 
 ---
 
@@ -1631,19 +1809,19 @@ expect(results.violations).toEqual([])
 
 | Category | Test Count | P0 | P1 | P2 | P3 |
 |----------|-----------|----|----|----|----|
-| Master Chore CRUD | 8 | 0 | 6 | 2 | 0 |
-| Associations & Open Pool | 7 | 1 | 4 | 1 | 1 |
-| Instance Lifecycle | 5 | 0 | 2 | 2 | 1 |
+| Master Chore CRUD | 14 | 0 | 12 | 2 | 0 |
+| Associations & Open Pool | 13 | 1 | 10 | 1 | 1 |
+| Instance Lifecycle | 8 | 0 | 2 | 5 | 1 |
 | Recurrence & Generation | 10 | 0 | 6 | 4 | 0 |
 | Expiration Behavior | 5 | 0 | 1 | 4 | 0 |
-| Archive & Delete | 7 | 0 | 2 | 5 | 0 |
+| Archive & Delete | 9 | 0 | 2 | 7 | 0 |
 | UI/UX & Display | 10 | 0 | 5 | 4 | 1 |
 | Edge Cases & Errors | 11 | 1 | 2 | 8 | 0 |
 | Full Flow (E2E) | 4 | 0 | 4 | 0 | 0 |
-| **Total** | **67** | **2** | **32** | **30** | **3** |
+| **Total** | **84** | **2** | **44** | **35** | **3** |
 
-**Estimated automation effort:** 3-4 days (setup + 67 tests)
-**Estimated manual regression time:** ~75 minutes per full run
+**Estimated automation effort:** 4-5 days (setup + 84 tests)
+**Estimated manual regression time:** ~90 minutes per full run
 
 ### 3.4 Bug Fix Verification Matrix
 
@@ -1652,15 +1830,16 @@ After fixing each bug, run the corresponding tests:
 | Bug | Test IDs to Verify |
 |-----|-------------------|
 | #1 (Board refresh) | TC-001, TC-004, TC-010, TC-011, TC-014, TC-020, TC-021, TC-050, TC-052, TC-053, TC-054, TC-060, TC-078, TC-080, TC-090, TC-091 |
-| #2 (Delete instance) | TC-023 |
-| #3 (Undo start/complete) | TC-022 |
+| #2 (Delete instance) | TC-023, TC-023b |
+| #3 (Undo start/complete) | TC-022, TC-022b |
 | #4 (Collaborative double-assign) | TC-013, TC-072, TC-092 |
 | #5 (Non-collaborative limit) | TC-012, TC-073 |
-| #6 (Open pool Start button) | TC-024, TC-074, TC-090 |
+| #6 (Open pool metrics) | TC-024, TC-074, TC-090 |
 | #7 (Archive with active instances) | TC-051 |
-| #8 (Permanent delete) | TC-056 |
+| #8 (Permanent delete) | TC-056, TC-056b |
 | #9 (Timezone conversion) | TC-061, TC-069 |
 | #10 (Disappear behavior) | TC-040, TC-041 |
 | #11 (Stay visible) | TC-042 |
 | #12 (max_occurrences) | TC-016, TC-034, TC-093 |
 | #13 (Convert to open) | TC-043, TC-044 |
+| Associations tab (new) | TC-009, TC-009b, TC-009c, TC-009d, TC-009e, TC-009f |
