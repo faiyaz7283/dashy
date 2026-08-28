@@ -1,0 +1,1386 @@
+{
+  "info": {
+    "name": "Dashy Chores API - Complete Test Suite",
+    "description": "Comprehensive test collection for the Chores API covering all endpoints, validation, edge cases, timezone handling, and error formats.\n\n**Setup:**\n1. Set base_url variable to your API host (e.g., https://api.dashy.local)\n2. Run requests in folder order: Categories → Tags → Masters → Associations → Instances → Edge Cases\n3. Use the 'GET /chores' response to capture generated IDs for subsequent requests\n\n**Environment variables used:**\n- base_url: API base URL\n- category_id: Set after creating a category\n- tag_id: Set after creating a tag\n- master_id: Set after creating a master chore\n- association_id: Set after creating an association\n- instance_id: Set from GET /chores response\n- member_id: Test member ID (e.g., faiyaz)\n- member_id_2: Second test member ID (e.g., trisha)",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {"key": "base_url", "value": "https://api.dashy.local", "type": "string"},
+    {"key": "category_id", "value": "", "type": "string"},
+    {"key": "tag_id", "value": "", "type": "string"},
+    {"key": "master_id", "value": "", "type": "string"},
+    {"key": "association_id", "value": "", "type": "string"},
+    {"key": "instance_id", "value": "", "type": "string"},
+    {"key": "member_id", "value": "faiyaz", "type": "string"},
+    {"key": "member_id_2", "value": "trisha", "type": "string"}
+  ],
+  "item": [
+    {
+      "name": "0. Full Data (GET all)",
+      "item": [
+        {
+          "name": "GET /chores - full payload",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/chores",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "chores"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Has all top-level keys', () => {",
+                  "  const json = pm.response.json();",
+                  "  pm.expect(json).to.have.property('categories');",
+                  "  pm.expect(json).to.have.property('tags');",
+                  "  pm.expect(json).to.have.property('master_chores');",
+                  "  pm.expect(json).to.have.property('associations');",
+                  "  pm.expect(json).to.have.property('instances');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "POST /chores/sync - trigger safety net",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/chores/sync",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "chores", "sync"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 204', () => pm.response.to.have.status(204));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "1. Categories",
+      "item": [
+        {
+          "name": "POST /categories - valid",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Daily Tasks {{timestamp}}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/chores/categories",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "chores", "categories"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 201', () => pm.response.to.have.status(201));",
+                  "const json = pm.response.json();",
+                  "pm.test('Has id and name', () => {",
+                  "  pm.expect(json).to.have.property('id');",
+                  "  pm.expect(json.name).to.include('Daily Tasks');",
+                  "});",
+                  "pm.collectionVariables.set('category_id', json.id);"
+                ]
+              }
+            },
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.collectionVariables.set('timestamp', Date.now());"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "POST /categories - empty name (422)",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/chores/categories",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "chores", "categories"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 422 - empty name rejected', () => pm.response.to.have.status(422));",
+                  "pm.test('Error format is RFC 9457', () => {",
+                  "  const json = pm.response.json();",
+                  "  pm.expect(json).to.have.property('type');",
+                  "  pm.expect(json).to.have.property('title');",
+                  "  pm.expect(json).to.have.property('status');",
+                  "  pm.expect(json).to.have.property('detail');",
+                  "  pm.expect(json.status).to.eql(422);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "POST /categories - name too long (422)",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/chores/categories",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "chores", "categories"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 422 - name over 100 chars rejected', () => pm.response.to.have.status(422));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "POST /categories - missing name (422)",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/chores/categories",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "chores", "categories"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 422 - missing required field', () => pm.response.to.have.status(422));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "2. Tags",
+      "item": [
+        {
+          "name": "POST /tags - valid",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Kitchen {{timestamp}}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/chores/tags",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "chores", "tags"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 201', () => pm.response.to.have.status(201));",
+                  "const json = pm.response.json();",
+                  "pm.test('Has id and name', () => {",
+                  "  pm.expect(json).to.have.property('id');",
+                  "  pm.expect(json.name).to.include('Kitchen');",
+                  "});",
+                  "pm.collectionVariables.set('tag_id', json.id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "POST /tags - empty name (422)",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/chores/tags",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "chores", "tags"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 422', () => pm.response.to.have.status(422));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "3. Master Chores",
+      "item": [
+        {
+          "name": "POST /masters - daily recurring (valid)",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Make Bed\",\n  \"category_id\": \"{{category_id}}\",\n  \"tag_ids\": [\"{{tag_id}}\"],\n  \"difficulty\": 1,\n  \"recurrence_rule\": {\n    \"frequency\": \"daily\",\n    \"time\": \"08:00\"\n  },\n  \"estimated_minutes\": 5,\n  \"due_time\": \"09:00\",\n  \"expiration_behavior\": \"disappear\",\n  \"is_collaborative\": false,\n  \"created_by\": \"{{member_id}}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/chores/masters",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "chores", "masters"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 201', () => pm.response.to.have.status(201));",
+                  "const json = pm.response.json();",
+                  "pm.test('Status is active', () => pm.expect(json.status).to.eql('active'));",
+                  "pm.test('Has category resolved', () => pm.expect(json.category).to.have.property('name'));",
+                  "pm.test('Has tags array', () => pm.expect(json.tags).to.be.an('array'));",
+                  "pm.test('occurrence_count is 0', () => pm.expect(json.occurrence_count).to.eql(0));",
+                  "pm.collectionVariables.set('master_id', json.id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "POST /masters - weekly recurring",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Clean Room\",\n  \"category_id\": \"{{category_id}}\",\n  \"difficulty\": 3,\n  \"recurrence_rule\": {\n    \"frequency\": \"weekly\",\n    \"time\": \"10:00\",\n    \"day_of_week\": 5\n  },\n  \"due_time\": \"18:00\",\n  \"expiration_behavior\": \"stay_visible\",\n  \"created_by\": \"{{member_id}}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/chores/masters",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "chores", "masters"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 201', () => pm.response.to.have.status(201));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "POST /masters - monthly (Nth weekday)",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Deep Clean Bathroom\",\n  \"category_id\": \"{{category_id}}\",\n  \"difficulty\": 4,\n  \"recurrence_rule\": {\n    \"frequency\": \"monthly\",\n    \"time\": \"09:00\",\n    \"day_of_week\": 5,\n    \"week_of_month\": 2\n  },\n  \"estimated_minutes\": 45,\n  \"expiration_behavior\": \"stay_visible\",\n  \"created_by\": \"{{member_id}}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/chores/masters",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "chores", "masters"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 201', () => pm.response.to.have.status(201));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "POST /masters - one-time chore",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Rake Leaves\",\n  \"category_id\": \"{{category_id}}\",\n  \"difficulty\": 2,\n  \"recurrence_rule\": null,\n  \"due_date\": \"2026-09-01\",\n  \"due_time\": \"14:00\",\n  \"expiration_behavior\": \"disappear\",\n  \"created_by\": \"{{member_id}}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/chores/masters",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "chores", "masters"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 201', () => pm.response.to.have.status(201));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "POST /masters - collaborative",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Set Dinner Table\",\n  \"category_id\": \"{{category_id}}\",\n  \"difficulty\": 1,\n  \"recurrence_rule\": {\n    \"frequency\": \"daily\",\n    \"time\": \"17:00\"\n  },\n  \"is_collaborative\": true,\n  \"expiration_behavior\": \"disappear\",\n  \"created_by\": \"{{member_id}}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/chores/masters",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "chores", "masters"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 201', () => pm.response.to.have.status(201));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "POST /masters - with conditions",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Shovel Snow\",\n  \"category_id\": \"{{category_id}}\",\n  \"difficulty\": 5,\n  \"recurrence_rule\": {\n    \"frequency\": \"daily\",\n    \"time\": \"07:00\"\n  },\n  \"conditions\": {\n    \"logic\": \"or\",\n    \"conditions\": [\n      { \"type\": \"weather\", \"operator\": \"gte\", \"value\": 5.0, \"metric\": \"snowfall\" },\n      { \"type\": \"weather\", \"operator\": \"lt\", \"value\": 0, \"metric\": \"temperature\" }\n    ]\n  },\n  \"expiration_behavior\": \"stay_visible\",\n  \"created_by\": \"{{member_id}}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/chores/masters",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "chores", "masters"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 201', () => pm.response.to.have.status(201));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "POST /masters - with end_date and max_occurrences",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Summer Reading\",\n  \"category_id\": \"{{category_id}}\",\n  \"difficulty\": 2,\n  \"recurrence_rule\": {\n    \"frequency\": \"daily\",\n    \"time\": \"15:00\"\n  },\n  \"end_date\": \"2026-08-31\",\n  \"max_occurrences\": 30,\n  \"expiration_behavior\": \"disappear\",\n  \"created_by\": \"{{member_id}}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/chores/masters",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "chores", "masters"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 201', () => pm.response.to.have.status(201));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "POST /masters - missing name (422)",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"category_id\": \"{{category_id}}\",\n  \"created_by\": \"{{member_id}}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/chores/masters",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "chores", "masters"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 422 - name required', () => pm.response.to.have.status(422));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "POST /masters - difficulty out of range (422)",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Test\",\n  \"category_id\": \"{{category_id}}\",\n  \"difficulty\": 6,\n  \"created_by\": \"{{member_id}}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/chores/masters",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "chores", "masters"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 422 - difficulty > 5', () => pm.response.to.have.status(422));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "POST /masters - invalid expiration_behavior (422)",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Test\",\n  \"category_id\": \"{{category_id}}\",\n  \"expiration_behavior\": \"invalid_value\",\n  \"created_by\": \"{{member_id}}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/chores/masters",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "chores", "masters"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 422 - invalid enum', () => pm.response.to.have.status(422));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "PATCH /masters/{id} - partial update (name only)",
+          "request": {
+            "method": "PATCH",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Make Bed (Updated)\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/chores/masters/{{master_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "chores", "masters", "{{master_id}}"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Name updated', () => pm.expect(pm.response.json().name).to.eql('Make Bed (Updated)'));",
+                  "pm.test('Other fields unchanged', () => pm.expect(pm.response.json().difficulty).to.eql(1));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "PATCH /masters/{id} - update status to inactive",
+          "request": {
+            "method": "PATCH",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"inactive\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/chores/masters/{{master_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "chores", "masters", "{{master_id}}"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Status updated', () => pm.expect(pm.response.json().status).to.eql('inactive'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "PATCH /masters/{id} - reactivate",
+          "request": {
+            "method": "PATCH",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"active\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/chores/masters/{{master_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "chores", "masters", "{{master_id}}"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Status reactivated', () => pm.expect(pm.response.json().status).to.eql('active'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "PATCH /masters/{id} - nonexistent (404)",
+          "request": {
+            "method": "PATCH",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Ghost\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/chores/masters/00000000-0000-0000-0000-000000000000",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "chores", "masters", "00000000-0000-0000-0000-000000000000"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 404', () => pm.response.to.have.status(404));",
+                  "pm.test('Error format is RFC 9457', () => {",
+                  "  const json = pm.response.json();",
+                  "  pm.expect(json).to.have.property('type');",
+                  "  pm.expect(json).to.have.property('title');",
+                  "  pm.expect(json).to.have.property('status');",
+                  "  pm.expect(json).to.have.property('detail');",
+                  "  pm.expect(json.status).to.eql(404);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "PATCH /masters/bulk-status - valid",
+          "request": {
+            "method": "PATCH",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"master_ids\": [\"{{master_id}}\"],\n  \"status\": \"inactive\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/chores/masters/bulk-status",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "chores", "masters", "bulk-status"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Has updated_count', () => pm.expect(pm.response.json()).to.have.property('updated_count'));",
+                  "// Reactivate for subsequent tests",
+                  "pm.sendRequest({",
+                  "  url: pm.collectionVariables.get('base_url') + '/api/v1/chores/masters/bulk-status',",
+                  "  method: 'PATCH',",
+                  "  header: [{ key: 'Content-Type', value: 'application/json' }],",
+                  "  body: { mode: 'raw', raw: JSON.stringify({ master_ids: [pm.collectionVariables.get('master_id')], status: 'active' }) }",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "PATCH /masters/bulk-status - invalid status (422)",
+          "request": {
+            "method": "PATCH",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"master_ids\": [\"{{master_id}}\"],\n  \"status\": \"deleted\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/chores/masters/bulk-status",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "chores", "masters", "bulk-status"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 422 - invalid status', () => pm.response.to.have.status(422));",
+                  "pm.test('Error format is RFC 9457', () => {",
+                  "  const json = pm.response.json();",
+                  "  pm.expect(json).to.have.property('type');",
+                  "  pm.expect(json).to.have.property('title');",
+                  "  pm.expect(json).to.have.property('status');",
+                  "  pm.expect(json).to.have.property('detail');",
+                  "  pm.expect(json.status).to.eql(422);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "DELETE /masters/{id} - soft delete",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/chores/masters/{{master_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "chores", "masters", "{{master_id}}"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 204', () => pm.response.to.have.status(204));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "4. Associations",
+      "item": [
+        {
+          "name": "Setup: create fresh master for association tests",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Test Association Chore\",\n  \"category_id\": \"{{category_id}}\",\n  \"difficulty\": 2,\n  \"recurrence_rule\": {\n    \"frequency\": \"daily\",\n    \"time\": \"08:00\"\n  },\n  \"expiration_behavior\": \"disappear\",\n  \"created_by\": \"{{member_id}}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/chores/masters",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "chores", "masters"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 201', () => pm.response.to.have.status(201));",
+                  "pm.collectionVariables.set('master_id', pm.response.json().id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "POST /associations - member association (valid)",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"master_chore_id\": \"{{master_id}}\",\n  \"member_id\": \"{{member_id}}\",\n  \"is_open_pool\": false,\n  \"created_by\": \"{{member_id}}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/chores/associations",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "chores", "associations"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 201', () => pm.response.to.have.status(201));",
+                  "const json = pm.response.json();",
+                  "pm.test('member_id matches', () => pm.expect(json.member_id).to.eql(pm.collectionVariables.get('member_id')));",
+                  "pm.test('is_open_pool is false', () => pm.expect(json.is_open_pool).to.be.false);",
+                  "pm.collectionVariables.set('association_id', json.id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "POST /associations - duplicate member same master (409)",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"master_chore_id\": \"{{master_id}}\",\n  \"member_id\": \"{{member_id}}\",\n  \"is_open_pool\": false,\n  \"created_by\": \"{{member_id}}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/chores/associations",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "chores", "associations"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 409 - duplicate member', () => pm.response.to.have.status(409));",
+                  "pm.test('Error format is RFC 9457', () => {",
+                  "  const json = pm.response.json();",
+                  "  pm.expect(json).to.have.property('type');",
+                  "  pm.expect(json).to.have.property('title');",
+                  "  pm.expect(json).to.have.property('status');",
+                  "  pm.expect(json).to.have.property('detail');",
+                  "  pm.expect(json.status).to.eql(409);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "POST /associations - nonexistent master (404)",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"master_chore_id\": \"00000000-0000-0000-0000-000000000000\",\n  \"member_id\": \"{{member_id}}\",\n  \"created_by\": \"{{member_id}}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/chores/associations",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "chores", "associations"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 404', () => pm.response.to.have.status(404));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "POST /associations - open pool (valid)",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"master_chore_id\": \"{{master_id}}\",\n  \"member_id\": null,\n  \"is_open_pool\": true,\n  \"created_by\": \"{{member_id}}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/chores/associations",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "chores", "associations"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 201', () => pm.response.to.have.status(201));",
+                  "pm.test('is_open_pool is true', () => pm.expect(pm.response.json().is_open_pool).to.be.true);",
+                  "pm.test('member_id is null', () => pm.expect(pm.response.json().member_id).to.be.null);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "POST /associations - duplicate open pool (409)",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"master_chore_id\": \"{{master_id}}\",\n  \"member_id\": null,\n  \"is_open_pool\": true,\n  \"created_by\": \"{{member_id}}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/chores/associations",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "chores", "associations"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 409 - duplicate open pool', () => pm.response.to.have.status(409));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "DELETE /associations/{id} - valid",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/chores/associations/{{association_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "chores", "associations", "{{association_id}}"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 204', () => pm.response.to.have.status(204));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "DELETE /associations/{id} - nonexistent (404)",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/chores/associations/00000000-0000-0000-0000-000000000000",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "chores", "associations", "00000000-0000-0000-0000-000000000000"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 404', () => pm.response.to.have.status(404));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "5. Instances",
+      "item": [
+        {
+          "name": "Setup: create master + association for instance tests",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Instance Test Chore\",\n  \"category_id\": \"{{category_id}}\",\n  \"difficulty\": 2,\n  \"recurrence_rule\": {\n    \"frequency\": \"daily\",\n    \"time\": \"08:00\"\n  },\n  \"expiration_behavior\": \"disappear\",\n  \"created_by\": \"{{member_id}}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/chores/masters",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "chores", "masters"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const masterId = pm.response.json().id;",
+                  "pm.collectionVariables.set('master_id', masterId);",
+                  "// Create association to trigger instance generation",
+                  "pm.sendRequest({",
+                  "  url: pm.collectionVariables.get('base_url') + '/api/v1/chores/associations',",
+                  "  method: 'POST',",
+                  "  header: [{ key: 'Content-Type', value: 'application/json' }],",
+                  "  body: { mode: 'raw', raw: JSON.stringify({ master_chore_id: masterId, member_id: pm.collectionVariables.get('member_id'), created_by: pm.collectionVariables.get('member_id') }) }",
+                  "}, (err, res) => {",
+                  "  pm.collectionVariables.set('association_id', res.json().id);",
+                  "  // Fetch instances",
+                  "  pm.sendRequest(pm.collectionVariables.get('base_url') + '/api/v1/chores', (err2, res2) => {",
+                  "    const data = res2.json();",
+                  "    if (data.instances.length > 0) {",
+                  "      pm.collectionVariables.set('instance_id', data.instances[0].id);",
+                  "    }",
+                  "  });",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "POST /instances/{id}/claim - valid",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"member_id\": \"{{member_id}}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/chores/instances/{{instance_id}}/claim",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "chores", "instances", "{{instance_id}}", "claim"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "const json = pm.response.json();",
+                  "pm.test('claimed_by is set', () => pm.expect(json.claimed_by).to.eql(pm.collectionVariables.get('member_id')));",
+                  "pm.test('assigned_to is cleared', () => pm.expect(json.assigned_to).to.be.null);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "POST /instances/{id}/assign - valid (clears claim)",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"assignee_id\": \"{{member_id_2}}\",\n  \"assigner_id\": \"{{member_id}}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/chores/instances/{{instance_id}}/assign",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "chores", "instances", "{{instance_id}}", "assign"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "const json = pm.response.json();",
+                  "pm.test('assigned_to is set', () => pm.expect(json.assigned_to).to.eql(pm.collectionVariables.get('member_id_2')));",
+                  "pm.test('assigned_by is set', () => pm.expect(json.assigned_by).to.eql(pm.collectionVariables.get('member_id')));",
+                  "pm.test('claimed_by is cleared', () => pm.expect(json.claimed_by).to.be.null);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "POST /instances/{id}/claim - re-claim (clears assign)",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"member_id\": \"{{member_id}}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/chores/instances/{{instance_id}}/claim",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "chores", "instances", "{{instance_id}}", "claim"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "const json = pm.response.json();",
+                  "pm.test('claimed_by is set', () => pm.expect(json.claimed_by).to.eql(pm.collectionVariables.get('member_id')));",
+                  "pm.test('assigned_to is cleared', () => pm.expect(json.assigned_to).to.be.null);",
+                  "pm.test('assigned_by is cleared', () => pm.expect(json.assigned_by).to.be.null);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "PATCH /instances/{id}/status - set in_progress",
+          "request": {
+            "method": "PATCH",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"in_progress\",\n  \"actor_id\": \"{{member_id}}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/chores/instances/{{instance_id}}/status",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "chores", "instances", "{{instance_id}}", "status"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "const json = pm.response.json();",
+                  "pm.test('status is in_progress', () => pm.expect(json.status).to.eql('in_progress'));",
+                  "pm.test('started_at is set', () => pm.expect(json.started_at).to.not.be.null);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "PATCH /instances/{id}/status - complete (triggers next instance)",
+          "request": {
+            "method": "PATCH",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"completed\",\n  \"actor_id\": \"{{member_id}}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/chores/instances/{{instance_id}}/status",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "chores", "instances", "{{instance_id}}", "status"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "const json = pm.response.json();",
+                  "pm.test('status is completed', () => pm.expect(json.status).to.eql('completed'));",
+                  "pm.test('completed_by is set', () => pm.expect(json.completed_by).to.eql(pm.collectionVariables.get('member_id')));",
+                  "pm.test('completed_at is set', () => pm.expect(json.completed_at).to.not.be.null);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "PATCH /instances/{id}/status - invalid status (422)",
+          "request": {
+            "method": "PATCH",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"invalid_status\",\n  \"actor_id\": \"{{member_id}}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/chores/instances/{{instance_id}}/status",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "chores", "instances", "{{instance_id}}", "status"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 422 - invalid enum', () => pm.response.to.have.status(422));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "POST /instances/{id}/claim - nonexistent (404)",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"member_id\": \"{{member_id}}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/chores/instances/00000000-0000-0000-0000-000000000000/claim",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "chores", "instances", "00000000-0000-0000-0000-000000000000", "claim"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 404', () => pm.response.to.have.status(404));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "6. Edge Cases & Datetime",
+      "item": [
+        {
+          "name": "POST /masters - yearly (4th Thursday of November)",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Thanksgiving Prep\",\n  \"category_id\": \"{{category_id}}\",\n  \"difficulty\": 4,\n  \"recurrence_rule\": {\n    \"frequency\": \"yearly\",\n    \"time\": \"10:00\",\n    \"day_of_week\": 3,\n    \"week_of_month\": 4,\n    \"month\": 11\n  },\n  \"expiration_behavior\": \"stay_visible\",\n  \"created_by\": \"{{member_id}}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/chores/masters",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "chores", "masters"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 201', () => pm.response.to.have.status(201));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "POST /masters - due_time boundary (23:59)",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Midnight Chore\",\n  \"category_id\": \"{{category_id}}\",\n  \"difficulty\": 1,\n  \"recurrence_rule\": { \"frequency\": \"daily\", \"time\": \"23:59\" },\n  \"due_time\": \"23:59\",\n  \"expiration_behavior\": \"disappear\",\n  \"created_by\": \"{{member_id}}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/chores/masters",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "chores", "masters"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 201', () => pm.response.to.have.status(201));",
+                  "pm.test('due_time is 23:59', () => pm.expect(pm.response.json().due_time).to.eql('23:59'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "POST /masters - due_time boundary (00:00)",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Early Bird Chore\",\n  \"category_id\": \"{{category_id}}\",\n  \"difficulty\": 1,\n  \"recurrence_rule\": { \"frequency\": \"daily\", \"time\": \"00:00\" },\n  \"due_time\": \"00:00\",\n  \"expiration_behavior\": \"disappear\",\n  \"created_by\": \"{{member_id}}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/chores/masters",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "chores", "masters"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 201', () => pm.response.to.have.status(201));",
+                  "pm.test('due_time is 00:00', () => pm.expect(pm.response.json().due_time).to.eql('00:00'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Verify: GET /chores - check datetime formats",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/chores",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "chores"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "const json = pm.response.json();",
+                  "",
+                  "// Verify timestamp format (UTC ISO 8601)",
+                  "if (json.master_chores.length > 0) {",
+                  "  const master = json.master_chores[0];",
+                  "  pm.test('created_at is ISO datetime', () => pm.expect(master.created_at).to.match(/\\d{4}-\\d{2}-\\d{2}T/));",
+                  "  pm.test('Timestamps have UTC indicator', () => {",
+                  "    pm.expect(master.created_at).to.match(/(Z|\\+00:00)$/);",
+                  "  });",
+                  "}",
+                  "",
+                  "// Verify date format (YYYY-MM-DD)",
+                  "if (json.instances.length > 0) {",
+                  "  const inst = json.instances[0];",
+                  "  if (inst.period_start) {",
+                  "    pm.test('period_start is date format', () => pm.expect(inst.period_start).to.match(/^\\d{4}-\\d{2}-\\d{2}$/));",
+                  "  }",
+                  "}"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

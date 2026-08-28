@@ -1,0 +1,7 @@
+# Use this workspace to collaborate
+workspace:
+  id: 37d04c6b-1c15-4034-b699-d62ca3a18195
+
+localResources:
+  collections:
+    - ../chores-api-postman-collection.json

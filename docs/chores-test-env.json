@@ -1,0 +1,8 @@
+{
+  "name": "Dashy Test",
+  "values": [
+    {"key": "base_url", "value": "https://api.dashy.local", "type": "default", "enabled": true},
+    {"key": "member_id", "value": "faiyaz", "type": "default", "enabled": true},
+    {"key": "member_id_2", "value": "trisha", "type": "default", "enabled": true}
+  ]
+}
