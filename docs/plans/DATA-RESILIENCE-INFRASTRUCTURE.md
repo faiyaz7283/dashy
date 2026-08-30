@@ -391,90 +391,84 @@ async def get_metrics(cache: CacheDep):
 
 ### Phase 5: Frontend Metrics Display
 
-**Goal:** Show data freshness metrics via hover tooltips on status bar refresh timers.
+**Goal:** Integrate metrics endpoint into the settings page (full settings UI work deferred to future session).
+
+**Scope:**
+- Wire settings icon in status bar to open settings panel
+- Add metrics button/link in settings panel
+- Create full metrics page displaying data freshness, network health, and cache stats
+- Metrics page should be categorized and sectioned with color-coded status indicators
+- Explore Tailwind CSS / Headless UI / Catalyst for dedicated dashboard/metrics styles
+- No mockup needed — "just going with the flow"
 
 **Files:**
-- `dashy-kiosk/src/features/shell/StatusBar.tsx` — Add hover tooltips with metrics
+- `dashy-kiosk/src/features/settings/` — New settings feature directory
 - `dashy-kiosk/src/shared/hooks/useMetrics.ts` — New hook to fetch `/api/v1/metrics`
 - `dashy-kiosk/src/shared/api/endpoints.ts` — Add metrics endpoint
 
-**UI design:**
+**Metrics Page Structure:**
 ```
-Status bar: [Settings]  [🕐 1:45]  [☁️ 5:23]  [Theme]
-                 ↑           ↑
-            hover tooltip  hover tooltip
-            shows:         shows:
-            - Status: Fresh - Status: Stale ⚠️
-            - Age: 2m ago   - Age: 4h ago
-            - Last fetch:   - Last fetch:
-              16:45:23        12:45:23
-            - Next refresh: - Network: ✅
-              16:50:23        
+┌─────────────────────────────────────────────────────────┐
+│  Data Freshness Metrics                                 │
+├─────────────────────────────────────────────────────────┤
+│                                                         │
+│  Weather Data                                           │
+│  ┌─────────────────────────────────────────────────┐   │
+│  │ Status: 🟢 Fresh                                │   │
+│  │ Age: 2 minutes ago                              │   │
+│  │ Last fetch: 2026-08-30 16:45:23 UTC             │   │
+│  │ Fresh TTL: 10 minutes                           │   │
+│  │ Stale TTL: 24 hours                             │   │
+│  └─────────────────────────────────────────────────┘   │
+│                                                         │
+│  Calendar Data                                          │
+│  ┌─────────────────────────────────────────────────┐   │
+│  │ Status: 🟡 Stale                                │   │
+│  │ Age: 4 hours ago                                │   │
+│  │ Last fetch: 2026-08-30 12:45:23 UTC             │   │
+│  │ Fresh TTL: 5 minutes                            │   │
+│  │ Stale TTL: 7 days                               │   │
+│  │                                                 │   │
+│  │ Per-Member Status:                              │   │
+│  │   • Faiyaz: 🟢 Success (12 events)              │   │
+│  │   • Trisha: 🟢 Success (8 events)               │   │
+│  │   • Arya: 🔴 Failed (connection timeout)        │   │
+│  │   • Raya: 🟢 Success (15 events)                │   │
+│  └─────────────────────────────────────────────────┘   │
+│                                                         │
+│  Network Health                                         │
+│  ┌─────────────────────────────────────────────────┐   │
+│  │ Google Calendar: 🟢 Reachable (245ms)           │   │
+│  │ OpenWeatherMap: 🟢 Reachable (189ms)            │   │
+│  │ Last check: 2026-08-30 16:47:30 UTC             │   │
+│  └─────────────────────────────────────────────────┘   │
+│                                                         │
+│  Cache Statistics                                       │
+│  ┌─────────────────────────────────────────────────┐   │
+│  │ Hits: 1,234                                     │   │
+│  │ Misses: 56                                      │   │
+│  │ Errors: 2                                       │   │
+│  └─────────────────────────────────────────────────┘   │
+│                                                         │
+└─────────────────────────────────────────────────────────┘
 ```
 
-**Implementation:**
-```typescript
-// useMetrics.ts
-export function useMetrics() {
-  return useQuery({
-    queryKey: ['metrics'],
-    queryFn: () => fetch(ENDPOINTS.metrics.url).then(r => r.json()),
-    refetchInterval: 30_000, // Update every 30s
-  })
-}
-
-// StatusBar.tsx
-function RefreshCountdown({ label, lastRefresh, interval, metrics }) {
-  const [showTooltip, setShowTooltip] = useState(false)
-  const countdown = useRefreshCountdown(lastRefresh, interval)
-  
-  const status = metrics?.data_sources[label]?.status
-  const age = metrics?.data_sources[label]?.age_seconds
-  
-  return (
-    <div 
-      className="relative"
-      onMouseEnter={() => setShowTooltip(true)}
-      onMouseLeave={() => setShowTooltip(false)}
-    >
-      <div className="flex items-center gap-2">
-        <Icon />
-        <span>{countdown}</span>
-        {status === 'stale' && <WarningIcon className="text-warning" />}
-      </div>
-      
-      {showTooltip && (
-        <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 bg-bg-primary border border-border rounded-lg shadow-lg p-3 text-xs min-w-[200px]">
-          <div className="font-semibold mb-2">{label} Data</div>
-          <div className="space-y-1">
-            <div className="flex justify-between">
-              <span>Status:</span>
-              <span className={status === 'stale' ? 'text-warning' : 'text-success'}>
-                {status}
-              </span>
-            </div>
-            <div className="flex justify-between">
-              <span>Age:</span>
-              <span>{formatAge(age)}</span>
-            </div>
-            <div className="flex justify-between">
-              <span>Last fetch:</span>
-              <span>{formatTime(lastRefresh)}</span>
-            </div>
-          </div>
-        </div>
-      )}
-    </div>
-  )
-}
-```
+**Implementation Notes:**
+- All timestamps displayed in configured timezone (from `/api/v1/config`)
+- Color-coded status indicators: 🟢 fresh/success, 🟡 stale/warning, 🔴 failed/error
+- Metrics endpoint polled every 30s (configurable)
+- Responsive design for kiosk display
 
 **Success Criteria:**
-- [ ] Hover tooltips show data freshness metrics on status bar refresh timers
-- [ ] Tooltips show status (fresh/stale), age, last fetch time
-- [ ] Warning icon appears when data is stale
-- [ ] Metrics endpoint is polled every 30s (configurable)
-- [ ] Tooltips are accessible (keyboard navigable, screen reader friendly)
+- [ ] Settings icon in status bar opens settings panel
+- [ ] Settings panel has button/link to metrics page
+- [ ] Metrics page displays weather data freshness with status, age, last fetch
+- [ ] Metrics page displays calendar data freshness with per-member breakdown
+- [ ] Metrics page displays network health (upstream API reachability)
+- [ ] Metrics page displays cache statistics
+- [ ] All timestamps converted to configured timezone
+- [ ] Color-coded status indicators (fresh/stale/missing, success/failed)
+- [ ] Metrics endpoint polled every 30s
 - [ ] Quality gates pass: `make lint-kiosk && make typecheck-kiosk && make test-kiosk`
 - [ ] Code review gate passed
 - [ ] Committed and pushed to `development`
@@ -595,22 +589,15 @@ After deployment, we should see:
 
 ---
 
-## Known Issues to Fix
+## Known Issues
 
-### Pre-existing Test Failure (discovered 2026-08-30)
+### ~~Pre-existing Test Failure~~ (RESOLVED 2026-08-30)
 
 **Test:** `tests/unit/test_chores_services.py::TestInstanceGeneration::test_generate_instance_archives_old_instances`
 
-**Error:**
-```
-assert datetime.date(2026, 8, 31) == datetime.date(2026, 8, 30)
-```
+**Status:** ✅ Fixed in Phase 1 (commit 4db9541)
 
-**Root cause:** Timezone boundary issue. The test runs at 21:14 UTC (Aug 30), but the instance generation logic uses the configured timezone (America/New_York = UTC-4), which makes it Aug 30 17:14 EDT. The test expects `datetime.now(UTC).date()` (Aug 30) but the instance gets `period_start=2026-08-31` (likely because the period calculation is timezone-aware and rolls to the next day in Eastern time).
-
-**Fix needed:** The test should use timezone-aware date comparison matching the configured timezone, not UTC. Or the instance generation logic should be reviewed to ensure it uses the correct timezone for period boundaries.
-
-**Action:** Fix this test as part of Phase 1 or as a separate hotfix before proceeding with Phase 2.
+**Resolution:** Changed test to use timezone-aware date comparison with range check instead of exact date match. Test now passes consistently regardless of timezone boundary conditions.
 
 ---
 
