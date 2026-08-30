@@ -426,13 +426,30 @@ The backend chores schema was fully migrated (8 phases, 309 tests passing). The 
 Run full quality gate across all changes.
 
 **Success Criteria:**
-- [ ] `make lint` passes
-- [ ] `make typecheck` passes
-- [ ] `make test` passes (all phases' tests)
-- [ ] `make build` passes
-- [ ] Code review gate passes on all changed files
-- [ ] Plan marked as `✅ Complete` with full summary
-- [ ] All changes committed and pushed to `development`
+- [x] `make lint` passes
+- [x] `make typecheck` passes
+- [x] `make test` passes (all phases' tests)
+- [x] `make build` passes
+- [x] Code review gate passes on all changed files
+- [x] Plan marked as `✅ Complete` with full summary
+- [x] All changes committed and pushed to `development`
+
+**Code Review Findings Addressed:**
+1. ✅ **High**: Removed dead `form.time` state from MasterChoreModal (was silently discarded)
+2. ✅ **Medium**: Added `members` prop to ChoreCard for proper name resolution (was showing raw UUIDs)
+3. ✅ **Medium**: Replaced `'unknown'` fallback with proper error throws for missing members
+4. ⏭️ **Low**: `handleRevertInstance` omits `actor_id` — backend doesn't require it for revert action
+5. ⏭️ **Low**: `frequency_interval` always 1 — feature gap, not a migration bug (no UI to change it yet)
+
+**Additional Backend Fix:**
+- Fixed future instances being marked as overdue by adding `period_start <= today` check to `get_overdue_instances()` query
+- This prevents the edge case where a recurring chore generates an instance for a future date, and the current time is past the due_time — the future instance was incorrectly marked OVERDUE
+
+**Commits:**
+- `dashy-kiosk`: `309e03a` — code review fixes
+- `dashy`: `14cb1b1` — submodule ref updated
+- `dashy-api`: `ecd5756` — future instance overdue bug fix
+- `dashy`: `78f9299` — submodule ref updated
 
 ---
 
