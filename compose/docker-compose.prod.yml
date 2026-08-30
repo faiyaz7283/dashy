@@ -1,5 +1,8 @@
 name: dashy-prod
 
+env_file:
+  - ../env/.env.prod
+
 services:
   # Traefik Reverse Proxy
   traefik:
