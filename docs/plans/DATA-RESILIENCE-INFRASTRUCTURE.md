@@ -1,6 +1,6 @@
 # Data Resilience Infrastructure — Stale-While-Revalidate + Metrics
 
-**Status:** In Progress (Phase 5 Complete)
+**Status:** In Progress (Phase 6 In Progress)
 **Created:** 2026-08-30
 **Priority:** Critical (production data loss)
 
@@ -526,7 +526,10 @@ WantedBy=timers.target
 - [ ] Connectivity logs visible in `journalctl -t dashy-connectivity`
 - [ ] Manual test: unplug Pi ethernet (if applicable), verify WiFi stays stable
 - [ ] Documented in `README.md` under "Troubleshooting" section
-- [ ] Committed (scripts in `scripts/` directory, systemd units in `deploy/pi/`)
+- [x] Scripts created in `scripts/` directory
+- [x] Systemd units created in `deploy/pi/` directory
+- [ ] Deployed to Pi and verified
+- [ ] Committed and pushed to `development`
 
 ---
 
