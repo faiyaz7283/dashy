@@ -1,7 +1,7 @@
 # Data Resilience Infrastructure — Stale-While-Revalidate + Metrics
 
-**Status:** Planning  
-**Created:** 2026-08-30  
+**Status:** In Progress (Phase 2 Complete)
+**Created:** 2026-08-30
 **Priority:** Critical (production data loss)
 
 ---
@@ -169,15 +169,15 @@ CALENDAR_STALE_TTL: int = 604800  # 7 days (stale)
 ```
 
 **Success Criteria:**
-- [ ] `RetryConfig` dataclass defined with configurable attempts, backoff, transient error types
-- [ ] `Cache.fetch()` implements SWR pattern (fresh → stale → retry → raise)
-- [ ] `UpstreamServiceError` exception class defined
-- [ ] Config has `*_STALE_TTL` settings for weather and calendar
-- [ ] Unit tests for `Cache.fetch()` covering all paths (fresh hit, stale hit, retry success, retry failure)
-- [ ] Integration test with real Redis verifying SWR behavior
-- [ ] Quality gates pass: `make lint-api && make test-api`
-- [ ] Code review gate passed
-- [ ] Committed and pushed to `development`
+- [x] `RetryConfig` dataclass defined with configurable attempts, backoff, transient error types
+- [x] `Cache.fetch()` implements SWR pattern (fresh → stale → retry → raise)
+- [x] `UpstreamServiceError` exception class defined
+- [x] Config has `*_STALE_TTL` settings for weather and calendar
+- [x] Unit tests for `Cache.fetch()` covering all paths (fresh hit, stale hit, retry success, retry failure)
+- [x] Integration test with real Redis verifying SWR behavior
+- [x] Quality gates pass: `make lint-api && make test-api`
+- [x] Code review gate passed
+- [x] Committed and pushed to `development`
 
 ---
 
@@ -217,14 +217,14 @@ async def fetch_events(self, calendar_id: str, date_range: DateRange) -> list[di
 ```
 
 **Success Criteria:**
-- [ ] `OWMWeatherAdapter.get_weather()` raises `UpstreamServiceError` on failure (no mock fallback)
-- [ ] `GoogleCalendarAdapter.fetch_events()` raises `UpstreamServiceError` on failure (no `[]` return)
-- [ ] All mock fallback code removed from production adapters
-- [ ] Existing tests updated to expect exceptions instead of mock/empty data
-- [ ] New tests verify adapters raise on network failures
-- [ ] Quality gates pass: `make lint-api && make test-api`
-- [ ] Code review gate passed
-- [ ] Committed and pushed to `development`
+- [x] `OWMWeatherAdapter.get_weather()` raises `UpstreamServiceError` on failure (no mock fallback)
+- [x] `GoogleCalendarAdapter.fetch_events()` raises `UpstreamServiceError` on failure (no `[]` return)
+- [x] All mock fallback code removed from production adapters
+- [x] Existing tests updated to expect exceptions instead of mock/empty data
+- [x] New tests verify adapters raise on network failures
+- [x] Quality gates pass: `make lint-api && make test-api`
+- [x] Code review gate passed
+- [x] Committed and pushed to `development`
 
 ---
 
