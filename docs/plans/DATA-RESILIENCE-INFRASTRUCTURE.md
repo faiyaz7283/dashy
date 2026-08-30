@@ -1,6 +1,6 @@
 # Data Resilience Infrastructure — Stale-While-Revalidate + Metrics
 
-**Status:** In Progress (Phase 6 In Progress)
+**Status:** Complete (All 6 Phases)
 **Created:** 2026-08-30
 **Priority:** Critical (production data loss)
 
@@ -520,16 +520,16 @@ WantedBy=timers.target
 ```
 
 **Success Criteria:**
-- [ ] WiFi power management disabled on Pi (`iw dev wlan0 get power_save` shows `off`)
-- [ ] Power save setting persists across reboots
-- [ ] Connectivity check script runs every 5 minutes
-- [ ] Connectivity logs visible in `journalctl -t dashy-connectivity`
-- [ ] Manual test: unplug Pi ethernet (if applicable), verify WiFi stays stable
-- [ ] Documented in `README.md` under "Troubleshooting" section
+- [x] WiFi power management disabled on Pi (`iw dev wlan0 get power_save` shows `off`)
+- [x] Power save setting persists across reboots
+- [x] Connectivity check script runs every 5 minutes
+- [x] Connectivity logs visible in `journalctl -t dashy-connectivity`
+- [x] Manual test: unplug Pi ethernet (if applicable), verify WiFi stays stable
+- [x] Documented in `README.md` under "Troubleshooting" section
 - [x] Scripts created in `scripts/` directory
 - [x] Systemd units created in `deploy/pi/` directory
-- [ ] Deployed to Pi and verified
-- [ ] Committed and pushed to `development`
+- [x] Deployed to Pi and verified
+- [x] Committed and pushed to `development`
 
 ---
 

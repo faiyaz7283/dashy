@@ -623,3 +623,66 @@ This intelligent deployment command:
 - **Context7** — installed globally via npm (`npm install -g @upstash/context7-mcp`). Provides latest package documentation and version info.
   - Configured in `~/.qwen/settings.json` under `mcpServers`
   - Use to check latest stable versions before adding dependencies
+
+---
+
+## Troubleshooting
+
+### WiFi Connectivity Issues
+
+The Pi uses WiFi (Verizon hotspot) which can experience intermittent connectivity. The system includes several mechanisms to handle this:
+
+**Data Resilience Infrastructure:**
+- **SWR Pattern:** Fresh cache → stale cache → fetch with retry → 503 error
+- **Retry Logic:** 3 attempts with exponential backoff (1s, 2s, 4s)
+- **Stale Data:** Serves cached data up to 24 hours old (weather) or 7 days old (calendar) when fresh data unavailable
+- **Metrics Dashboard:** Settings icon → System Metrics shows data freshness, network health, and cache stats
+
+**WiFi Power Management:**
+WiFi power saving is disabled on the Pi to prevent connection drops:
+```bash
+# Check current status
+sudo /usr/sbin/iw dev wlan0 get power_save
+
+# Disable power save (already configured)
+sudo /usr/sbin/iw dev wlan0 set power_save off
+
+# Persistent config (already in place)
+# /etc/NetworkManager/conf.d/default-wifi-powersave.conf
+# wifi.powersave = 2
+```
+
+**Connectivity Monitoring:**
+A systemd timer runs every 5 minutes to check upstream API reachability:
+```bash
+# Check timer status
+systemctl status dashy-connectivity-check.timer
+
+# View connectivity logs
+journalctl -t dashy-connectivity -n 50 --no-pager
+
+# Manual connectivity check
+sudo /usr/local/bin/dashy-connectivity-check.sh
+```
+
+**Common Issues:**
+
+1. **Calendar events disappear:** Check metrics dashboard (Settings → System Metrics). If calendar status is "stale" or "missing", check network connectivity. The system will serve stale data if available.
+
+2. **Weather shows wrong data:** Check metrics dashboard for weather status. If "stale", the system is serving cached data due to network issues. Wait for network recovery.
+
+3. **Both APIs unreachable:** Check `journalctl -t dashy-connectivity` for connectivity logs. Verify WiFi is connected and hotspot is active.
+
+4. **Data not refreshing:** Check Redis is running (`docker ps | grep redis`). Check API logs (`make dev-logs` or `make deploy-logs`).
+
+**Manual Network Test:**
+```bash
+# Test Google Calendar API
+curl -I https://www.googleapis.com/
+
+# Test OpenWeatherMap API
+curl -I https://api.openweathermap.org/
+
+# Check WiFi connection
+iwconfig wlan0 | grep ESSID
+```
