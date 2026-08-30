@@ -226,26 +226,31 @@ Each phase is **not complete** until ALL of the following are satisfied:
 - `dashy`: `5a1df73` — submodule ref updated
 
 ### Phase 7: Tests
-**Status:** 🔄 In Progress (2026-08-30)
+**Status:** ✅ Complete (2026-08-30)
 **Files (7):**
-- `tests/api/test_chores_api.py` ✅ (all passing)
-- `tests/integration/test_chores_repository.py` 🔄 (22 failures)
-- `tests/unit/test_chores_services.py` 🔄 (34 failures)
+- `tests/api/test_chores_api.py` ✅
+- `tests/integration/test_chores_repository.py` ✅
+- `tests/unit/test_chores_services.py` ✅
 - `tests/unit/test_period_calculation.py` ✅
 - `tests/unit/test_condition_evaluator.py` ✅
 - `tests/unit/test_expiration_overdue.py` ✅
 - `tests/unit/test_bulk_operations.py` ✅
 
-**Summary:** Updated test_chores_api.py completely. Made `member_id` nullable in ChoreInstance for open pool support.
+**Summary:** Updated all 7 test files to match the new schema. All 309 tests pass.
 
-**Current test results:** 253 passed, 56 failed (down from 72)
+**Key changes:**
+- `test_chores_repository.py`: Added UUID constants for member IDs (`_TESTER`, `_ARYA`, `_RAYA`), added `FamilyMemberDB` seeding for FK constraints, added `_seed_association` helper for FK requirements, updated all `MasterChore`/`ChoreInstance`/`ChoreAssociation` constructions with UUID member IDs, removed `period_end` from `get_instance_for_period` calls, fixed unique constraint handling for multiple instances per association
+- `test_chores_services.py`: Imported `_MEMBER_*` UUID constants from mock_adapter, replaced `recurrence_rule={...}` with flattened fields (`frequency="daily"`, `due_time="18:00"`), removed `is_open_pool` from all `ChoreAssociation` constructions, changed string member IDs to UUIDs in service method calls, replaced `claimed_by`/`assigned_to`/`completed_by` assertions with `member_id`/`assigned_by`
+- `test_bulk_operations.py`, `test_expiration_overdue.py`: Removed unused `UUID` imports
 
-**Remaining work:**
-- `test_chores_repository.py`: Change string member IDs to UUIDs, add `member_id` to ChoreInstance constructions, update `get_instance_for_period` calls
-- `test_chores_services.py`: Update all MasterChore/ChoreAssociation/ChoreInstance constructions with new schema
+**Quality gate:**
+- ✅ `make lint-api` passes
+- ✅ `make typecheck` passes
+- ✅ `make test-api` passes (309 tests)
+- ✅ `make build-api` passes
 
 **Commits:**
-- `dashy-api`: `d272f48` — test_chores_api.py fixed, member_id nullable
+- `dashy-api`: pending
 - `dashy`: pending
 
 ### Phase 8: Final Quality Gate
