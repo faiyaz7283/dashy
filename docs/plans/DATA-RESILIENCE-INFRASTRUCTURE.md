@@ -1,6 +1,6 @@
 # Data Resilience Infrastructure — Stale-While-Revalidate + Metrics
 
-**Status:** In Progress (Phase 3 Complete)
+**Status:** In Progress (Phase 4 Complete)
 **Created:** 2026-08-30
 **Priority:** Critical (production data loss)
 
@@ -377,15 +377,15 @@ async def get_metrics(cache: CacheDep):
 ```
 
 **Success Criteria:**
-- [ ] `/api/v1/metrics` endpoint returns data freshness info for weather and calendar
-- [ ] Endpoint shows cache status (fresh/stale/missing) per data source
-- [ ] Endpoint shows network health (upstream API reachability)
-- [ ] Endpoint is REST compliant (proper status codes, JSON structure)
-- [ ] Network health check is non-blocking and cached (doesn't slow down response)
-- [ ] Tests verify all status paths (fresh, stale, missing)
-- [ ] Quality gates pass: `make lint-api && make test-api`
-- [ ] Code review gate passed
-- [ ] Committed and pushed to `development`
+- [x] `/api/v1/metrics` endpoint returns data freshness info for weather and calendar
+- [x] Endpoint shows cache status (fresh/stale/missing) per data source
+- [x] Endpoint shows network health (upstream API reachability)
+- [x] Endpoint is REST compliant (proper status codes, JSON structure)
+- [x] Network health check is non-blocking and cached (doesn't slow down response)
+- [x] Tests verify all status paths (fresh, stale, missing)
+- [x] Quality gates pass: `make lint-api && make test-api`
+- [x] Code review gate passed
+- [x] Committed and pushed to `development`
 
 ---
 
