@@ -1,6 +1,6 @@
 # Data Resilience Infrastructure — Stale-While-Revalidate + Metrics
 
-**Status:** In Progress (Phase 4 Complete)
+**Status:** In Progress (Phase 5 Complete)
 **Created:** 2026-08-30
 **Priority:** Critical (production data loss)
 
@@ -460,17 +460,17 @@ async def get_metrics(cache: CacheDep):
 - Responsive design for kiosk display
 
 **Success Criteria:**
-- [ ] Settings icon in status bar opens settings panel
-- [ ] Settings panel has button/link to metrics page
-- [ ] Metrics page displays weather data freshness with status, age, last fetch
-- [ ] Metrics page displays calendar data freshness with per-member breakdown
-- [ ] Metrics page displays network health (upstream API reachability)
-- [ ] Metrics page displays cache statistics
-- [ ] All timestamps converted to configured timezone
-- [ ] Color-coded status indicators (fresh/stale/missing, success/failed)
-- [ ] Metrics endpoint polled every 30s
-- [ ] Quality gates pass: `make lint-kiosk && make typecheck-kiosk && make test-kiosk`
-- [ ] Code review gate passed
+- [x] Settings icon in status bar opens settings panel
+- [x] Settings panel has button/link to metrics page
+- [x] Metrics page displays weather data freshness with status, age, last fetch
+- [x] Metrics page displays calendar data freshness with per-member breakdown
+- [x] Metrics page displays network health (upstream API reachability)
+- [x] Metrics page displays cache statistics
+- [x] All timestamps converted to configured timezone
+- [x] Color-coded status indicators (fresh/stale/missing, success/failed)
+- [x] Metrics endpoint polled every 30s
+- [x] Quality gates pass: `make lint-kiosk && make typecheck-kiosk && make test-kiosk`
+- [x] Code review gate passed
 - [ ] Committed and pushed to `development`
 
 ---
