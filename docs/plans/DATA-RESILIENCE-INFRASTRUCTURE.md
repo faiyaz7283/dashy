@@ -1,6 +1,6 @@
 # Data Resilience Infrastructure — Stale-While-Revalidate + Metrics
 
-**Status:** In Progress (Phase 2 Complete)
+**Status:** In Progress (Phase 3 Complete)
 **Created:** 2026-08-30
 **Priority:** Critical (production data loss)
 
@@ -277,14 +277,14 @@ async def get_calendar(cache: CacheDep, provider: CalendarProviderDep, family_se
 ```
 
 **Success Criteria:**
-- [ ] Weather route uses `cache.fetch()` with SWR pattern
-- [ ] Calendar route uses `cache.fetch()` with SWR pattern
-- [ ] Routes return 503 when all retries fail and no stale cache exists
-- [ ] Routes serve stale data when fresh cache expired but stale exists
+- [x] Weather route uses `cache.fetch()` with SWR pattern
+- [x] Calendar route uses `cache.fetch()` with SWR pattern
+- [x] Routes return 503 when all retries fail and no stale cache exists
+- [x] Routes serve stale data when fresh cache expired but stale exists
 - [ ] Manual testing: kill network, verify stale data is served
-- [ ] Quality gates pass: `make lint-api && make test-api`
-- [ ] Code review gate passed
-- [ ] Committed and pushed to `development`
+- [x] Quality gates pass: `make lint-api && make test-api`
+- [x] Code review gate passed
+- [x] Committed and pushed to `development`
 
 ---
 
