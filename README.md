@@ -8,7 +8,7 @@ A DIY family command center dashboard inspired by [Skylight Calendar](https://my
 
 ## Current Status
 
-- **Phase:** Repo split complete — orchestrator + submodules pattern (following dashtam model).
+- **Phase:** v1 feature-complete — calendar, weather, chores, metrics dashboard, data resilience infrastructure.
 - **Pi:** Raspberry Pi 4 (4GB), Raspberry Pi OS 64-bit (Trixie/Debian 13), SSH accessible at `rpi4_main@dashy.local` (192.168.1.194), booting from an NVMe SSD (WD Blue SN500 500 GB via Realtek RTL9210 USB bridge). Original 64 GB microSD preserved as rollback.
 - **Repo:** `git@github.com:faiyaz7283/dashy.git` (orchestrator)
 - **Submodules:**
@@ -21,11 +21,12 @@ A DIY family command center dashboard inspired by [Skylight Calendar](https://my
 - **Views:** Day, Week, Month, Year with navigation and auto-refresh
 - **Weather integration:** Current conditions and forecasts displayed across all views with 1:1 OWM condition icons (15 unique SVG icons with day/night variants), detailed hover tooltips with value-aware metric icons
 - **Header:** Auto-hiding (proximity-based), single row, responsive compaction tiers; no logo/hamburger
-- **Backend:** Domain-driven architecture with dependency injection, protocol-based adapters, Redis caching, PostgreSQL persistence, structured logging, and API versioning (`/api/v1/`)
+- **Backend:** Domain-driven architecture with dependency injection, protocol-based adapters, Redis caching with SWR pattern, PostgreSQL persistence, structured logging, and API versioning (`/api/v1/`)
 - **Frontend:** Unified event architecture — `EventItem` (card/strip/block) + `useEventInteraction` across all views; see `dashy-kiosk/src/docs/event-architecture-analysis.md`
 - **Event interactions:** Uniform across views — hover event = popup, click event = modal, click day = drill down (year view is navigation-only)
 - **Layout:** Fluid full-viewport — all views fill available width and height. On monitors wider than 1920 CSS px the whole UI scales up uniformly via CSS `zoom` on the app root (`useUiScale`); it never scales down, so 1080p-class displays keep a constant design-size text. Popups/modals portal to `body` and apply the same scale factor to their content only.
 - **Theming:** Dark/light/auto mode with CSS custom properties. Auto mode switches based on sunrise/sunset times from weather API (no extra API calls). Theme toggle in status bar.
+- **Data Resilience:** SWR (stale-while-revalidate) pattern with retry logic ensures data availability during network outages. Metrics dashboard accessible via Settings icon shows data freshness and system health.
 
 ---
 
@@ -162,7 +163,7 @@ Each repo has independent CI. The orchestrator validates compose files and build
 - Triggers on push/PR to `development` or `main`
 
 **`dashy-kiosk` (frontend) CI:**
-- Lint (ESLint), typecheck (TypeScript), test (vitest), build (Vite + Docker)
+- Lint (oxlint), typecheck (TypeScript), test (vitest), build (Vite + Docker)
 - Uses pnpm with frozen lockfile
 
 **`dashy-api` (backend) CI:**
@@ -287,7 +288,7 @@ Three-tier testing structure:
 - **Integration tests** (`tests/integration/`) — Real infrastructure (Redis cache, database). Uses `pytest-httpx` for HTTP mocking.
 - **API tests** (`tests/api/`) — Full HTTP request/response cycle via `httpx.AsyncClient`.
 
-All 169 backend tests pass with `asyncio_mode = "auto"`.
+All 330 backend tests pass with `asyncio_mode = "auto"`.
 
 ---
 

@@ -165,7 +165,7 @@ When making changes to frontend or backend:
 
 - Match the existing file's style, naming, and comment density.
 - Minimal changes. No opportunistic refactors.
-- **Frontend:** ESLint + Prettier enforced via `make lint` / `make format`.
+- **Frontend:** Oxlint + Oxfmt enforced via `make lint` / `make format`.
 - **Backend:** Ruff enforced via `make lint` / `make format`.
 - No `console.log` except `console.warn`/`console.error`.
 

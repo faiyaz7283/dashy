@@ -158,7 +158,7 @@ def test_calculate_overdue_status():
 
 **Characteristics:**
 - Moderate speed (10-100ms per test)
-- Use real database (test.db)
+- Use real database (dashy_test PostgreSQL database)
 - Test queries, constraints, transactions
 - Verify migrations work correctly
 
@@ -232,7 +232,7 @@ def setup_test_database():
     yield
 ```
 
-**Why drop and recreate?** Ensures tests always run against the current schema, even if migrations are out of sync. This is safe because tests use an isolated `test.db`.
+**Why drop and recreate?** Ensures tests always run against the current schema, even if migrations are out of sync. This is safe because tests use an isolated `dashy_test` database.
 
 ### Session fixtures
 
