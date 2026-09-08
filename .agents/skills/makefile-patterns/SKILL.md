@@ -405,5 +405,5 @@ redis-shell:
 
 - **dev-env** — development environment management
 - **testing-patterns** — test isolation and database setup
-- **docker-patterns** — Docker troubleshooting and patterns
+- **dashy-docker-ops** — Docker troubleshooting and patterns
 - **quality-gate** — running tests and linting

@@ -312,3 +312,28 @@ This ensures the correct Python environment and dependencies are used.
 ## 11. When in doubt
 
 If you are about to run a command and are unsure whether it violates the Docker-first rule, stop and ask the user. It is better to confirm than to pollute the working tree.
+
+## 12. MCP servers
+
+The source of truth for which MCP servers Dashy uses is ECC's registry
+(`mcp-configs/mcp-servers.json` in the `ecc-universal` package). For this
+project, only enable: `github` (PR/issue ops), `context7` (FastAPI/React doc
+lookups), and `ecc-memory-vault` once unified memory is wired up. Do not add
+other registry entries "just in case" — an unused MCP server still consumes
+context budget every session.
+
+Each harness keeps its own native MCP config format (Claude's `.mcp.json`,
+Kimi's `.kimi-code/mcp.json`, Qwen's own MCP block) — there is no live
+sync daemon between them. When the registry changes (a server added, removed,
+or its version bumped), re-run the install for each harness you use on this
+project to pick up the change:
+
+```bash
+ecc install --target claude-project --skills <unchanged, re-run is safe>
+ecc install --target qwen --profile core
+ecc install --target kimi --skills <unchanged, re-run is safe>
+```
+
+Installers for Kimi (and the Codex sync path) merge MCP entries **add-only**
+— they will not silently remove a server you configured by hand outside the
+registry.

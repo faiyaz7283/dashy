@@ -16,6 +16,27 @@ Detect and resolve drift between kiosk TypeScript types and API models.
 - Periodically to ensure type consistency across repos
 - Before deploying API changes that affect kiosk
 
+## Contract Discipline (from ECC's contract-first skill)
+
+The API's generated OpenAPI spec is the **authoritative boundary artifact** for
+kiosk↔api, whether or not codegen is wired up yet. Treat it as such:
+
+- **Never change implementation first and update types afterward.** The order
+  is always: decide the field/shape change → regenerate the OpenAPI spec →
+  update kiosk types to match → update both implementations → verify.
+- **No duplicate sources of truth.** If a field's shape is described in this
+  file's "Key types to check" list, the Pydantic model, and the TS interface,
+  only the Pydantic model (via the generated spec) is authoritative — the
+  other two are copies that can drift; this skill's job is to catch that drift,
+  not to become a fourth copy.
+- **Additive vs breaking**: adding an optional field is safe to land in either
+  repo first. Renaming, removing, or tightening nullability on a field the
+  kiosk already consumes is breaking — coordinate the kiosk-side change in the
+  same review, not a follow-up commit.
+- **Verify serialized responses, not just local types.** A TypeScript cast or
+  a Pydantic model that "should" match isn't proof — the openapi.json diff
+  described below is the actual check.
+
 ## Current State
 
 **Manual sync with drift detection** (as per repo split plan).

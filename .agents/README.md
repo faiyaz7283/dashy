@@ -26,7 +26,7 @@ Migrated from the legacy `.qwen/skills/` directory (ECC-formatted, `origin: comm
 - `deploy-pi/` — Production deployment to Raspberry Pi
 - `deploy-production/` — Production deployment workflow
 - `dev-env/` — Development environment management
-- `docker-patterns/` — Rebuild vs restart, volumes, troubleshooting
+- `dashy-docker-ops/` — Rebuild vs restart, volumes, troubleshooting
 - `makefile-patterns/` — Makefile target conventions
 - `quality-gate/` — Running lint/typecheck/test/build across the stack
 - `submodule-workflow/` — Working across the orchestrator and its submodules

@@ -118,6 +118,11 @@ setup:
 		echo "  ⚠️  Edit env/.env.dev with your actual values before running make dev-up"; \
 	fi
 	@echo ""
+	@echo "🪝 Wiring git hooks (tracked, so this reproduces on every machine)..."
+	@cd dashy-kiosk && git config core.hooksPath .husky
+	@cd dashy-api && git config core.hooksPath scripts/git-hooks
+	@echo "  ✅ Hooks wired: dashy-kiosk -> .husky, dashy-api -> scripts/git-hooks"
+	@echo ""
 	@echo "✅ Setup complete!"
 
 # ==============================================================================

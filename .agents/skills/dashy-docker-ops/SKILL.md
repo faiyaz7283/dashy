@@ -1,9 +1,11 @@
 ---
-name: docker-patterns
-description: Docker patterns for Dashy — when to rebuild vs restart, volume management, common issues, troubleshooting, dev vs prod differences.
+name: dashy-docker-ops
+description: Docker patterns for Dashy — when to rebuild vs restart, volume management, common issues, troubleshooting, dev vs prod differences. (Renamed from docker-patterns to avoid confusion with ECC's generic docker-patterns skill.)
+metadata:
+  origin: community
 ---
 
-# Docker Patterns
+# Dashy Docker Ops
 
 Dashy runs entirely in Docker containers. This skill covers common patterns, troubleshooting, and best practices for working with the Docker setup.
 
