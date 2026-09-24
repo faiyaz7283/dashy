@@ -9,7 +9,7 @@ A DIY family command center dashboard inspired by [Skylight Calendar](https://my
 ## Current Status
 
 - **Phase:** v1 feature-complete — calendar, weather, chores, metrics dashboard, data resilience infrastructure.
-- **Pi:** Raspberry Pi 4 (4GB), Raspberry Pi OS 64-bit (Trixie/Debian 13), SSH accessible at `rpi4_main@dashy.local` (192.168.1.194), booting from an NVMe SSD (WD Blue SN500 500 GB via Realtek RTL9210 USB bridge). Original 64 GB microSD preserved as rollback.
+- **Pi:** Raspberry Pi 4 (4GB), Raspberry Pi OS 64-bit (Trixie/Debian 13), SSH accessible at `rpi4_main@dashy.local` (192.168.1.194), booting from a Samsung Evo Plus 128 GB microSD card in the built-in slot (`BOOT_ORDER=0xf41`, SD-first). The WD Blue SN500 500 GB NVMe (Realtek RTL9210 USB bridge) was retired and wiped for reuse in a Raspberry Pi 5; the original 64 GB microSD is kept as a historical snapshot.
 - **Repo:** `git@github.com:faiyaz7283/dashy.git` (orchestrator)
 - **Submodules:**
   - `dashy-kiosk/` → `git@github.com:faiyaz7283/dashy-kiosk.git`
@@ -323,8 +323,10 @@ Dashy is a fluid, full-window application. Every feature — current and future 
 - **Username:** `rpi4_main`
 - **IP:** 192.168.1.194 (DHCP, may change)
 - **SSH:** Key-based auth (ed25519)
-- **Boot medium:** NVMe SSD (WD Blue SN500 500 GB) via Realtek RTL9210 USB 3.0 bridge
-- **Rollback medium:** Original 64 GB microSD card (untouched; can be reinserted to boot)
+- **Boot medium:** Samsung Evo Plus 128 GB microSD in the built-in slot (`/dev/mmcblk0`; root on `mmcblk0p2`, boot on `mmcblk0p1`)
+- **Bootloader:** `BOOT_ORDER=0xf41` (microSD first, USB fallback)
+- **Former boot medium:** WD Blue SN500 500 GB NVMe via Realtek RTL9210 USB 3.0 bridge — retired, wiped, and repurposed for a Raspberry Pi 5 16 GB
+- **Historical snapshot:** Original 64 GB microSD card (untouched; pre-NVMe system)
 - **Display:** 1360×768 HDMI TV (Hisense), NOT touchscreen
 - **Kiosk mode:** Chromium auto-start on boot, full-screen, mouse cursor auto-hides after 2 s of idle (handled by the frontend so it works on X11 and Wayland)
 
@@ -374,11 +376,11 @@ The `start-chromium-kiosk.sh` script also checks NTP status on every boot and lo
 
 ## Hardware Monitoring & Maintenance
 
-Storage and health checks for the current production Pi. These commands reference the current boot device (`/dev/sda`); update paths if the hardware changes.
+Storage and health checks for the current production Pi. The boot device is now the microSD card (`/dev/mmcblk0`), which does not expose SMART data; the NVMe checks below are retained as reference for the retired SSD.
 
-### NVMe SSD Health (`smartmontools`)
+### NVMe SSD Health (`smartmontools`) — retired device
 
-`smartmontools` is installed on the Pi.
+`smartmontools` is installed on the Pi. The NVMe was removed during the microSD migration, so `/dev/sda` no longer exists; the commands below are kept for reference only.
 
 ```bash
 # Overall health pass/fail
@@ -393,7 +395,7 @@ ssh r4pi "sudo smartctl -t short /dev/sda"
 ssh r4pi "sudo smartctl -l selftest /dev/sda"
 ```
 
-Current baseline (post-migration):
+Former NVMe baseline (recorded before retirement):
 
 | Metric | Value |
 |---|---|
@@ -406,18 +408,19 @@ Current baseline (post-migration):
 
 ### TRIM Note
 
-TRIM is **not supported** through the current Realtek RTL9210 USB bridge (`fstrim` reports `the discard operation is not supported`). The SSD relies on its own garbage collection. The weekly `fstrim.timer` is disabled to avoid recurring failure logs; it can be re-enabled if the bridge is replaced with one that supports TRIM (e.g., ASMedia ASM2362) or a PCIe M.2 HAT.
+This applied to the retired NVMe + Realtek RTL9210 USB bridge, not the current microSD boot medium. TRIM was **not supported** through that bridge (`fstrim` reported `the discard operation is not supported`), so the SSD relied on its own garbage collection and the weekly `fstrim.timer` was disabled. The NVMe has since been removed and wiped; microSD cards do not use TRIM.
 
-### Boot Medium Rollback
+### Boot Medium Recovery
 
-The original 64 GB microSD card is preserved unchanged. If the SSD fails or the Pi needs to be reverted:
+The Pi boots from the microSD card in the built-in slot (`BOOT_ORDER=0xf41`: microSD first, USB fallback). If the card fails or is corrupted:
 
-1. Shut down the Pi.
-2. Remove the NVMe SSD / USB adapter.
-3. Reinsert the original microSD card.
-4. Boot — the system will be exactly as it was before migration.
+1. Shut down the Pi and remove the microSD card.
+2. Re-clone from a working copy, or attach a bootable USB device — `0xf41` falls back to USB automatically when no bootable microSD is present.
+3. Boot; the `dashy-prod` containers auto-start on their own (see note below).
 
-To make the SD card bootable again permanently, restore the bootloader EEPROM to SD-first (`BOOT_ORDER=0xf41`). This is usually unnecessary if the SSD is simply removed.
+The original 64 GB microSD remains a historical snapshot of the pre-NVMe system. The 500 GB NVMe that previously served as the boot medium has been wiped and is no longer a rollback option.
+
+> Note: the production containers use `restart: unless-stopped`. They auto-start on normal reboots and after power loss, but **not** if they were explicitly stopped with `docker stop`. In that case, start them from `~/dashy/compose/docker-compose.prod.yml` (e.g. `docker start dashy-traefik dashy-prod-postgres dashy-prod-redis dashy-api dashy-kiosk`).
 
 ---
 
